@@ -1,0 +1,40 @@
+version: '3.8'
+services:
+  app:
+    build: ./services/backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=your_password
+      - DB_NAME=recipe_db
+      - DB_SSL_MODE=disable
+
+  db:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=your_password
+      - POSTGRES_DB=recipe_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  postgrest:
+    image: postgrest/postgrest
+    ports:
+      - "3000:3000"
+    environment:
+      PGRST_DB_URI: postgres://postgres:your_password@db:5432/recipe_db
+      PGRST_DB_SCHEMA: public
+      PGRST_DB_ANON_ROLE: postgres
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

@@ -1,0 +1,35 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Environment variables
+.env
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+tmp/
+air.log
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Migration temporary files
+*.sql.tmp
+
+# Dependency directories
+vendor/
