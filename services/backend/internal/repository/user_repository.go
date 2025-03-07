@@ -7,26 +7,28 @@ import (
 )
 
 type UserRepository interface {
+	Repository
 	// User operations
 	Create(ctx context.Context, user *domain.User) error
 	Update(ctx context.Context, user *domain.User) error
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetByID(ctx context.Context, id string) (*domain.User, error)
+	Delete(ctx context.Context, userID string) error
 
 	// Password reset token operations
 	CreateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
 	UpdateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
 	GetResetTokenByToken(ctx context.Context, token string) (*domain.PasswordResetToken, error)
-
-	WithTransaction(ctx context.Context, fn func(repo UserRepository) error) error
 }
 
 type userRepository struct {
-	db *gorm.DB
+	*baseRepository
 }
 
 func NewUserRepository(db *gorm.DB) UserRepository {
-	return &userRepository{db: db}
+	return &userRepository{
+		baseRepository: &baseRepository{db: db},
+	}
 }
 
 // User operations
@@ -71,10 +73,6 @@ func (r *userRepository) GetResetTokenByToken(ctx context.Context, token string)
 	return &resetToken, err
 }
 
-func (r *userRepository) WithTransaction(ctx context.Context, fn func(repo UserRepository) error) error {
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Create a new repository instance with the transaction
-		txRepo := &userRepository{db: tx}
-		return fn(txRepo)
-	})
+func (r *userRepository) Delete(ctx context.Context, userID string) error {
+	return r.db.WithContext(ctx).Delete(&domain.User{ID: userID}).Error
 }

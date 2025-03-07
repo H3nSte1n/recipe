@@ -6,11 +6,13 @@ import (
 )
 
 type Handlers struct {
-	AuthHandler *AuthHandler
+	UserHandler    *UserHandler
+	ProfileHandler *ProfileHandler
 }
 
 func NewHandlers(services *service.Services, logger *zap.Logger) *Handlers {
 	return &Handlers{
-		AuthHandler: NewAuthHandler(services.AuthService),
+		UserHandler:    NewUserHandler(services.UserService),
+		ProfileHandler: NewProfileHandler(services.ProfileService),
 	}
 }

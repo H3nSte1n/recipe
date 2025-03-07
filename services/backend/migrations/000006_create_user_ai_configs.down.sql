@@ -1,0 +1,2 @@
+ALTER TABLE user_ai_configs ALTER COLUMN id DROP DEFAULT;
+DROP TABLE IF EXISTS user_ai_configs;

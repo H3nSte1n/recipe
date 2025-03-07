@@ -46,16 +46,26 @@ func (r *Router) SetupRoutes() *gin.Engine {
 func (r *Router) setupPublicRoutes(rg *gin.RouterGroup) {
 	auth := rg.Group("/auth")
 	{
-		auth.POST("/register", r.handlers.AuthHandler.Register)
-		auth.POST("/login", r.handlers.AuthHandler.Login)
+		auth.POST("/register", r.handlers.UserHandler.Register)
+		auth.POST("/login", r.handlers.UserHandler.Login)
 		// Could add other public routes like:
-		auth.POST("/forgot-password", r.handlers.AuthHandler.ForgotPassword)
-		auth.POST("/reset-password", r.handlers.AuthHandler.ResetPassword)
+		auth.POST("/forgot-password", r.handlers.UserHandler.ForgotPassword)
+		auth.POST("/reset-password", r.handlers.UserHandler.ResetPassword)
 	}
 }
 
 // setupProtectedRoutes handles all routes that require authentication
 func (r *Router) setupProtectedRoutes(rg *gin.RouterGroup) {
+	profiles := rg.Group("/profiles")
+	{
+		profiles.GET("", r.handlers.ProfileHandler.Get)
+		profiles.PUT("", r.handlers.ProfileHandler.Update)
+	}
+
+	users := rg.Group("/users")
+	{
+		users.DELETE("/me", r.handlers.UserHandler.DeleteAccount) // or /account
+	}
 }
 
 func (r *Router) Run(addr string) error {

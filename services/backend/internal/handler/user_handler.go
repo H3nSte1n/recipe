@@ -7,24 +7,24 @@ import (
 	"net/http"
 )
 
-type AuthHandler struct {
-	authService service.AuthService
+type UserHandler struct {
+	userService service.UserService
 }
 
-func NewAuthHandler(authService service.AuthService) *AuthHandler {
-	return &AuthHandler{
-		authService: authService,
+func NewUserHandler(userService service.UserService) *UserHandler {
+	return &UserHandler{
+		userService: userService,
 	}
 }
 
-func (h *AuthHandler) Register(c *gin.Context) {
+func (h *UserHandler) Register(c *gin.Context) {
 	var req domain.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	user, err := h.authService.Register(c.Request.Context(), &req)
+	user, err := h.userService.Register(c.Request.Context(), &req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -33,14 +33,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, user)
 }
 
-func (h *AuthHandler) Login(c *gin.Context) {
+func (h *UserHandler) Login(c *gin.Context) {
 	var req domain.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	response, err := h.authService.Login(c.Request.Context(), &req)
+	response, err := h.userService.Login(c.Request.Context(), &req)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -49,14 +49,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+func (h *UserHandler) ForgotPassword(c *gin.Context) {
 	var req domain.ForgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := h.authService.ForgotPassword(c.Request.Context(), &req); err != nil {
+	if err := h.userService.ForgotPassword(c.Request.Context(), &req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to process request"})
 		return
 	}
@@ -67,14 +67,14 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	})
 }
 
-func (h *AuthHandler) ResetPassword(c *gin.Context) {
+func (h *UserHandler) ResetPassword(c *gin.Context) {
 	var req domain.ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if err := h.authService.ResetPassword(c.Request.Context(), &req); err != nil {
+	if err := h.userService.ResetPassword(c.Request.Context(), &req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -82,4 +82,26 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "password successfully reset",
 	})
+}
+
+func (h *UserHandler) DeleteAccount(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	confirm := c.Query("confirm")
+	if confirm != "true" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "please confirm account deletion by adding ?confirm=true to the request"})
+		return
+	}
+
+	if err := h.userService.Delete(c.Request.Context(), userID.(string)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete account"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "account successfully deleted"})
 }

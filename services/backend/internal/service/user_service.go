@@ -5,7 +5,9 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/yourusername/recipe-app/internal/domain"
 	"github.com/yourusername/recipe-app/internal/repository"
 	"github.com/yourusername/recipe-app/pkg/config"
@@ -13,56 +15,82 @@ import (
 	"time"
 )
 
-type AuthService interface {
+type UserService interface {
 	Register(ctx context.Context, req *domain.RegisterRequest) (*domain.User, error)
 	Login(ctx context.Context, req *domain.LoginRequest) (*domain.LoginResponse, error)
 	ValidateToken(token string) (*jwt.Token, error)
 	ForgotPassword(ctx context.Context, req *domain.ForgotPasswordRequest) error
 	ResetPassword(ctx context.Context, req *domain.ResetPasswordRequest) error
+	Delete(ctx context.Context, userID string) error
 }
 
-type authService struct {
+type userService struct {
 	userRepo     repository.UserRepository
+	profileRepo  repository.ProfileRepository
 	jwtSecret    []byte
 	jwtDuration  time.Duration
 	emailService email.EmailService
 }
 
-func NewAuthService(userRepo repository.UserRepository, jwtSecret string, config config.Config) AuthService {
-	return &authService{
+func NewUserService(userRepo repository.UserRepository, profileRepo repository.ProfileRepository, jwtSecret string, config config.Config) UserService {
+	return &userService{
 		userRepo:     userRepo,
+		profileRepo:  profileRepo,
 		jwtSecret:    []byte(jwtSecret),
 		jwtDuration:  config.JWTDuration,
 		emailService: email.NewEmailService(config.SMTPFrom, config.SMTPPassword, config.SMTPHost, config.SMTPPort),
 	}
 }
 
-func (s *authService) Register(ctx context.Context, req *domain.RegisterRequest) (*domain.User, error) {
+func (s *userService) Register(ctx context.Context, req *domain.RegisterRequest) (*domain.User, error) {
 	existingUser, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err == nil && existingUser != nil {
 		return nil, errors.New("email already registered")
 	}
 
-	hashedPassword, err := domain.HashPassword(req.Password)
+	var user *domain.User
+	err = s.userRepo.WithTransaction(ctx, func(txRepo repository.Repository) error {
+		hashedPassword, err := domain.HashPassword(req.Password)
+		if err != nil {
+			return err
+		}
+
+		user = &domain.User{
+			ID:           uuid.New().String(),
+			Email:        req.Email,
+			PasswordHash: hashedPassword,
+			FirstName:    req.FirstName,
+			LastName:     req.LastName,
+		}
+
+		if err := txRepo.GetDB().Create(user).Error; err != nil {
+			return err
+		}
+
+		profile := &domain.Profile{
+			ID:        uuid.New().String(),
+			UserID:    user.ID,
+			Bio:       fmt.Sprintf("Hello, I'm %s %s", user.FirstName, user.LastName),
+			Location:  "", // Default empty or can come from request if you add it
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+
+		if err := txRepo.GetDB().Create(profile).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		return nil, err
-	}
-
-	user := &domain.User{
-		Email:        req.Email,
-		PasswordHash: hashedPassword,
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-	}
-
-	if err := s.userRepo.Create(ctx, user); err != nil {
 		return nil, err
 	}
 
 	return user, nil
 }
 
-func (s *authService) Login(ctx context.Context, req *domain.LoginRequest) (*domain.LoginResponse, error) {
+func (s *userService) Login(ctx context.Context, req *domain.LoginRequest) (*domain.LoginResponse, error) {
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, errors.New("invalid credentials")
@@ -83,7 +111,7 @@ func (s *authService) Login(ctx context.Context, req *domain.LoginRequest) (*dom
 	}, nil
 }
 
-func (s *authService) ForgotPassword(ctx context.Context, req *domain.ForgotPasswordRequest) error {
+func (s *userService) ForgotPassword(ctx context.Context, req *domain.ForgotPasswordRequest) error {
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
 		return nil
@@ -108,7 +136,7 @@ func (s *authService) ForgotPassword(ctx context.Context, req *domain.ForgotPass
 	return s.emailService.SendPasswordResetEmail(user.Email, tokenString)
 }
 
-func (s *authService) ResetPassword(ctx context.Context, req *domain.ResetPasswordRequest) error {
+func (s *userService) ResetPassword(ctx context.Context, req *domain.ResetPasswordRequest) error {
 	resetToken, err := s.userRepo.GetResetTokenByToken(ctx, req.Token)
 	if err != nil {
 		return errors.New("invalid token")
@@ -118,30 +146,34 @@ func (s *authService) ResetPassword(ctx context.Context, req *domain.ResetPasswo
 		return errors.New("token expired or already used")
 	}
 
-	// Get user
 	user, err := s.userRepo.GetByID(ctx, resetToken.UserID)
 	if err != nil {
 		return errors.New("user not found")
 	}
 
-	// Update password
-	user.PasswordHash, err = domain.HashPassword(req.Password)
+	hashedPassword, err := domain.HashPassword(req.Password)
 	if err != nil {
 		return err
 	}
 
-	// Update both user and token in transaction
-	return s.userRepo.WithTransaction(ctx, func(repo repository.UserRepository) error {
-		if err := s.userRepo.Update(ctx, user); err != nil {
+	return s.userRepo.WithTransaction(ctx, func(txRepo repository.Repository) error {
+		if err := txRepo.GetDB().Model(&domain.User{}).
+			Where("id = ?", user.ID).
+			Update("password_hash", hashedPassword).Error; err != nil {
 			return err
 		}
 
-		resetToken.Used = true
-		return s.userRepo.UpdateResetToken(ctx, resetToken)
+		if err := txRepo.GetDB().Model(&domain.PasswordResetToken{}).
+			Where("id = ?", resetToken.ID).
+			Update("used", true).Error; err != nil {
+			return err
+		}
+
+		return nil
 	})
 }
 
-func (s *authService) generateToken(user *domain.User) (string, error) {
+func (s *userService) generateToken(user *domain.User) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
 		"email":   user.Email,
@@ -152,11 +184,27 @@ func (s *authService) generateToken(user *domain.User) (string, error) {
 	return token.SignedString(s.jwtSecret)
 }
 
-func (s *authService) ValidateToken(tokenString string) (*jwt.Token, error) {
+func (s *userService) ValidateToken(tokenString string) (*jwt.Token, error) {
 	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}
 		return s.jwtSecret, nil
+	})
+}
+
+func (s *userService) Delete(ctx context.Context, userID string) error {
+	return s.userRepo.WithTransaction(ctx, func(txRepo repository.Repository) error {
+		var user domain.User
+		if err := txRepo.GetDB().First(&user, "id = ?", userID).Error; err != nil {
+			return errors.New("user not found")
+		}
+
+		// Delete user using the transaction db
+		if err := txRepo.GetDB().Delete(&user).Error; err != nil {
+			return err
+		}
+
+		return nil
 	})
 }
