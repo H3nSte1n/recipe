@@ -6,13 +6,15 @@ import (
 )
 
 type Services struct {
-	UserService    UserService
-	ProfileService ProfileService
+	UserService     UserService
+	ProfileService  ProfileService
+	AIConfigService AIConfigService
 }
 
 func NewServices(repos *repository.Repositories, config config.Config) *Services {
 	return &Services{
-		UserService:    NewUserService(repos.UserRepository, repos.ProfileRepository, config.JWTSecret, config),
-		ProfileService: NewProfileService(repos.ProfileRepository, repos.UserRepository),
+		UserService:     NewUserService(repos.UserRepository, repos.ProfileRepository, config.JWTSecret, config),
+		ProfileService:  NewProfileService(repos.ProfileRepository, repos.UserRepository),
+		AIConfigService: NewAIConfigService(repos.AIConfigRepository),
 	}
 }

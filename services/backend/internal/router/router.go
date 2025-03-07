@@ -56,15 +56,25 @@ func (r *Router) setupPublicRoutes(rg *gin.RouterGroup) {
 
 // setupProtectedRoutes handles all routes that require authentication
 func (r *Router) setupProtectedRoutes(rg *gin.RouterGroup) {
-	profiles := rg.Group("/profiles")
-	{
-		profiles.GET("", r.handlers.ProfileHandler.Get)
-		profiles.PUT("", r.handlers.ProfileHandler.Update)
-	}
-
 	users := rg.Group("/users")
 	{
+		users.GET("", r.handlers.ProfileHandler.Get)
+		users.PUT("", r.handlers.ProfileHandler.Update)
 		users.DELETE("/me", r.handlers.UserHandler.DeleteAccount) // or /account
+	}
+
+	aiConfigs := rg.Group("/ai-configs")
+	{
+		aiConfigs.GET("", r.handlers.AIConfigHandler.List)
+		aiConfigs.POST("", r.handlers.AIConfigHandler.Create)
+		aiConfigs.GET("/:id", r.handlers.AIConfigHandler.Get)
+		aiConfigs.PUT("/:id", r.handlers.AIConfigHandler.Update)
+		aiConfigs.DELETE("/:id", r.handlers.AIConfigHandler.Delete)
+
+		aiConfigs.GET("/default", r.handlers.AIConfigHandler.GetDefault)
+		aiConfigs.POST("/:id/set-default", r.handlers.AIConfigHandler.SetDefault)
+
+		aiConfigs.GET("/models", r.handlers.AIConfigHandler.ListModels)
 	}
 }
 
