@@ -14,12 +14,12 @@ type ProfileRepository interface {
 }
 
 type profileRepository struct {
-	*baseRepository
+	*BaseRepository[domain.Profile]
 }
 
 func NewProfileRepository(db *gorm.DB) ProfileRepository {
 	return &profileRepository{
-		baseRepository: &baseRepository{db: db},
+		BaseRepository: NewBaseRepository[domain.Profile](db),
 	}
 }
 

@@ -9,6 +9,7 @@ type Handlers struct {
 	UserHandler     *UserHandler
 	ProfileHandler  *ProfileHandler
 	AIConfigHandler *AIConfigHandler
+	RecipeHandler   *RecipeHandler
 }
 
 func NewHandlers(services *service.Services, logger *zap.Logger) *Handlers {
@@ -16,5 +17,6 @@ func NewHandlers(services *service.Services, logger *zap.Logger) *Handlers {
 		UserHandler:     NewUserHandler(services.UserService),
 		ProfileHandler:  NewProfileHandler(services.ProfileService),
 		AIConfigHandler: NewAIConfigHandler(services.AIConfigService),
+		RecipeHandler:   NewRecipeHandler(services.RecipeService, logger),
 	}
 }

@@ -7,7 +7,7 @@ bin/
 *.dylib
 
 # Environment variables
-.env
+env.development.yaml
 
 # IDE specific files
 .idea/

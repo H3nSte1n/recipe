@@ -13,12 +13,12 @@ import (
 func MigrateDB(cfg *config.Config) error {
 	db, err := sql.Open("postgres", fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		cfg.DBUser,
-		cfg.DBPassword,
-		cfg.DBHost,
-		cfg.DBPort,
-		cfg.DBName,
-		cfg.DBSSLMode,
+		cfg.DB.User,
+		cfg.DB.Password,
+		cfg.DB.Host,
+		cfg.DB.Port,
+		cfg.DB.Name,
+		cfg.DB.SSLMode,
 	))
 	if err != nil {
 		return fmt.Errorf("could not connect to database: %v", err)

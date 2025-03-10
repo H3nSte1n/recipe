@@ -29,8 +29,9 @@ db-connect: ## Connect to database
 db-create: ## Create database
 	$(DOCKER_EXEC) db psql -U $(DB_USER) -c "CREATE DATABASE $(DB_NAME)"
 
-db-drop: ## Drop database
-	$(DOCKER_EXEC) db psql -U $(DB_USER) -c "DROP DATABASE IF EXISTS $(DB_NAME)"
+db-drop:
+	docker-compose exec db psql -U $(DB_USER) -c "SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = '$(DB_NAME)' AND pid <> pg_backend_pid();"
+	docker-compose exec db psql -U $(DB_USER) -c "DROP DATABASE IF EXISTS $(DB_NAME)"
 
 # Additional Docker commands
 docker-up: ## Start docker containers

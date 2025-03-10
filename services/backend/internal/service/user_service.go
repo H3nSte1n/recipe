@@ -37,8 +37,8 @@ func NewUserService(userRepo repository.UserRepository, profileRepo repository.P
 		userRepo:     userRepo,
 		profileRepo:  profileRepo,
 		jwtSecret:    []byte(jwtSecret),
-		jwtDuration:  config.JWTDuration,
-		emailService: email.NewEmailService(config.SMTPFrom, config.SMTPPassword, config.SMTPHost, config.SMTPPort),
+		jwtDuration:  config.JWT.Duration,
+		emailService: email.NewEmailService(config.SMTP.From, config.SMTP.Password, config.SMTP.Host, config.SMTP.Port),
 	}
 }
 
@@ -49,7 +49,7 @@ func (s *userService) Register(ctx context.Context, req *domain.RegisterRequest)
 	}
 
 	var user *domain.User
-	err = s.userRepo.WithTransaction(ctx, func(txRepo repository.Repository) error {
+	err = s.userRepo.WithTypedTransaction(ctx, func(txRepo *repository.UserRepositoryImpl) error {
 		hashedPassword, err := domain.HashPassword(req.Password)
 		if err != nil {
 			return err
@@ -63,7 +63,7 @@ func (s *userService) Register(ctx context.Context, req *domain.RegisterRequest)
 			LastName:     req.LastName,
 		}
 
-		if err := txRepo.GetDB().Create(user).Error; err != nil {
+		if err := txRepo.Create(ctx, user); err != nil {
 			return err
 		}
 
@@ -156,7 +156,7 @@ func (s *userService) ResetPassword(ctx context.Context, req *domain.ResetPasswo
 		return err
 	}
 
-	return s.userRepo.WithTransaction(ctx, func(txRepo repository.Repository) error {
+	return s.userRepo.WithTypedTransaction(ctx, func(txRepo *repository.UserRepositoryImpl) error {
 		if err := txRepo.GetDB().Model(&domain.User{}).
 			Where("id = ?", user.ID).
 			Update("password_hash", hashedPassword).Error; err != nil {
@@ -194,14 +194,13 @@ func (s *userService) ValidateToken(tokenString string) (*jwt.Token, error) {
 }
 
 func (s *userService) Delete(ctx context.Context, userID string) error {
-	return s.userRepo.WithTransaction(ctx, func(txRepo repository.Repository) error {
+	return s.userRepo.WithTypedTransaction(ctx, func(userRepo *repository.UserRepositoryImpl) error {
 		var user domain.User
-		if err := txRepo.GetDB().First(&user, "id = ?", userID).Error; err != nil {
+		if err, _ := userRepo.GetByID(ctx, userID); err != nil {
 			return errors.New("user not found")
 		}
 
-		// Delete user using the transaction db
-		if err := txRepo.GetDB().Delete(&user).Error; err != nil {
+		if err := userRepo.Delete(ctx, user.ID); err != nil {
 			return err
 		}
 

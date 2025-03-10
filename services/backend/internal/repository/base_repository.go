@@ -1,3 +1,4 @@
+// internal/repository/base_repository.go
 package repository
 
 import (
@@ -5,25 +6,39 @@ import (
 	"gorm.io/gorm"
 )
 
-type Repository interface {
+// Generic Repository interface
+type Repository[T any] interface {
 	GetDB() *gorm.DB
-	WithTransaction(ctx context.Context, fn TransactionFunc) error
+	withDB(db *gorm.DB) Repository[T]
+	WithTransaction(ctx context.Context, fn TransactionFunc[T]) error
 }
 
-type TransactionFunc func(Repository) error
+// Generic TransactionFunc
+type TransactionFunc[T any] func(Repository[T]) error
 
-type baseRepository struct {
+// Generic base repository
+type BaseRepository[T any] struct {
 	db *gorm.DB
 }
 
-func (r *baseRepository) GetDB() *gorm.DB {
+// Constructor for BaseRepository
+func NewBaseRepository[T any](db *gorm.DB) *BaseRepository[T] {
+	return &BaseRepository[T]{
+		db: db,
+	}
+}
+
+func (r *BaseRepository[T]) GetDB() *gorm.DB {
 	return r.db
 }
 
-func (r *baseRepository) WithTransaction(ctx context.Context, fn TransactionFunc) error {
+func (r *BaseRepository[T]) withDB(db *gorm.DB) Repository[T] {
+	return &BaseRepository[T]{db: db}
+}
+
+func (r *BaseRepository[T]) WithTransaction(ctx context.Context, fn TransactionFunc[T]) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Create a new repository with the transaction
-		repo := &baseRepository{db: tx}
+		repo := r.withDB(tx)
 		return fn(repo)
 	})
 }

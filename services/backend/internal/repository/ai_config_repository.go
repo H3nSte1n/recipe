@@ -8,7 +8,7 @@ import (
 )
 
 type AIConfigRepository interface {
-	Repository
+	Repository[domain.UserAIConfig]
 	Create(ctx context.Context, config *domain.UserAIConfig) error
 	Update(ctx context.Context, config *domain.UserAIConfig) error
 	GetByID(ctx context.Context, id string) (*domain.UserAIConfig, error)
@@ -18,27 +18,37 @@ type AIConfigRepository interface {
 	GetAIModels(ctx context.Context) ([]domain.AIModel, error)
 	GetDefaultConfig(ctx context.Context, userID string) (*domain.UserAIConfig, error)
 	SetDefault(ctx context.Context, userID, configID string) error
+	WithTypedTransaction(ctx context.Context, fn func(*AIConfigRepositoryImpl) error) error
 }
 
-type aiConfigRepository struct {
-	*baseRepository
+type AIConfigRepositoryImpl struct {
+	*BaseRepository[domain.UserAIConfig]
 }
 
 func NewAIConfigRepository(db *gorm.DB) AIConfigRepository {
-	return &aiConfigRepository{
-		baseRepository: &baseRepository{db: db},
+	return &AIConfigRepositoryImpl{
+		BaseRepository: NewBaseRepository[domain.UserAIConfig](db),
 	}
 }
 
-func (r *aiConfigRepository) Create(ctx context.Context, config *domain.UserAIConfig) error {
+func (r *AIConfigRepositoryImpl) WithTypedTransaction(ctx context.Context, fn func(*AIConfigRepositoryImpl) error) error {
+	return r.WithTransaction(ctx, func(txRepo Repository[domain.UserAIConfig]) error {
+		typed := &AIConfigRepositoryImpl{
+			BaseRepository: txRepo.(*BaseRepository[domain.UserAIConfig]),
+		}
+		return fn(typed)
+	})
+}
+
+func (r *AIConfigRepositoryImpl) Create(ctx context.Context, config *domain.UserAIConfig) error {
 	return r.db.WithContext(ctx).Create(config).Error
 }
 
-func (r *aiConfigRepository) Update(ctx context.Context, config *domain.UserAIConfig) error {
+func (r *AIConfigRepositoryImpl) Update(ctx context.Context, config *domain.UserAIConfig) error {
 	return r.db.WithContext(ctx).Save(config).Error
 }
 
-func (r *aiConfigRepository) GetByID(ctx context.Context, id string) (*domain.UserAIConfig, error) {
+func (r *AIConfigRepositoryImpl) GetByID(ctx context.Context, id string) (*domain.UserAIConfig, error) {
 	var config domain.UserAIConfig
 	err := r.db.WithContext(ctx).
 		Preload("AIModel").
@@ -46,7 +56,7 @@ func (r *aiConfigRepository) GetByID(ctx context.Context, id string) (*domain.Us
 	return &config, err
 }
 
-func (r *aiConfigRepository) GetByUserAndModel(ctx context.Context, userID, modelID string) (*domain.UserAIConfig, error) {
+func (r *AIConfigRepositoryImpl) GetByUserAndModel(ctx context.Context, userID, modelID string) (*domain.UserAIConfig, error) {
 	var config domain.UserAIConfig
 	err := r.db.WithContext(ctx).
 		Where("user_id = ? AND ai_model_id = ?", userID, modelID).
@@ -54,7 +64,7 @@ func (r *aiConfigRepository) GetByUserAndModel(ctx context.Context, userID, mode
 	return &config, err
 }
 
-func (r *aiConfigRepository) ListByUserID(ctx context.Context, userID string) ([]domain.UserAIConfig, error) {
+func (r *AIConfigRepositoryImpl) ListByUserID(ctx context.Context, userID string) ([]domain.UserAIConfig, error) {
 	var configs []domain.UserAIConfig
 	err := r.db.WithContext(ctx).
 		Preload("AIModel").
@@ -63,11 +73,11 @@ func (r *aiConfigRepository) ListByUserID(ctx context.Context, userID string) ([
 	return configs, err
 }
 
-func (r *aiConfigRepository) Delete(ctx context.Context, id string) error {
+func (r *AIConfigRepositoryImpl) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Delete(&domain.UserAIConfig{ID: id}).Error
 }
 
-func (r *aiConfigRepository) GetAIModels(ctx context.Context) ([]domain.AIModel, error) {
+func (r *AIConfigRepositoryImpl) GetAIModels(ctx context.Context) ([]domain.AIModel, error) {
 	var models []domain.AIModel
 	err := r.db.WithContext(ctx).
 		Where("is_active = ?", true).
@@ -75,7 +85,7 @@ func (r *aiConfigRepository) GetAIModels(ctx context.Context) ([]domain.AIModel,
 	return models, err
 }
 
-func (r *aiConfigRepository) GetDefaultConfig(ctx context.Context, userID string) (*domain.UserAIConfig, error) {
+func (r *AIConfigRepositoryImpl) GetDefaultConfig(ctx context.Context, userID string) (*domain.UserAIConfig, error) {
 	var config domain.UserAIConfig
 	err := r.db.WithContext(ctx).
 		Preload("AIModel").
@@ -84,8 +94,8 @@ func (r *aiConfigRepository) GetDefaultConfig(ctx context.Context, userID string
 	return &config, err
 }
 
-func (r *aiConfigRepository) SetDefault(ctx context.Context, userID, configID string) error {
-	return r.WithTransaction(ctx, func(txRepo Repository) error {
+func (r *AIConfigRepositoryImpl) SetDefault(ctx context.Context, userID, configID string) error {
+	return r.WithTypedTransaction(ctx, func(txRepo *AIConfigRepositoryImpl) error {
 		result := txRepo.GetDB().Model(&domain.UserAIConfig{}).
 			Where("id = ? AND user_id = ?", configID, userID).
 			Update("is_default", true)

@@ -3,58 +3,87 @@ package config
 import (
 	"fmt"
 	"github.com/spf13/viper"
+	"strings"
 	"time"
 )
 
 type Config struct {
-	AppName string `mapstructure:"APP_NAME"`
-	AppEnv  string `mapstructure:"APP_ENV"`
-	AppPort string `mapstructure:"APP_PORT"`
-
-	DBHost     string `mapstructure:"DB_HOST"`
-	DBPort     string `mapstructure:"DB_PORT"`
-	DBUser     string `mapstructure:"DB_USER"`
-	DBPassword string `mapstructure:"DB_PASSWORD"`
-	DBName     string `mapstructure:"DB_NAME"`
-	DBSSLMode  string `mapstructure:"DB_SSL_MODE"`
-
-	JWTSecret        string        `mapstructure:"JWT_SECRET"`
-	JWTDuration      time.Duration `mapstructure:"JWT_DURATION"`
-	JWTExpirationHrs time.Duration `mapstructure:"JWT_EXPIRATION_HOURS"`
-
-	SMTPHost     string `mapstructure:"SMTP_HOST"`
-	SMTPPort     string `mapstructure:"SMTP_PORT"`
-	SMTPUser     string `mapstructure:"SMTP_USER"`
-	SMTPPassword string `mapstructure:"SMTP_PASSWORD"`
-	SMTPFrom     string `mapstructure:"SMTP_FROM"`
-
-	LogLevel string `mapstructure:"LOG_LEVEL"`
+	App      AppConfig     `mapstructure:"app"`
+	DB       DBConfig      `mapstructure:"db"`
+	JWT      JWTConfig     `mapstructure:"jwt"`
+	SMTP     SMTPConfig    `mapstructure:"smtp"`
+	Storage  StorageConfig `mapstructure:"storage"`
+	AI       AIConfig      `mapstructure:"ai"`
+	LogLevel string        `mapstructure:"log_level"`
 }
 
-func LoadConfig(path string) (config Config, err error) {
-	// Initialize Viper
+type AppConfig struct {
+	Name string `mapstructure:"name"`
+	Env  string `mapstructure:"env"`
+	Port string `mapstructure:"port"`
+}
+
+type DBConfig struct {
+	Host     string `mapstructure:"host"`
+	Port     string `mapstructure:"port"`
+	User     string `mapstructure:"user"`
+	Password string `mapstructure:"password"`
+	Name     string `mapstructure:"name"`
+	SSLMode  string `mapstructure:"ssl_mode"`
+}
+
+type JWTConfig struct {
+	Secret        string        `mapstructure:"secret"`
+	Duration      time.Duration `mapstructure:"duration"`
+	ExpirationHrs time.Duration `mapstructure:"expiration_hours"`
+}
+
+type SMTPConfig struct {
+	Host     string `mapstructure:"host"`
+	Port     string `mapstructure:"port"`
+	User     string `mapstructure:"user"`
+	Password string `mapstructure:"password"`
+	From     string `mapstructure:"from"`
+}
+
+type StorageConfig struct {
+	Type      string    `mapstructure:"type"`
+	LocalPath string    `mapstructure:"local_path"`
+	BaseURL   string    `mapstructure:"base_url"`
+	AWS       AWSConfig `mapstructure:"aws"`
+}
+
+type AIConfig struct {
+	OpenAIAPIKey    string `mapstructure:"openai_api_key"`
+	AnthropicAPIKey string `mapstructure:"anthropic_api_key"`
+}
+
+type AWSConfig struct {
+	Region          string `mapstructure:"region"`
+	Bucket          string `mapstructure:"bucket"`
+	AccessKeyID     string `mapstructure:"access_key_id"`
+	SecretAccessKey string `mapstructure:"secret_access_key"`
+}
+
+func LoadConfig(env string) (config Config, err error) {
 	v := viper.New()
 
-	// Set the path to look for the .env file
-	v.SetConfigFile(fmt.Sprintf("%s/.env", path))
-	v.SetConfigType("env") // or v.SetConfigType("env")
+	// Change to yaml config
+	v.SetConfigName(fmt.Sprintf("env.%s", env))
+	v.SetConfigType("yaml")
+	v.AddConfigPath(".")
+	v.AddConfigPath("./config")
 
-	// Enable VIPER to read Environment Variables
+	// Enable env variable override
 	v.AutomaticEnv()
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	// Read config file
 	if err := v.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// Config file not found
-			return config, fmt.Errorf("config file not found: %v", err)
-		}
-		return config, fmt.Errorf("error reading config file: %v", err)
+		return config, fmt.Errorf("error reading config file: %w", err)
 	}
 
-	// Unmarshal config
-	err = v.Unmarshal(&config)
-	if err != nil {
-		return config, fmt.Errorf("unable to decode config into struct: %v", err)
+	if err := v.Unmarshal(&config); err != nil {
+		return config, fmt.Errorf("unable to decode config into struct: %w", err)
 	}
 
 	return config, nil

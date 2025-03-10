@@ -33,7 +33,7 @@ func NewAIConfigService(aiConfigRepo repository.AIConfigRepository) AIConfigServ
 func (s *aiConfigService) Create(ctx context.Context, userID string, req *domain.CreateUserAIConfigRequest) (*domain.UserAIConfig, error) {
 	var config *domain.UserAIConfig
 
-	err := s.aiConfigRepo.WithTransaction(ctx, func(txRepo repository.Repository) error {
+	err := s.aiConfigRepo.WithTypedTransaction(ctx, func(txRepo *repository.AIConfigRepositoryImpl) error {
 		if req.IsDefault {
 			if err := txRepo.GetDB().Model(&domain.UserAIConfig{}).
 				Where("user_id = ?", userID).
@@ -50,7 +50,7 @@ func (s *aiConfigService) Create(ctx context.Context, userID string, req *domain
 			Settings:  req.Settings,
 		}
 
-		if err := txRepo.GetDB().Create(config).Error; err != nil {
+		if err := txRepo.Create(ctx, config); err != nil {
 			return err
 		}
 
@@ -70,7 +70,7 @@ func (s *aiConfigService) Update(ctx context.Context, userID string, configID st
 		return nil, err
 	}
 
-	err = s.aiConfigRepo.WithTransaction(ctx, func(txRepo repository.Repository) error {
+	err = s.aiConfigRepo.WithTypedTransaction(ctx, func(txRepo *repository.AIConfigRepositoryImpl) error {
 		if req.IsDefault != nil && *req.IsDefault {
 			if err := txRepo.GetDB().Model(&domain.UserAIConfig{}).
 				Where("user_id = ? AND id != ?", userID, configID).
@@ -89,7 +89,7 @@ func (s *aiConfigService) Update(ctx context.Context, userID string, configID st
 			config.Settings = req.Settings
 		}
 
-		if err := txRepo.GetDB().Save(config).Error; err != nil {
+		if err := txRepo.Update(ctx, config); err != nil {
 			return err
 		}
 

@@ -5,15 +5,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/yourusername/recipe-app/internal/handler"
 	"github.com/yourusername/recipe-app/internal/middleware"
+	"github.com/yourusername/recipe-app/pkg/config"
 )
 
 type Router struct {
 	engine   *gin.Engine
 	handlers *handler.Handlers
 	auth     *middleware.AuthMiddleware
+	config   config.Config
 }
 
-func NewRouter(handlers *handler.Handlers, jwtSecret string) *Router {
+func NewRouter(handlers *handler.Handlers, config config.Config) *Router {
 	engine := gin.Default()
 
 	// Add basic middleware
@@ -23,13 +25,18 @@ func NewRouter(handlers *handler.Handlers, jwtSecret string) *Router {
 	return &Router{
 		engine:   engine,
 		handlers: handlers,
-		auth:     middleware.NewAuthMiddleware(jwtSecret),
+		auth:     middleware.NewAuthMiddleware(config.JWT.Secret),
+		config:   config,
 	}
 }
 
 func (r *Router) SetupRoutes() *gin.Engine {
 	// API v1 routes
 	v1 := r.engine.Group("/api/v1")
+
+	if r.config.Storage.Type == "local" {
+		r.engine.Static("/uploads", r.config.Storage.LocalPath)
+	}
 
 	// Public routes (no authentication required)
 	r.setupPublicRoutes(v1)
@@ -75,6 +82,23 @@ func (r *Router) setupProtectedRoutes(rg *gin.RouterGroup) {
 		aiConfigs.POST("/:id/set-default", r.handlers.AIConfigHandler.SetDefault)
 
 		aiConfigs.GET("/models", r.handlers.AIConfigHandler.ListModels)
+	}
+
+	recipes := rg.Group("/recipes")
+	{
+		recipes.POST("", r.handlers.RecipeHandler.Create)
+		recipes.GET("/:id", r.handlers.RecipeHandler.Get)
+		recipes.PUT("/:id", r.handlers.RecipeHandler.Update)
+		recipes.DELETE("/:id", r.handlers.RecipeHandler.Delete)
+
+		recipes.GET("", r.handlers.RecipeHandler.ListMine)
+		recipes.GET("/public", r.handlers.RecipeHandler.ListPublic)
+
+		imports := recipes.Group("/import")
+		{
+			imports.POST("/url", r.handlers.RecipeHandler.ImportFromURL)
+			imports.POST("/pdf", r.handlers.RecipeHandler.ImportFromPDF)
+		}
 	}
 }
 
