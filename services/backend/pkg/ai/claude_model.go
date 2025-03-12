@@ -47,7 +47,6 @@ func (m *ClaudeModel) Parse(ctx context.Context, content string, contentType str
 
 func (m *ClaudeModel) ParseInstructions(ctx context.Context, content string) (*[]domain.RecipeInstruction, error) {
 	prompt := createParseInstructionsPrompt(content)
-	fmt.Printf("Prompt: %s\n", prompt)
 
 	message, err := m.client.Messages.New(ctx, anthropic.MessageNewParams{
 		Model:     anthropic.F(anthropic.ModelClaude3_7SonnetLatest),
@@ -56,8 +55,6 @@ func (m *ClaudeModel) ParseInstructions(ctx context.Context, content string) (*[
 			anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)),
 		}),
 	})
-
-	fmt.Print(message)
 
 	if err != nil {
 		return nil, fmt.Errorf("Claude API error: %w", err)
