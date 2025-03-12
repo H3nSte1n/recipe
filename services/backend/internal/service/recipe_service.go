@@ -22,6 +22,7 @@ type RecipeService interface {
 	ListPublicRecipes(ctx context.Context, page, pageSize int) ([]domain.Recipe, int64, error)
 	ImportFromURL(ctx context.Context, userID string, req *domain.ImportURLRequest) (*domain.Recipe, error)
 	ImportFromPDF(ctx context.Context, userID string, req *domain.ImportPDFRequest, file []byte) (*domain.Recipe, error)
+	ParsePlainTextInstructions(ctx context.Context, userID string, req *domain.ParsePlainTextInstructionsRequest) (*[]domain.RecipeInstruction, error)
 }
 
 type recipeService struct {
@@ -339,6 +340,23 @@ func (s *recipeService) ImportFromPDF(ctx context.Context, userID string, req *d
 	}
 
 	return parsedRecipe, nil
+}
+
+func (s *recipeService) ParsePlainTextInstructions(ctx context.Context, userID string, req *domain.ParsePlainTextInstructionsRequest) (*[]domain.RecipeInstruction, error) {
+	userPrefs, err := s.getUserAIPreferences(ctx, userID)
+	if err != nil || userPrefs == nil {
+		userPrefs = &ai.UserAIPreferences{
+			ModelType: ai.ModelDefault,
+		}
+	}
+
+	aiModel, err := s.modelFactory.CreateModel(userPrefs.ModelType, userPrefs.APIKey)
+	if err != nil {
+		s.logger.Error("failed to create AI model", zap.Error(err))
+		return nil, err
+	}
+
+	return aiModel.ParseInstructions(ctx, req.PlainText)
 }
 
 func (s *recipeService) getUserAIPreferences(ctx context.Context, userID string) (*ai.UserAIPreferences, error) {

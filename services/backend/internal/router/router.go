@@ -99,6 +99,11 @@ func (r *Router) setupProtectedRoutes(rg *gin.RouterGroup) {
 			imports.POST("/url", r.handlers.RecipeHandler.ImportFromURL)
 			imports.POST("/pdf", r.handlers.RecipeHandler.ImportFromPDF)
 		}
+
+		parser := recipes.Group("/parser")
+		{
+			parser.POST("instructions", r.handlers.RecipeHandler.ParsePlainTextInstructions)
+		}
 	}
 }
 

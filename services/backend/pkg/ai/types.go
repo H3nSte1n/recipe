@@ -29,3 +29,8 @@ type AIRecipeNutrition struct {
 	Cholesterol  float64 `json:"cholesterol,omitempty"`
 	Sodium       float64 `json:"sodium,omitempty"`
 }
+
+type AIRecipeInstructions struct {
+	StepNumber  int    `json:"step_number"`
+	Instruction string `json:"instruction"`
+}

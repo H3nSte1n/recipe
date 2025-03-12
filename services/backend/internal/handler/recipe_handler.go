@@ -200,3 +200,21 @@ func (h *RecipeHandler) ImportFromPDF(c *gin.Context) {
 
 	c.JSON(http.StatusOK, recipe)
 }
+
+func (h *RecipeHandler) ParsePlainTextInstructions(c *gin.Context) {
+	var req domain.ParsePlainTextInstructionsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+	instructions, err := h.recipeService.ParsePlainTextInstructions(c.Request.Context(), userID.(string), &req)
+	if err != nil {
+		h.logger.Error("failed to parse plain text instructions", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse instructions"})
+		return
+	}
+
+	c.JSON(http.StatusOK, instructions)
+}

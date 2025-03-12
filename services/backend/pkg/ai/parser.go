@@ -116,3 +116,29 @@ func parseIngredient(description string) (name string, amount float64, unit stri
 
 	return name, amount, unit, notes
 }
+
+func parseInstructions(content string) (*[]domain.RecipeInstruction, error) {
+	content = strings.TrimSpace(content)
+
+	// Validate that content starts and ends with brackets
+	if !strings.HasPrefix(content, "[") || !strings.HasSuffix(content, "]") {
+		return nil, fmt.Errorf("invalid JSON array format")
+	}
+
+	// Parse into intermediate struct
+	var aiResponse []AIRecipeInstructions
+	if err := json.Unmarshal([]byte(content), &aiResponse); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON response: %w", err)
+	}
+
+	// Convert to domain model
+	instructions := make([]domain.RecipeInstruction, len(aiResponse))
+	for i, inst := range aiResponse {
+		instructions[i] = domain.RecipeInstruction{
+			StepNumber:  inst.StepNumber,
+			Instruction: inst.Instruction,
+		}
+	}
+
+	return &instructions, nil
+}

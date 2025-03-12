@@ -36,3 +36,19 @@ func (m *GPTModel) Parse(ctx context.Context, content string, contentType string
 
 	return parseAIResponse(resp.Choices[0].Message.Content)
 }
+
+func (m *GPTModel) ParseInstructions(ctx context.Context, content string) (*[]domain.RecipeInstruction, error) {
+	prompt := createParseInstructionsPrompt(content)
+
+	resp, err := m.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
+		Model:     string(m.modelType),
+		Messages:  []openai.ChatCompletionMessage{{Role: "user", Content: prompt}},
+		MaxTokens: 2000,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("GPT API error: %w", err)
+	}
+
+	return parseInstructions(resp.Choices[0].Message.Content)
+}

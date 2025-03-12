@@ -19,6 +19,7 @@ const (
 
 type AIModel interface {
 	Parse(ctx context.Context, content string, contentType string) (*domain.Recipe, error)
+	ParseInstructions(ctx context.Context, content string) (*[]domain.RecipeInstruction, error)
 }
 
 type ModelFactory struct {
@@ -100,4 +101,19 @@ Important:
 - Include all available information
 - If nutrition information is not available, omit the nutrition object
 - Ensure proper JSON formatting`, contentType, content)
+}
+
+func createParseInstructionsPrompt(content string) string {
+	const promptTemplate = `Parse the following recipe content into a numbered list of instructions. Return only a JSON array with this exact structure, no additional text:
+[
+    {
+        "step_number": 1,
+        "instruction": "First step instruction"
+    }
+]
+
+Content to parse:
+%s`
+
+	return fmt.Sprintf(promptTemplate, content)
 }

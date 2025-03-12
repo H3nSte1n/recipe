@@ -13,6 +13,8 @@ services:
       - DB_PASSWORD=your_password
       - DB_NAME=recipe_db
       - DB_SSL_MODE=disable
+    volumes:
+      - ./uploads:/app/uploads
 
   db:
     image: postgres:latest
