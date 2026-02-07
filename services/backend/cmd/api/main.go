@@ -16,7 +16,6 @@ import (
 )
 
 func main() {
-	// Load configuration
 	env := os.Getenv("APP_ENV")
 	if env == "" {
 		env = "development"
@@ -31,44 +30,34 @@ func main() {
 		log.Fatal("Could not migrate database:", err)
 	}
 
-	// Initialize logger
 	logger, _ := zap.NewDevelopment()
 	defer logger.Sync()
 
-	// Set Gin mode
 	if cfg.App.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// Initialize database connection
 	db, err := database.NewPostgresConnection(&cfg)
 	if err != nil {
 		logger.Fatal("Failed to connect to database:", zap.Error(err))
 	}
 
-	// Initialize file store
 	fileStore, err := storage.NewFileStore(&cfg)
 	if err != nil {
 		logger.Fatal("Failed to initialize file store:", zap.Error(err))
 	}
 
-	// Inizilize AI model factory
 	aiModelFactory := ai.NewModelFactory(&cfg, logger)
 
-	// Initialize repositories
 	repos := repository.NewRepositories(db)
 
-	// Initialize services
 	services := service.NewServices(repos, cfg, fileStore, logger, *aiModelFactory)
 
-	// Initialize handlers
 	handlers := handler.NewHandlers(services, logger)
 
-	// Initialize router
 	r := router.NewRouter(handlers, cfg)
 	r.SetupRoutes()
 
-	// Start server
 	logger.Info("Starting server on port " + cfg.App.Port)
 	if err := r.Run(":" + cfg.App.Port); err != nil {
 		logger.Fatal("Failed to start server:", zap.Error(err))

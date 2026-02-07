@@ -19,13 +19,11 @@ func parseAIResponse(response string) (*domain.Recipe, error) {
 
 	jsonContent := response[startIndex : endIndex+1]
 
-	// Parse into intermediate struct
 	var aiResponse AIRecipeResponse
 	if err := json.Unmarshal([]byte(jsonContent), &aiResponse); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON response: %w", err)
 	}
 
-	// Convert to domain model
 	recipe := &domain.Recipe{
 		Title:       aiResponse.Title,
 		Description: aiResponse.Description,
@@ -33,13 +31,11 @@ func parseAIResponse(response string) (*domain.Recipe, error) {
 		PrepTime:    aiResponse.PrepTime,
 		CookTime:    aiResponse.CookTime,
 		Notes:       aiResponse.Notes,
-		Status:      "draft", // Set default status
+		Status:      "draft",
 	}
 
-	// Convert ingredients
 	recipe.Ingredients = make([]domain.RecipeIngredient, len(aiResponse.Ingredients))
 	for i, ing := range aiResponse.Ingredients {
-		// Parse ingredient description into components
 		name, amount, unit, notes := parseIngredient(ing.Description)
 		recipe.Ingredients[i] = domain.RecipeIngredient{
 			Name:   name,
@@ -141,4 +137,21 @@ func parseInstructions(content string) (*[]domain.RecipeInstruction, error) {
 	}
 
 	return &instructions, nil
+}
+
+func parseCategorizeItemsResponse(content string) ([]string, error) {
+	content = strings.TrimSpace(content)
+
+	// Validate that content starts and ends with brackets
+	if !strings.HasPrefix(content, "[") || !strings.HasSuffix(content, "]") {
+		return nil, fmt.Errorf("invalid JSON array format")
+	}
+
+	// Parse into intermediate struct
+	var aiResponse []string
+	if err := json.Unmarshal([]byte(content), &aiResponse); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON response: %w", err)
+	}
+
+	return aiResponse, nil
 }

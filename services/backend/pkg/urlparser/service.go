@@ -1,4 +1,3 @@
-// pkg/urlparser/service.go
 package urlparser
 
 import (

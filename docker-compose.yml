@@ -1,11 +1,11 @@
-version: '3.8'
 services:
   app:
     build: ./services/backend
     ports:
       - "8080:8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       - DB_HOST=db
       - DB_PORT=5432
@@ -14,10 +14,11 @@ services:
       - DB_NAME=recipe_db
       - DB_SSL_MODE=disable
     volumes:
+      - ./services/backend:/app
       - ./uploads:/app/uploads
 
   db:
-    image: postgres:latest
+    image: postgres:18-alpine
     ports:
       - "5432:5432"
     environment:
@@ -26,6 +27,11 @@ services:
       - POSTGRES_DB=recipe_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   postgrest:
     image: postgrest/postgrest
@@ -36,7 +42,8 @@ services:
       PGRST_DB_SCHEMA: public
       PGRST_DB_ANON_ROLE: postgres
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:

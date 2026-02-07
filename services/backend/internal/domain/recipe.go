@@ -1,4 +1,3 @@
-// internal/domain/recipe.go
 package domain
 
 import (
@@ -31,13 +30,14 @@ type Recipe struct {
 }
 
 type RecipeIngredient struct {
-	ID       string  `json:"id" gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	RecipeID string  `json:"recipe_id" gorm:"type:uuid;not null"`
-	Name     string  `json:"name" gorm:"not null"`
-	Amount   float64 `json:"amount"`
-	Unit     string  `json:"unit"`
-	Notes    string  `json:"notes"`
-	Recipe   *Recipe `json:"recipe,omitempty" gorm:"foreignKey:RecipeID"`
+	ID          string  `json:"id" gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	RecipeID    string  `json:"recipe_id" gorm:"type:uuid;not null"`
+	Name        string  `json:"name" gorm:"not null"`
+	Description string  `json:"description" gorm:"not null"`
+	Amount      float64 `json:"amount"`
+	Unit        string  `json:"unit"`
+	Notes       string  `json:"notes"`
+	Recipe      *Recipe `json:"recipe,omitempty" gorm:"foreignKey:RecipeID"`
 }
 
 type RecipeInstruction struct {
@@ -119,7 +119,6 @@ const (
 	NutritionDetailMicro NutritionDetailLevel = "micro"
 )
 
-// DTOs for recipe creation
 type CreateRecipeRequest struct {
 	Title                string                `json:"title" validate:"required"`
 	Description          string                `json:"description"`

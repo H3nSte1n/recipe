@@ -1,4 +1,3 @@
-// internal/repository/base_repository.go
 package repository
 
 import (
@@ -6,22 +5,18 @@ import (
 	"gorm.io/gorm"
 )
 
-// Generic Repository interface
 type Repository[T any] interface {
 	GetDB() *gorm.DB
 	withDB(db *gorm.DB) Repository[T]
 	WithTransaction(ctx context.Context, fn TransactionFunc[T]) error
 }
 
-// Generic TransactionFunc
 type TransactionFunc[T any] func(Repository[T]) error
 
-// Generic base repository
 type BaseRepository[T any] struct {
 	db *gorm.DB
 }
 
-// Constructor for BaseRepository
 func NewBaseRepository[T any](db *gorm.DB) *BaseRepository[T] {
 	return &BaseRepository[T]{
 		db: db,

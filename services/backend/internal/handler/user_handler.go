@@ -61,7 +61,6 @@ func (h *UserHandler) ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	// Always return success to prevent email enumeration
 	c.JSON(http.StatusOK, gin.H{
 		"message": "if the email exists, a password reset link will be sent",
 	})

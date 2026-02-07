@@ -1,4 +1,3 @@
-// internal/handler/recipe_handler.go
 package handler
 
 import (
@@ -170,7 +169,6 @@ func (h *RecipeHandler) ImportFromPDF(c *gin.Context) {
 		return
 	}
 
-	// Read file
 	f, err := file.Open()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read file"})

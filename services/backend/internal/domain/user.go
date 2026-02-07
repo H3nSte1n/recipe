@@ -15,7 +15,6 @@ type User struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
-// DTOs (Data Transfer Objects)
 type RegisterRequest struct {
 	Email     string `json:"email" validate:"required,email"`
 	Password  string `json:"password" validate:"required,min=8"`

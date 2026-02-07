@@ -13,3 +13,23 @@ func GetCurrentUser(c *gin.Context) *domain.User {
 	}
 	return user.(*domain.User)
 }
+
+// GetUserID retrieves the authenticated user's ID from the context
+func GetUserID(c *gin.Context) string {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		return ""
+	}
+
+	// Handle both string and interface{} types
+	switch v := userID.(type) {
+	case string:
+		return v
+	default:
+		// Try to convert to string
+		if str, ok := userID.(string); ok {
+			return str
+		}
+		return ""
+	}
+}

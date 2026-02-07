@@ -1,4 +1,3 @@
-// internal/router/router.go
 package router
 
 import (
@@ -104,6 +103,29 @@ func (r *Router) setupProtectedRoutes(rg *gin.RouterGroup) {
 		{
 			parser.POST("instructions", r.handlers.RecipeHandler.ParsePlainTextInstructions)
 		}
+	}
+
+	shoppingLists := rg.Group("/shopping-lists")
+	{
+		shoppingLists.POST("", r.handlers.ShoppingListHandler.Create)
+		shoppingLists.GET("", r.handlers.ShoppingListHandler.List)
+		shoppingLists.GET("/:id", r.handlers.ShoppingListHandler.Get)
+		shoppingLists.PUT("/:id", r.handlers.ShoppingListHandler.Update)
+		shoppingLists.DELETE("/:id", r.handlers.ShoppingListHandler.Delete)
+
+		shoppingLists.POST("/:id/items", r.handlers.ShoppingListHandler.AddItem)
+		shoppingLists.PUT("/:id/items/:itemId", r.handlers.ShoppingListHandler.UpdateItem)
+		shoppingLists.DELETE("/:id/items/:itemId", r.handlers.ShoppingListHandler.DeleteItem)
+		shoppingLists.PATCH("/:id/items/:itemId/toggle", r.handlers.ShoppingListHandler.ToggleItem)
+
+		shoppingLists.POST("/:id/add-recipe", r.handlers.ShoppingListHandler.AddRecipe)
+		shoppingLists.GET("/:id/sorted", r.handlers.ShoppingListHandler.SortByStore)
+	}
+
+	storeChains := rg.Group("/store-chains")
+	{
+		storeChains.GET("", r.handlers.StoreChainHandler.List)
+		storeChains.GET("/:id", r.handlers.StoreChainHandler.Get)
 	}
 }
 

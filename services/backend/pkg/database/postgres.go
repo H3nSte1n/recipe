@@ -27,7 +27,6 @@ func NewPostgresConnection(config *config.Config) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	// Set connection pool settings
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
 

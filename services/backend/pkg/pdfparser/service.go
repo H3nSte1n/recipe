@@ -43,7 +43,6 @@ func (s *service) Parse(ctx context.Context, pdfData []byte, aiModel ai.AIModel)
 }
 
 func (s *service) extractText(pdfData []byte) (string, error) {
-	// Create a temporary reader from the PDF data
 	reader, err := pdf.NewReader(bytes.NewReader(pdfData), int64(len(pdfData)))
 	if err != nil {
 		return "", fmt.Errorf("failed to create PDF reader: %w", err)
@@ -52,7 +51,6 @@ func (s *service) extractText(pdfData []byte) (string, error) {
 	var text string
 	numPages := reader.NumPage()
 
-	// Extract text from each page
 	for i := 1; i <= numPages; i++ {
 		page := reader.Page(i)
 		content, err := page.GetPlainText(nil)

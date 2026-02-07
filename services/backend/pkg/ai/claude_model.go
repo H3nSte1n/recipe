@@ -66,3 +66,25 @@ func (m *ClaudeModel) ParseInstructions(ctx context.Context, content string) (*[
 
 	return nil, fmt.Errorf("no response content from Claude")
 }
+
+func (m *ClaudeModel) CategorizeItems(ctx context.Context, items []string) ([]string, error) {
+	prompt := createPromptToCategorizeShoppingListItems(items)
+
+	message, err := m.client.Messages.New(ctx, anthropic.MessageNewParams{
+		Model:     anthropic.F(anthropic.ModelClaude3_7SonnetLatest),
+		MaxTokens: anthropic.F(int64(2000)),
+		Messages: anthropic.F([]anthropic.MessageParam{
+			anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)),
+		}),
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("Claude API error: %w", err)
+	}
+
+	if len(message.Content) > 0 {
+		return parseCategorizeItemsResponse(message.Content[0].Text)
+	}
+
+	return nil, fmt.Errorf("no response content from Claude")
+}

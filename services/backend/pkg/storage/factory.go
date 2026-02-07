@@ -13,7 +13,6 @@ func NewFileStore(cfg *config.Config) (FileStore, error) {
 			cfg.Storage.BaseURL,
 		)
 	case "s3":
-		// Initialize AWS S3 client
 		return nil, fmt.Errorf("s3 storage not implemented")
 	default:
 		return nil, fmt.Errorf("unsupported storage type: %s", cfg.Storage.Type)

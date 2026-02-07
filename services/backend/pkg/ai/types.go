@@ -13,7 +13,6 @@ type AIRecipeResponse struct {
 		StepNumber  int    `json:"stepNumber"`
 		Description string `json:"description"`
 	} `json:"instructions"`
-	// Optional fields
 	Notes     string             `json:"notes,omitempty"`
 	Nutrition *AIRecipeNutrition `json:"nutrition,omitempty"`
 }

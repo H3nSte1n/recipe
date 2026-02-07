@@ -68,13 +68,11 @@ type AWSConfig struct {
 func LoadConfig(env string) (config Config, err error) {
 	v := viper.New()
 
-	// Change to yaml config
 	v.SetConfigName(fmt.Sprintf("env.%s", env))
 	v.SetConfigType("yaml")
 	v.AddConfigPath(".")
 	v.AddConfigPath("./config")
 
-	// Enable env variable override
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 

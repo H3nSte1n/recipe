@@ -27,15 +27,12 @@ func (p *contentParser) Parse(htmlContent string) (string, error) {
 		return "", fmt.Errorf("failed to parse HTML: %w", err)
 	}
 
-	// First try to find structured data
 	if schema := extractJsonLD(doc); schema != "" {
 		return schema, nil
 	}
 
-	// Clean the document
 	p.cleanDocument(doc)
 
-	// Try to find main content
 	content := p.extractContent(doc)
 
 	if content == "" {
@@ -48,7 +45,6 @@ func (p *contentParser) Parse(htmlContent string) (string, error) {
 func (p *contentParser) cleanDocument(doc *goquery.Document) {
 	doc.Find(strings.Join(UnwantedSelectors, ", ")).Remove()
 
-	// Remove empty elements
 	doc.Find("*").Each(func(_ int, s *goquery.Selection) {
 		if strings.TrimSpace(s.Text()) == "" {
 			s.Remove()
@@ -59,11 +55,9 @@ func (p *contentParser) cleanDocument(doc *goquery.Document) {
 func (p *contentParser) extractContent(doc *goquery.Document) string {
 	var content strings.Builder
 
-	// First try to find the main content
 	mainContent := doc.Find(strings.Join(MainContentSelectors, ", ")).First()
 
 	if mainContent.Length() > 0 {
-		// Process the main content
 		mainContent.Find("*").Each(func(_ int, s *goquery.Selection) {
 			text := strings.TrimSpace(s.Text())
 			if text != "" {
@@ -74,7 +68,6 @@ func (p *contentParser) extractContent(doc *goquery.Document) string {
 			}
 		})
 	} else {
-		// Fallback to body content
 		doc.Find("body").Find("*").Each(func(_ int, s *goquery.Selection) {
 			text := strings.TrimSpace(s.Text())
 			if text != "" {
@@ -90,16 +83,13 @@ func (p *contentParser) extractContent(doc *goquery.Document) string {
 }
 
 func (p *contentParser) cleanExtractedContent(content string) string {
-	// Basic cleaning
 	content = cleanText(content)
 
-	// Remove redundant newlines
 	content = strings.ReplaceAll(content, "\n\n\n", "\n\n")
 
-	// Remove very short lines (likely navigation/buttons)
 	var cleaned []string
 	for _, line := range strings.Split(content, "\n") {
-		if len(line) > 10 { // Adjust threshold as needed
+		if len(line) > 10 {
 			cleaned = append(cleaned, line)
 		}
 	}

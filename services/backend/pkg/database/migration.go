@@ -9,7 +9,6 @@ import (
 	"github.com/yourusername/recipe-app/pkg/config"
 )
 
-// MigrateDB handles database migrations
 func MigrateDB(cfg *config.Config) error {
 	db, err := sql.Open("postgres", fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=%s",

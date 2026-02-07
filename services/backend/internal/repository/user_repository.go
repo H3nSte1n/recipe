@@ -38,7 +38,6 @@ func (r *UserRepositoryImpl) WithTypedTransaction(ctx context.Context, fn func(*
 	})
 }
 
-// User operations
 func (r *UserRepositoryImpl) Create(ctx context.Context, user *domain.User) error {
 	return r.db.WithContext(ctx).Create(user).Error
 }
@@ -63,7 +62,6 @@ func (r *UserRepositoryImpl) GetByID(ctx context.Context, id string) (*domain.Us
 	return &user, nil
 }
 
-// Password reset token operations
 func (r *UserRepositoryImpl) CreateResetToken(ctx context.Context, token *domain.PasswordResetToken) error {
 	return r.db.WithContext(ctx).Create(token).Error
 }

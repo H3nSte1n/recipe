@@ -20,6 +20,7 @@ const (
 type AIModel interface {
 	Parse(ctx context.Context, content string, contentType string) (*domain.Recipe, error)
 	ParseInstructions(ctx context.Context, content string) (*[]domain.RecipeInstruction, error)
+	CategorizeItems(ctx context.Context, items []string) ([]string, error)
 }
 
 type ModelFactory struct {
@@ -53,7 +54,6 @@ func (f *ModelFactory) CreateModel(modelType ModelType, apiKey string) (AIModel,
 	}
 }
 
-// Common helper functions
 func createPrompt(content string, contentType string) string {
 	return fmt.Sprintf(`Parse the following %s content into a recipe and return it as JSON with this exact structure:
 
@@ -116,4 +116,12 @@ Content to parse:
 %s`
 
 	return fmt.Sprintf(promptTemplate, content)
+}
+
+func createPromptToCategorizeShoppingListItems(items []string) string {
+	const promptTemplate = `Categorize each as PRODUCE, MEAT, DAIRY, BAKERY, PANTRY, FROZEN, BEVERAGES, HOUSEHOLD, OTHER.
+Format: {"item":"category"}
+Items:%s`
+
+	return fmt.Sprintf(promptTemplate, items)
 }

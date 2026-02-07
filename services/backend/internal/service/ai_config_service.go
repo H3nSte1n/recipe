@@ -1,4 +1,3 @@
-// internal/service/ai_config_service.go
 package service
 
 import (

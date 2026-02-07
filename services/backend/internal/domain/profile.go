@@ -16,7 +16,6 @@ type Profile struct {
 	User       *User     `json:"user,omitempty" gorm:"foreignKey:UserID"`
 }
 
-// DTOs
 type CreateProfileRequest struct {
 	Bio        string `json:"bio"`
 	Location   string `json:"location"`

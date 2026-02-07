@@ -28,7 +28,6 @@ type AIModel struct {
 	UpdatedAt    time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
 
-// DTOs
 type CreateUserAIConfigRequest struct {
 	AIModelID string          `json:"ai_model_id" validate:"required"`
 	APIKey    string          `json:"api_key" validate:"required"`
