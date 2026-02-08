@@ -25,6 +25,26 @@ jobs:
         with:
           go-version: '1.24'
 
+      - name: Check Go version EOL status
+        run: |
+          GO_VERSION="1.24"
+          EOL_DATE=$(curl -s "https://endoflife.date/api/go/${GO_VERSION}.json" | jq -r '.eol')
+          
+          if [ "$EOL_DATE" = "null" ] || [ -z "$EOL_DATE" ]; then
+            echo "⚠️  Could not fetch EOL date for Go ${GO_VERSION}"
+            exit 0
+          fi
+
+          CURRENT_DATE=$(date +%Y-%m-%d)
+          
+          if [[ "$EOL_DATE" < "$CURRENT_DATE" ]]; then
+            echo "❌ Go ${GO_VERSION} reached End of Life on ${EOL_DATE}"
+            echo "Please update to a supported version: https://endoflife.date/go"
+            exit 1
+          else
+            echo "✅ Go ${GO_VERSION} is supported until ${EOL_DATE}"
+          fi
+
       - name: Install dependencies
         working-directory: ./services/backend
         run: go mod download

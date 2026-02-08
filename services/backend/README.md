@@ -178,7 +178,7 @@ backend/
 #### 1. Clone the Repository
 ```bash
 git clone <repository-url>
-cd recepie/services/backend
+cd recipe/services/backend
 ```
 
 #### 2. Configure Environment
