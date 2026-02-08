@@ -52,7 +52,7 @@ recipe/
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/H3nSte1n/recipe.git
 cd recipe
 
 # Start all services
