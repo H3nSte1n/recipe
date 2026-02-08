@@ -1,4 +1,18 @@
 services:
+  frontend:
+    build: ./services/frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - app
+    environment:
+      - VITE_API_URL=http://app:8080
+    volumes:
+      - ./services/frontend/src:/app/src
+      - ./services/frontend/vite.config.ts:/app/vite.config.ts
+      - ./services/frontend/index.html:/app/index.html
+    command: npm run dev
+
   app:
     build: ./services/backend
     ports:
@@ -33,17 +47,6 @@ services:
       timeout: 5s
       retries: 5
 
-  postgrest:
-    image: postgrest/postgrest
-    ports:
-      - "3000:3000"
-    environment:
-      PGRST_DB_URI: postgres://postgres:your_password@db:5432/recipe_db
-      PGRST_DB_SCHEMA: public
-      PGRST_DB_ANON_ROLE: postgres
-    depends_on:
-      db:
-        condition: service_healthy
 
 volumes:
   postgres_data:

@@ -29,12 +29,13 @@ Recipe App is a full-stack application that helps users manage their recipes, cr
 ```
 recipe/
 ├── services/
-│   ├── backend/          # Go REST API (Complete ✅)
+│   ├── backend/          # Go REST API
 │   │   ├── cmd/          # Application entry point
 │   │   ├── internal/     # Core business logic
 │   │   ├── pkg/          # Reusable packages
 │   │   └── migrations/   # Database migrations
-│   └── frontend/         # Frontend (Coming soon 🚧)
+│   └── frontend/         # React + TypeScript Frontend
+│       └── src/     # React components and styles
 ├── docker-compose.yml    # Docker orchestration
 └── LICENSE              # MIT License
 ```
@@ -45,7 +46,8 @@ recipe/
 
 ### Prerequisites
 - Docker & Docker Compose
-- Go 1.24+ (for local development)
+- Go 1.24+ (for local backend development)
+- Node.js 24 LTS (for local frontend development)
 - PostgreSQL 18 (managed by Docker)
 
 ### Start the Application
@@ -156,16 +158,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🎯 Roadmap
 
 ### Current Status
-- ✅ Backend API (Complete)
+- ✅ Backend API
 - ✅ Authentication & User Management
 - ✅ Recipe Management
 - ✅ Shopping Lists
 - ✅ AI Integration
 - ✅ Store Sorting
-- 🚧 Frontend (In Progress)
+- ✅ Frontend (In Progress)
+- ✅ Docker Containerization
 
 ### Upcoming Features
-- [ ] Frontend web application
+- [ ] User dashboard and recipe library UI
+- [ ] Recipe search and filtering
+- [ ] User authentication interface
 - [ ] Recipe sharing between users
 - [ ] Meal planning calendar
 - [ ] Nutrition goal tracking
