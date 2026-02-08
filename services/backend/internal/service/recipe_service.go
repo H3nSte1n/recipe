@@ -102,6 +102,7 @@ func (s *recipeService) Create(ctx context.Context, userID string, req *domain.C
 		Servings:     req.Servings,
 		PrepTime:     req.PrepTime,
 		CookTime:     req.CookTime,
+		ShelfLife:    req.ShelfLife,
 		Ingredients:  req.Ingredients,
 		Instructions: req.Instructions,
 		Nutrition:    req.Nutrition,

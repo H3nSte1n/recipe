@@ -17,9 +17,10 @@ type Recipe struct {
 	Source       string              `json:"source,omitempty"`
 	IsPrivate    bool                `json:"is_private" gorm:"default:false"`
 	Servings     int                 `json:"servings" gorm:"not null"`
-	PrepTime     int                 `json:"prep_time"`                   // in minutes
-	CookTime     int                 `json:"cook_time"`                   // in minutes
-	Status       string              `json:"status" gorm:"default:draft"` // draft, published, archived
+	PrepTime     int                 `json:"prep_time"`
+	CookTime     int                 `json:"cook_time"`
+	ShelfLife    int                 `json:"shelf_life"`
+	Status       string              `json:"status" gorm:"default:draft"`
 	CreatedAt    time.Time           `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt    time.Time           `json:"updated_at" gorm:"autoUpdateTime"`
 	User         *User               `json:"user,omitempty" gorm:"foreignKey:UserID"`
@@ -128,6 +129,7 @@ type CreateRecipeRequest struct {
 	Servings             int                   `json:"servings" validate:"required,min=1"`
 	PrepTime             int                   `json:"prep_time"`
 	CookTime             int                   `json:"cook_time"`
+	ShelfLife            int                   `json:"shelf_life"`
 	Ingredients          []RecipeIngredient    `json:"ingredients"`
 	Instructions         []RecipeInstruction   `json:"instructions"`
 	Notes                string                `json:"notes"`
