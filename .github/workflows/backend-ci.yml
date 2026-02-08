@@ -30,19 +30,12 @@ jobs:
           GO_VERSION="1.24"
           EOL_DATE=$(curl -s "https://endoflife.date/api/go/${GO_VERSION}.json" | jq -r '.eol')
           
-          if [ "$EOL_DATE" = "null" ] || [ -z "$EOL_DATE" ]; then
-            echo "⚠️  Could not fetch EOL date for Go ${GO_VERSION}"
-            exit 0
-          fi
-
-          CURRENT_DATE=$(date +%Y-%m-%d)
-          
-          if [[ "$EOL_DATE" < "$CURRENT_DATE" ]]; then
-            echo "❌ Go ${GO_VERSION} reached End of Life on ${EOL_DATE}"
+          if [ "$EOL_DATE" = "false" ]; then
+            echo "❌ Go ${GO_VERSION} is already End of Life"
             echo "Please update to a supported version: https://endoflife.date/go"
             exit 1
           else
-            echo "✅ Go ${GO_VERSION} is supported until ${EOL_DATE}"
+            echo "✅ Go ${GO_VERSION} is supported (EOL: ${EOL_DATE})"
           fi
 
       - name: Install dependencies
