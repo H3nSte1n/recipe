@@ -28,14 +28,14 @@ jobs:
       - name: Check Go version EOL status
         run: |
           GO_VERSION="1.24"
-          EOL_DATE=$(curl -s "https://endoflife.date/api/go/${GO_VERSION}.json" | jq -r '.eol')
+          EOL=$(curl -s "https://endoflife.date/api/go/${GO_VERSION}.json" | jq -r '.eol')
           
-          if [ "$EOL_DATE" = "false" ]; then
+          if [ "$EOL" != "false" ]; then
             echo "❌ Go ${GO_VERSION} is already End of Life"
             echo "Please update to a supported version: https://endoflife.date/go"
             exit 1
           else
-            echo "✅ Go ${GO_VERSION} is supported (EOL: ${EOL_DATE})"
+            echo "✅ Go ${GO_VERSION} is supported (EOL: ${EOL})"
           fi
 
       - name: Install dependencies
