@@ -2,7 +2,7 @@
 
 A modern recipe management platform with AI-powered features, smart shopping lists, and intelligent store navigation.
 
-[![Go Version](https://img.shields.io/badge/Go-1.23-blue.svg)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-1.24-blue.svg)](https://golang.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-blue.svg)](https://www.postgresql.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 ![Backend CI](https://github.com/yourusername/recepie/actions/workflows/backend-ci.yml/badge.svg)
@@ -45,7 +45,7 @@ recepie/
 
 ### Prerequisites
 - Docker & Docker Compose
-- Go 1.23+ (for local development)
+- Go 1.24+ (for local development)
 - PostgreSQL 18 (managed by Docker)
 
 ### Start the Application
@@ -121,7 +121,7 @@ GET /api/v1/shopping-lists/:id?sort_by=category
 ## 📊 Tech Stack
 
 ### Backend
-- **Language**: Go 1.23
+- **Language**: Go 1.24
 - **Framework**: Gin
 - **Database**: PostgreSQL 18
 - **ORM**: GORM
