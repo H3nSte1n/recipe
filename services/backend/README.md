@@ -177,7 +177,7 @@ backend/
 
 #### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/H3nSte1n/recipe.git
 cd recipe/services/backend
 ```
 
