@@ -27,7 +27,7 @@ Recipe App is a full-stack application that helps users manage their recipes, cr
 ## 🏗️ Project Structure
 
 ```
-recepie/
+recipe/
 ├── services/
 │   ├── backend/          # Go REST API (Complete ✅)
 │   │   ├── cmd/          # Application entry point
@@ -53,7 +53,7 @@ recepie/
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd recepie
+cd recipe
 
 # Start all services
 docker-compose up -d
