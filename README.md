@@ -5,6 +5,7 @@ A modern recipe management platform with AI-powered features, smart shopping lis
 [![Go Version](https://img.shields.io/badge/Go-1.23-blue.svg)](https://golang.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-blue.svg)](https://www.postgresql.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+![Backend CI](https://github.com/yourusername/recepie/actions/workflows/backend-ci.yml/badge.svg)
 
 ---
 
