@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/H3nSte1n/recipe/internal/domain"
+	"github.com/H3nSte1n/recipe/pkg/ai"
 	"github.com/ledongthuc/pdf"
-	"github.com/yourusername/recipe-app/internal/domain"
-	"github.com/yourusername/recipe-app/pkg/ai"
 	"go.uber.org/zap"
 )
 

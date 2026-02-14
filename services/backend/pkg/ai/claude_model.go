@@ -3,9 +3,9 @@ package ai
 import (
 	"context"
 	"fmt"
+	"github.com/H3nSte1n/recipe/internal/domain"
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
-	"github.com/yourusername/recipe-app/internal/domain"
 	"go.uber.org/zap"
 )
 

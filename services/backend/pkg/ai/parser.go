@@ -3,7 +3,7 @@ package ai
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/yourusername/recipe-app/internal/domain"
+	"github.com/H3nSte1n/recipe/internal/domain"
 	"regexp"
 	"strconv"
 	"strings"

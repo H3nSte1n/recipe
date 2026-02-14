@@ -2,8 +2,8 @@ package urlparser
 
 import (
 	"context"
-	"github.com/yourusername/recipe-app/internal/domain"
-	"github.com/yourusername/recipe-app/pkg/ai"
+	"github.com/H3nSte1n/recipe/internal/domain"
+	"github.com/H3nSte1n/recipe/pkg/ai"
 	"go.uber.org/zap"
 	"net/http"
 )

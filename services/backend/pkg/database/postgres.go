@@ -2,7 +2,7 @@ package database
 
 import (
 	"fmt"
-	"github.com/yourusername/recipe-app/pkg/config"
+	"github.com/H3nSte1n/recipe/pkg/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )

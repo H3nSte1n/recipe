@@ -1,4 +1,4 @@
-module github.com/yourusername/recipe-app
+module github.com/H3nSte1n/recipe
 
 go 1.24.0
 
