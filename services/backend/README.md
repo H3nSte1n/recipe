@@ -2,7 +2,7 @@
 
 A feature-rich RESTful API for managing recipes, shopping lists, and AI-powered recipe parsing. Built with Go, PostgreSQL, and modern best practices.
 
-[![Go Version](https://img.shields.io/badge/Go-1.24-blue.svg)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-1.25-blue.svg)](https://golang.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-blue.svg)](https://www.postgresql.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
