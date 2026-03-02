@@ -14,7 +14,8 @@
 - Development: `make dev` → http://localhost:8080
 - Docker: `docker-compose up app db`
 
----
+-----
+
 
 ## 🛠️ Technology Stack
 
