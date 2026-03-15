@@ -17,9 +17,7 @@ type Router struct {
 func NewRouter(handlers *handler.Handlers, config config.Config) *Router {
 	engine := gin.Default()
 
-	// Add basic middleware
-	engine.Use(gin.Recovery())
-	engine.Use(gin.Logger())
+	engine.Use(middleware.CORS(config.CORS.AllowedOrigins))
 
 	return &Router{
 		engine:   engine,

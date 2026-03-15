@@ -14,7 +14,12 @@ type Config struct {
 	SMTP     SMTPConfig    `mapstructure:"smtp"`
 	Storage  StorageConfig `mapstructure:"storage"`
 	AI       AIConfig      `mapstructure:"ai"`
+	CORS     CORSConfig    `mapstructure:"cors"`
 	LogLevel string        `mapstructure:"log_level"`
+}
+
+type CORSConfig struct {
+	AllowedOrigins []string `mapstructure:"allowed_origins"`
 }
 
 type AppConfig struct {
