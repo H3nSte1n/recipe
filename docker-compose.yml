@@ -6,7 +6,7 @@ services:
     depends_on:
       - app
     environment:
-      - VITE_API_URL=http://app:8080
+      - VITE_ENV=development
     volumes:
       - ./services/frontend/src:/app/src
       - ./services/frontend/vite.config.ts:/app/vite.config.ts
