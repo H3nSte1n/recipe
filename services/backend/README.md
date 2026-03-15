@@ -80,7 +80,7 @@ A feature-rich RESTful API for managing recipes, shopping lists, and AI-powered 
 ## 🏗️ Architecture
 
 ### Tech Stack
-- **Language**: Go 1.24
+- **Language**: Go 1.25
 - **Framework**: Gin (HTTP router)
 - **Database**: PostgreSQL 18
 - **ORM**: GORM
@@ -168,7 +168,7 @@ backend/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **Go 1.24+**
+- **Go 1.25+**
 - **Docker & Docker Compose**
 - **PostgreSQL 18** (if running locally)
 - **Make** (optional, for build commands)

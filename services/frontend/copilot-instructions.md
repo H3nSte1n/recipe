@@ -27,7 +27,7 @@
 - **ESLint 8.57.0** - Code quality
 
 ### Backend
-- **Go 1.24** - API server
+- **Go 1.25** - API server
 - **PostgreSQL 18** - Database
 - **Docker** - Containerization
 

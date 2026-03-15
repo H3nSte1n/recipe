@@ -46,7 +46,7 @@ recipe/
 
 ### Prerequisites
 - Docker & Docker Compose
-- Go 1.24+ (for local backend development)
+- Go 1.25+ (for local backend development)
 - Node.js 24 LTS (for local frontend development)
 - PostgreSQL 18 (managed by Docker)
 
@@ -123,7 +123,7 @@ GET /api/v1/shopping-lists/:id?sort_by=category
 ## 📊 Tech Stack
 
 ### Backend
-- **Language**: Go 1.24
+- **Language**: Go 1.25
 - **Framework**: Gin
 - **Database**: PostgreSQL 18
 - **ORM**: GORM

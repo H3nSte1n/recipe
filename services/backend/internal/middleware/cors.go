@@ -6,19 +6,9 @@ import (
 	"time"
 )
 
-type CORSMiddleware struct {
-	allowedOrigins []string
-}
-
-func NewCORSMiddleware(allowedOrigins []string) *CORSMiddleware {
-	return &CORSMiddleware{
-		allowedOrigins: allowedOrigins,
-	}
-}
-
-func (m *CORSMiddleware) ConfigureCORS() gin.HandlerFunc {
+func CORS(allowedOrigins []string) gin.HandlerFunc {
 	return cors.New(cors.Config{
-		AllowOrigins:     m.allowedOrigins,
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
