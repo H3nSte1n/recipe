@@ -1,0 +1,81 @@
+@import 'fonts';
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at 10% 10%, #ffe5c4 0%, rgba(255, 229, 196, 0) 45%),
+    radial-gradient(circle at 90% 90%, #f2d9ff 0%, rgba(242, 217, 255, 0) 42%),
+    linear-gradient(120deg, #f8f6ef, #fbfbfb);
+}
+
+.login-card {
+  width: min(480px, 100%);
+  background: #fffef9;
+  border: 1px solid #e8ddca;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 15px 30px rgba(40, 26, 9, 0.08);
+
+  h1 {
+    margin: 0;
+    font-family: $font-primary;
+    font-size: 2.3rem;
+    color: #2d2116;
+  }
+
+  p {
+    margin: 0.5rem 0 1.5rem;
+    font-family: $font-secondary;
+    color: #6b6257;
+  }
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+
+  label {
+    font-family: $font-secondary;
+    font-size: 0.9rem;
+    color: #4b3f33;
+  }
+
+  input {
+    border: 1px solid #d5c9b5;
+    border-radius: 10px;
+    padding: 0.7rem 0.8rem;
+    font-family: $font-secondary;
+    font-size: 0.95rem;
+    color: #21180f;
+    background: #ffffff;
+  }
+
+  button {
+    margin-top: 0.8rem;
+    border: none;
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    font-family: $font-secondary;
+    font-weight: $font-semibold;
+    font-size: 0.95rem;
+    color: #ffffff;
+    background: linear-gradient(140deg, #cb5f1e, #e4853b);
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.login-error {
+  margin-top: 1rem;
+  font-family: $font-secondary;
+  color: #b02424;
+}

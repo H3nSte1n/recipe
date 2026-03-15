@@ -1,0 +1,117 @@
+@import 'fonts';
+
+.home {
+  min-height: 100vh;
+  background: #f7f6f2;
+  padding: 3rem 2.5rem;
+  position: relative;
+
+  &__logout {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.5rem;
+    border: 1px solid #d0cec8;
+    border-radius: 8px;
+    background: #fff;
+    color: #3a3530;
+    font-family: $font-secondary;
+    font-size: 0.85rem;
+    padding: 0.45rem 0.8rem;
+    cursor: pointer;
+    z-index: 100;
+
+    &:hover {
+      background: #f0ede7;
+    }
+  }
+
+  &__loading,
+  &__error {
+    font-family: $font-secondary;
+    font-size: 1rem;
+    text-align: center;
+    padding: 6rem;
+    color: #888;
+  }
+
+  &__error {
+    color: #c0392b;
+  }
+
+  &__empty {
+    font-family: $font-secondary;
+    color: #999;
+    text-align: center;
+    padding: 6rem;
+  }
+}
+
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: 1.5rem;
+  row-gap: 3rem;
+}
+
+.recipe-card {
+  cursor: pointer;
+
+  &:hover .recipe-card__image img {
+    transform: scale(1.03);
+  }
+
+  &__image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    margin-bottom: 0.9rem;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.4s ease;
+    }
+  }
+
+  &__content {
+    padding: 0;
+  }
+
+  &__title {
+    font-family: $font-primary;
+    font-size: 1.2rem;
+    font-weight: $font-regular;
+    font-style: italic;
+    color: #1c1816;
+    margin: 0 0 0.3rem;
+    line-height: 1.3;
+  }
+
+  &__meta {
+    font-family: $font-secondary;
+    font-size: 0.8rem;
+    font-weight: $font-regular;
+    color: #958e85;
+    margin: 0;
+    letter-spacing: 0.01em;
+  }
+}
+
+@media (max-width: 900px) {
+  .recipe-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .home {
+    padding: 2rem 1rem;
+  }
+
+  .recipe-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

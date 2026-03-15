@@ -1,25 +1,20 @@
-import './styles/App.css'
+import { useMemo, useState } from "react";
+import { Home } from "./pages/Home";
+import { Login } from "./pages/Login";
+import { authApi } from "./services/api";
 
 function App() {
-  return (
-    <>
-      <div className="container">
-        <header className="header">
-          <h1>🍳 Recipe App</h1>
-        </header>
+  const [isAuthenticated, setIsAuthenticated] = useState(authApi.isAuthenticated());
 
-        <main className="main">
-          <div className="card">
-            <h2>Welcome to Recipe App</h2>
-          </div>
-        </main>
+  const content = useMemo(() => {
+    if (!isAuthenticated) {
+      return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
+    }
 
-        <footer className="footer">
-          <p>&copy; 2026 Recipe App. All rights reserved.</p>
-        </footer>
-      </div>
-    </>
-  )
+    return <Home onLogout={() => setIsAuthenticated(false)} />;
+  }, [isAuthenticated]);
+
+  return content;
 }
 
 export default App
