@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"github.com/yourusername/recipe-app/internal/domain"
-	"github.com/yourusername/recipe-app/internal/repository"
+	"github.com/H3nSte1n/recipe/internal/domain"
+	"github.com/H3nSte1n/recipe/internal/repository"
 	"go.uber.org/zap"
 	"sort"
 )

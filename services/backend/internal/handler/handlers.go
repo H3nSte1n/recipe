@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/yourusername/recipe-app/internal/service"
+	"github.com/H3nSte1n/recipe/internal/service"
 	"go.uber.org/zap"
 )
 

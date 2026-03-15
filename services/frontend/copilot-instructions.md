@@ -33,7 +33,7 @@
 
 ### Versions
 See `.tool-versions`:
-- golang 1.24.0
+- golang 1.25.0
 - nodejs 24.0.0
 
 ---

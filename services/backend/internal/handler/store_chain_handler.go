@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"github.com/H3nSte1n/recipe/internal/service"
 	"github.com/gin-gonic/gin"
-	"github.com/yourusername/recipe-app/internal/service"
 	"go.uber.org/zap"
 	"net/http"
 )

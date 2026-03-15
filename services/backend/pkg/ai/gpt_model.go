@@ -3,8 +3,8 @@ package ai
 import (
 	"context"
 	"fmt"
+	"github.com/H3nSte1n/recipe/internal/domain"
 	"github.com/sashabaranov/go-openai"
-	"github.com/yourusername/recipe-app/internal/domain"
 	"go.uber.org/zap"
 )
 

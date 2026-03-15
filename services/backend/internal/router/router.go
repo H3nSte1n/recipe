@@ -1,10 +1,10 @@
 package router
 
 import (
+	"github.com/H3nSte1n/recipe/internal/handler"
+	"github.com/H3nSte1n/recipe/internal/middleware"
+	"github.com/H3nSte1n/recipe/pkg/config"
 	"github.com/gin-gonic/gin"
-	"github.com/yourusername/recipe-app/internal/handler"
-	"github.com/yourusername/recipe-app/internal/middleware"
-	"github.com/yourusername/recipe-app/pkg/config"
 )
 
 type Router struct {
@@ -17,9 +17,8 @@ type Router struct {
 func NewRouter(handlers *handler.Handlers, config config.Config) *Router {
 	engine := gin.Default()
 
-	// Add basic middleware
-	engine.Use(gin.Recovery())
-	engine.Use(gin.Logger())
+	corsMiddleware := middleware.NewCORSMiddleware(config.CORS.AllowedOrigins)
+	engine.Use(corsMiddleware.ConfigureCORS())
 
 	return &Router{
 		engine:   engine,

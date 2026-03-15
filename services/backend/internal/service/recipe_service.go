@@ -3,13 +3,13 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/yourusername/recipe-app/internal/domain"
-	"github.com/yourusername/recipe-app/internal/errors"
-	"github.com/yourusername/recipe-app/internal/repository"
-	"github.com/yourusername/recipe-app/pkg/ai"
-	"github.com/yourusername/recipe-app/pkg/pdfparser"
-	"github.com/yourusername/recipe-app/pkg/storage"
-	"github.com/yourusername/recipe-app/pkg/urlparser"
+	"github.com/H3nSte1n/recipe/internal/domain"
+	"github.com/H3nSte1n/recipe/internal/errors"
+	"github.com/H3nSte1n/recipe/internal/repository"
+	"github.com/H3nSte1n/recipe/pkg/ai"
+	"github.com/H3nSte1n/recipe/pkg/pdfparser"
+	"github.com/H3nSte1n/recipe/pkg/storage"
+	"github.com/H3nSte1n/recipe/pkg/urlparser"
 	"go.uber.org/zap"
 )
 

@@ -1,15 +1,15 @@
 package main
 
 import (
+	"github.com/H3nSte1n/recipe/internal/handler"
+	"github.com/H3nSte1n/recipe/internal/repository"
+	"github.com/H3nSte1n/recipe/internal/router"
+	"github.com/H3nSte1n/recipe/internal/service"
+	"github.com/H3nSte1n/recipe/pkg/ai"
+	"github.com/H3nSte1n/recipe/pkg/config"
+	"github.com/H3nSte1n/recipe/pkg/database"
+	"github.com/H3nSte1n/recipe/pkg/storage"
 	"github.com/gin-gonic/gin"
-	"github.com/yourusername/recipe-app/internal/handler"
-	"github.com/yourusername/recipe-app/internal/repository"
-	"github.com/yourusername/recipe-app/internal/router"
-	"github.com/yourusername/recipe-app/internal/service"
-	"github.com/yourusername/recipe-app/pkg/ai"
-	"github.com/yourusername/recipe-app/pkg/config"
-	"github.com/yourusername/recipe-app/pkg/database"
-	"github.com/yourusername/recipe-app/pkg/storage"
 	"go.uber.org/zap"
 	"log"
 	"os"
@@ -30,12 +30,14 @@ func main() {
 		log.Fatal("Could not migrate database:", err)
 	}
 
-	logger, _ := zap.NewDevelopment()
-	defer logger.Sync()
-
+	var logger *zap.Logger
 	if cfg.App.Env == "production" {
+		logger, _ = zap.NewProduction()
 		gin.SetMode(gin.ReleaseMode)
+	} else {
+		logger, _ = zap.NewDevelopment()
 	}
+	defer func() { _ = logger.Sync() }()
 
 	db, err := database.NewPostgresConnection(&cfg)
 	if err != nil {

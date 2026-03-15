@@ -2,7 +2,7 @@ package storage
 
 import (
 	"fmt"
-	"github.com/yourusername/recipe-app/pkg/config"
+	"github.com/H3nSte1n/recipe/pkg/config"
 )
 
 func NewFileStore(cfg *config.Config) (FileStore, error) {

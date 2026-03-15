@@ -23,11 +23,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.25'
 
       - name: Check Go version EOL status
         run: |
-          GO_VERSION="1.24"
+          GO_VERSION="1.25"
           EOL=$(curl -s "https://endoflife.date/api/go/${GO_VERSION}.json" | jq -r '.eol')
           
           if [ "$EOL" != "false" ]; then

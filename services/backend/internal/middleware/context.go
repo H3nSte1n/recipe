@@ -1,8 +1,8 @@
 package middleware
 
 import (
+	"github.com/H3nSte1n/recipe/internal/domain"
 	"github.com/gin-gonic/gin"
-	"github.com/yourusername/recipe-app/internal/domain"
 )
 
 // GetCurrentUser retrieves the authenticated user from the context

@@ -6,12 +6,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/H3nSte1n/recipe/internal/domain"
+	"github.com/H3nSte1n/recipe/internal/repository"
+	"github.com/H3nSte1n/recipe/pkg/config"
+	"github.com/H3nSte1n/recipe/pkg/email"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/yourusername/recipe-app/internal/domain"
-	"github.com/yourusername/recipe-app/internal/repository"
-	"github.com/yourusername/recipe-app/pkg/config"
-	"github.com/yourusername/recipe-app/pkg/email"
 	"time"
 )
 
