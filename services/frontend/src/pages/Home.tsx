@@ -27,8 +27,12 @@ export const Home: React.FC<HomeProps> = ({ onLogout }) => {
         const data = await recipeApi.getRecipes();
         setRecipes(data);
       } catch (err) {
-        setError('Failed to load recipes. Please login again.');
         console.error(err);
+        if (!authApi.isAuthenticated()) {
+          onLogout();
+          return;
+        }
+        setError('Failed to load recipes. Please try again.');
       } finally {
         setLoading(false);
       }

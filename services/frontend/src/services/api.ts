@@ -91,6 +91,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const data = raw ? JSON.parse(raw) : null;
 
   if (!response.ok) {
+    if (response.status === 401) {
+      clearAuthToken();
+    }
     const message =
       (data && typeof data.error === "string" && data.error) ||
       `Request failed (${response.status})`;
