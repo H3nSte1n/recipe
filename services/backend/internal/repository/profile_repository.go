@@ -14,26 +14,26 @@ type ProfileRepository interface {
 }
 
 type profileRepository struct {
-	*BaseRepository[domain.Profile]
+	*BaseRepository
 }
 
 func NewProfileRepository(db *gorm.DB) ProfileRepository {
 	return &profileRepository{
-		BaseRepository: NewBaseRepository[domain.Profile](db),
+		BaseRepository: NewBaseRepository(db),
 	}
 }
 
 func (r *profileRepository) Create(ctx context.Context, profile *domain.Profile) error {
-	return r.db.WithContext(ctx).Create(profile).Error
+	return r.DB.WithContext(ctx).Create(profile).Error
 }
 
 func (r *profileRepository) Update(ctx context.Context, profile *domain.Profile) error {
-	return r.db.WithContext(ctx).Where("user_id = ?", profile.UserID).Updates(profile).Error
+	return r.DB.WithContext(ctx).Where("user_id = ?", profile.UserID).Updates(profile).Error
 }
 
 func (r *profileRepository) GetByUserID(ctx context.Context, userID string) (*domain.Profile, error) {
 	var profile domain.Profile
-	err := r.db.WithContext(ctx).
+	err := r.DB.WithContext(ctx).
 		Where("user_id = ?", userID).
 		Preload("User").
 		First(&profile).Error
@@ -44,5 +44,5 @@ func (r *profileRepository) GetByUserID(ctx context.Context, userID string) (*do
 }
 
 func (r *profileRepository) Delete(ctx context.Context, userID string) error {
-	return r.db.WithContext(ctx).Where("user_id = ?", userID).Delete(&domain.Profile{}).Error
+	return r.DB.WithContext(ctx).Where("user_id = ?", userID).Delete(&domain.Profile{}).Error
 }
