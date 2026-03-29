@@ -16,7 +16,7 @@ type RecipeRepository interface {
 	ListByUserID(ctx context.Context, userID string, includePrivate bool) ([]domain.Recipe, error)
 	ListPublic(ctx context.Context, page, pageSize int) ([]domain.Recipe, int64, error)
 	Exists(ctx context.Context, id string) (bool, error)
-	WithTypedTransaction(ctx context.Context, fn func(*RecipeRepositoryImpl) error) error
+	WithTypedTransaction(ctx context.Context, fn func(RecipeRepository) error) error
 }
 
 type RecipeRepositoryImpl struct {
@@ -29,7 +29,7 @@ func NewRecipeRepository(db *gorm.DB) RecipeRepository {
 	}
 }
 
-func (r *RecipeRepositoryImpl) WithTypedTransaction(ctx context.Context, fn func(*RecipeRepositoryImpl) error) error {
+func (r *RecipeRepositoryImpl) WithTypedTransaction(ctx context.Context, fn func(RecipeRepository) error) error {
 	return r.WithTransaction(ctx, func(txRepo Repository[domain.Recipe]) error {
 		typed := &RecipeRepositoryImpl{
 			BaseRepository: txRepo.(*BaseRepository[domain.Recipe]),
@@ -39,30 +39,31 @@ func (r *RecipeRepositoryImpl) WithTypedTransaction(ctx context.Context, fn func
 }
 
 func (r *RecipeRepositoryImpl) Create(ctx context.Context, recipe *domain.Recipe) error {
-	return r.WithTypedTransaction(ctx, func(txRepo *RecipeRepositoryImpl) error {
+	return r.WithTypedTransaction(ctx, func(txRepo RecipeRepository) error {
 		// Create recipe with all its associations
 		return txRepo.GetDB().Create(recipe).Error
 	})
 }
 
 func (r *RecipeRepositoryImpl) Update(ctx context.Context, recipe *domain.Recipe) error {
-	return r.WithTypedTransaction(ctx, func(txRepo *RecipeRepositoryImpl) error {
+	return r.WithTypedTransaction(ctx, func(txRepo RecipeRepository) error {
+		db := txRepo.GetDB()
 		// Delete existing related data
-		if err := txRepo.GetDB().Where("recipe_id = ?", recipe.ID).Delete(&domain.RecipeIngredient{}).Error; err != nil {
+		if err := db.Where("recipe_id = ?", recipe.ID).Delete(&domain.RecipeIngredient{}).Error; err != nil {
 			return err
 		}
-		if err := txRepo.GetDB().Where("recipe_id = ?", recipe.ID).Delete(&domain.RecipeInstruction{}).Error; err != nil {
+		if err := db.Where("recipe_id = ?", recipe.ID).Delete(&domain.RecipeInstruction{}).Error; err != nil {
 			return err
 		}
-		if err := txRepo.GetDB().Where("recipe_id = ?", recipe.ID).Delete(&domain.RecipeNutrition{}).Error; err != nil {
+		if err := db.Where("recipe_id = ?", recipe.ID).Delete(&domain.RecipeNutrition{}).Error; err != nil {
 			return err
 		}
-		if err := txRepo.GetDB().Where("parent_id = ?", recipe.ID).Delete(&domain.SubRecipe{}).Error; err != nil {
+		if err := db.Where("parent_id = ?", recipe.ID).Delete(&domain.SubRecipe{}).Error; err != nil {
 			return err
 		}
 
 		// Update recipe base data
-		if err := txRepo.GetDB().Model(recipe).
+		if err := db.Model(recipe).
 			Select("title", "description", "source_type", "source_url", "is_private",
 				"servings", "prep_time", "cook_time", "updated_at").
 			Updates(recipe).Error; err != nil {
@@ -71,28 +72,28 @@ func (r *RecipeRepositoryImpl) Update(ctx context.Context, recipe *domain.Recipe
 
 		// Create new ingredients
 		if len(recipe.Ingredients) > 0 {
-			if err := txRepo.GetDB().Create(&recipe.Ingredients).Error; err != nil {
+			if err := db.Create(&recipe.Ingredients).Error; err != nil {
 				return err
 			}
 		}
 
 		// Create new instructions
 		if len(recipe.Instructions) > 0 {
-			if err := txRepo.GetDB().Create(&recipe.Instructions).Error; err != nil {
+			if err := db.Create(&recipe.Instructions).Error; err != nil {
 				return err
 			}
 		}
 
 		// Create new nutrition
 		if recipe.Nutrition != nil {
-			if err := txRepo.GetDB().Create(recipe.Nutrition).Error; err != nil {
+			if err := db.Create(recipe.Nutrition).Error; err != nil {
 				return err
 			}
 		}
 
 		// Create new sub-recipes
 		if len(recipe.SubRecipes) > 0 {
-			if err := txRepo.GetDB().Create(&recipe.SubRecipes).Error; err != nil {
+			if err := db.Create(&recipe.SubRecipes).Error; err != nil {
 				return err
 			}
 		}
@@ -102,7 +103,7 @@ func (r *RecipeRepositoryImpl) Update(ctx context.Context, recipe *domain.Recipe
 }
 
 func (r *RecipeRepositoryImpl) Delete(ctx context.Context, id string) error {
-	return r.WithTypedTransaction(ctx, func(txRepo *RecipeRepositoryImpl) error {
+	return r.WithTypedTransaction(ctx, func(txRepo RecipeRepository) error {
 		// Due to ON DELETE CASCADE, we only need to delete the recipe
 		return txRepo.GetDB().Delete(&domain.Recipe{ID: id}).Error
 	})

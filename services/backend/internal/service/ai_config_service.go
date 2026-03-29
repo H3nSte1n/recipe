@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"github.com/H3nSte1n/recipe/internal/repository"
-	"gorm.io/gorm"
 )
 
 type AIConfigService interface {
@@ -32,11 +31,9 @@ func NewAIConfigService(aiConfigRepo repository.AIConfigRepository) AIConfigServ
 func (s *aiConfigService) Create(ctx context.Context, userID string, req *domain.CreateUserAIConfigRequest) (*domain.UserAIConfig, error) {
 	var config *domain.UserAIConfig
 
-	err := s.aiConfigRepo.WithTypedTransaction(ctx, func(txRepo *repository.AIConfigRepositoryImpl) error {
+	err := s.aiConfigRepo.WithTypedTransaction(ctx, func(txRepo repository.AIConfigRepository) error {
 		if req.IsDefault {
-			if err := txRepo.GetDB().Model(&domain.UserAIConfig{}).
-				Where("user_id = ?", userID).
-				Update("is_default", false).Error; err != nil {
+			if err := txRepo.ClearDefaultByUserID(ctx, userID); err != nil {
 				return err
 			}
 		}
@@ -69,11 +66,9 @@ func (s *aiConfigService) Update(ctx context.Context, userID string, configID st
 		return nil, err
 	}
 
-	err = s.aiConfigRepo.WithTypedTransaction(ctx, func(txRepo *repository.AIConfigRepositoryImpl) error {
+	err = s.aiConfigRepo.WithTypedTransaction(ctx, func(txRepo repository.AIConfigRepository) error {
 		if req.IsDefault != nil && *req.IsDefault {
-			if err := txRepo.GetDB().Model(&domain.UserAIConfig{}).
-				Where("user_id = ? AND id != ?", userID, configID).
-				Update("is_default", false).Error; err != nil {
+			if err := txRepo.ClearDefaultByUserID(ctx, userID, configID); err != nil {
 				return err
 			}
 		}
@@ -148,10 +143,7 @@ func (s *aiConfigService) SetDefault(ctx context.Context, userID string, configI
 func (s *aiConfigService) GetDefaultConfig(ctx context.Context, userID string) (*domain.UserAIConfig, error) {
 	config, err := s.aiConfigRepo.GetDefaultConfig(ctx, userID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("default AI configuration not found")
-		}
-		return nil, err
+		return nil, errors.New("default AI configuration not found")
 	}
 
 	return config, nil

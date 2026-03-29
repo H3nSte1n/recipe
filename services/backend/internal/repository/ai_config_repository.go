@@ -18,7 +18,8 @@ type AIConfigRepository interface {
 	GetAIModels(ctx context.Context) ([]domain.AIModel, error)
 	GetDefaultConfig(ctx context.Context, userID string) (*domain.UserAIConfig, error)
 	SetDefault(ctx context.Context, userID, configID string) error
-	WithTypedTransaction(ctx context.Context, fn func(*AIConfigRepositoryImpl) error) error
+	ClearDefaultByUserID(ctx context.Context, userID string, excludeIDs ...string) error
+	WithTypedTransaction(ctx context.Context, fn func(AIConfigRepository) error) error
 }
 
 type AIConfigRepositoryImpl struct {
@@ -31,7 +32,7 @@ func NewAIConfigRepository(db *gorm.DB) AIConfigRepository {
 	}
 }
 
-func (r *AIConfigRepositoryImpl) WithTypedTransaction(ctx context.Context, fn func(*AIConfigRepositoryImpl) error) error {
+func (r *AIConfigRepositoryImpl) WithTypedTransaction(ctx context.Context, fn func(AIConfigRepository) error) error {
 	return r.WithTransaction(ctx, func(txRepo Repository[domain.UserAIConfig]) error {
 		typed := &AIConfigRepositoryImpl{
 			BaseRepository: txRepo.(*BaseRepository[domain.UserAIConfig]),
@@ -95,8 +96,9 @@ func (r *AIConfigRepositoryImpl) GetDefaultConfig(ctx context.Context, userID st
 }
 
 func (r *AIConfigRepositoryImpl) SetDefault(ctx context.Context, userID, configID string) error {
-	return r.WithTypedTransaction(ctx, func(txRepo *AIConfigRepositoryImpl) error {
-		result := txRepo.GetDB().Model(&domain.UserAIConfig{}).
+	return r.WithTypedTransaction(ctx, func(txRepo AIConfigRepository) error {
+		db := txRepo.GetDB()
+		result := db.Model(&domain.UserAIConfig{}).
 			Where("id = ? AND user_id = ?", configID, userID).
 			Update("is_default", true)
 
@@ -108,8 +110,16 @@ func (r *AIConfigRepositoryImpl) SetDefault(ctx context.Context, userID, configI
 			return errors.New("unable to set default config")
 		}
 
-		return txRepo.GetDB().Model(&domain.UserAIConfig{}).
+		return db.Model(&domain.UserAIConfig{}).
 			Where("user_id = ? AND id != ?", userID, configID).
 			Update("is_default", false).Error
 	})
+}
+
+func (r *AIConfigRepositoryImpl) ClearDefaultByUserID(ctx context.Context, userID string, excludeIDs ...string) error {
+	query := r.db.WithContext(ctx).Model(&domain.UserAIConfig{}).Where("user_id = ?", userID)
+	if len(excludeIDs) > 0 {
+		query = query.Where("id NOT IN ?", excludeIDs)
+	}
+	return query.Update("is_default", false).Error
 }

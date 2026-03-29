@@ -13,10 +13,13 @@ type UserRepository interface {
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetByID(ctx context.Context, id string) (*domain.User, error)
 	Delete(ctx context.Context, userID string) error
+	UpdatePassword(ctx context.Context, userID string, passwordHash string) error
+	CreateProfile(ctx context.Context, profile *domain.Profile) error
 	CreateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
 	UpdateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
 	GetResetTokenByToken(ctx context.Context, token string) (*domain.PasswordResetToken, error)
-	WithTypedTransaction(ctx context.Context, fn func(*UserRepositoryImpl) error) error
+	MarkResetTokenUsed(ctx context.Context, tokenID string) error
+	WithTypedTransaction(ctx context.Context, fn func(UserRepository) error) error
 }
 
 type UserRepositoryImpl struct {
@@ -29,7 +32,7 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	}
 }
 
-func (r *UserRepositoryImpl) WithTypedTransaction(ctx context.Context, fn func(*UserRepositoryImpl) error) error {
+func (r *UserRepositoryImpl) WithTypedTransaction(ctx context.Context, fn func(UserRepository) error) error {
 	return r.WithTransaction(ctx, func(txRepo Repository[domain.User]) error {
 		typed := &UserRepositoryImpl{
 			BaseRepository: txRepo.(*BaseRepository[domain.User]),
@@ -76,6 +79,22 @@ func (r *UserRepositoryImpl) GetResetTokenByToken(ctx context.Context, token str
 		Where("token = ?", token).
 		First(&resetToken).Error
 	return &resetToken, err
+}
+
+func (r *UserRepositoryImpl) UpdatePassword(ctx context.Context, userID string, passwordHash string) error {
+	return r.db.WithContext(ctx).Model(&domain.User{}).
+		Where("id = ?", userID).
+		Update("password_hash", passwordHash).Error
+}
+
+func (r *UserRepositoryImpl) CreateProfile(ctx context.Context, profile *domain.Profile) error {
+	return r.db.WithContext(ctx).Create(profile).Error
+}
+
+func (r *UserRepositoryImpl) MarkResetTokenUsed(ctx context.Context, tokenID string) error {
+	return r.db.WithContext(ctx).Model(&domain.PasswordResetToken{}).
+		Where("id = ?", tokenID).
+		Update("used", true).Error
 }
 
 func (r *UserRepositoryImpl) Delete(ctx context.Context, userID string) error {
