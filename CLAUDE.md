@@ -74,6 +74,7 @@ Before making changes:
 
 ## More Information
 
-- Frontend-specific details: `services/frontend/CLAUDE.md`
+- Frontend-specific context: `services/frontend/CLAUDE.md`
+- Backend-specific context: `services/backend/CLAUDE.md`
 - Frontend Copilot instructions: `services/frontend/copilot-instructions.md`
 - Backend docs: `services/backend/README.md`
