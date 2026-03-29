@@ -182,7 +182,7 @@ func (s *recipeService) Update(ctx context.Context, userID string, recipeID stri
 		}
 	}
 
-	err = s.recipeRepo.WithTypedTransaction(ctx, func(recipeRepo *repository.RecipeRepositoryImpl) error {
+	err = s.recipeRepo.WithTypedTransaction(ctx, func(recipeRepo repository.RecipeRepository) error {
 		recipe := &domain.Recipe{
 			ID:           recipeID,
 			UserID:       userID,
@@ -254,7 +254,7 @@ func (s *recipeService) Delete(ctx context.Context, userID string, recipeID stri
 		return errors.ErrUnauthorized
 	}
 
-	return s.recipeRepo.WithTypedTransaction(ctx, func(recipeRepo *repository.RecipeRepositoryImpl) error {
+	return s.recipeRepo.WithTypedTransaction(ctx, func(recipeRepo repository.RecipeRepository) error {
 		if err := recipeRepo.Delete(ctx, recipeID); err != nil {
 			return err
 		}

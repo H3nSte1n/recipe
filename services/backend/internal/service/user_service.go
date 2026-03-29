@@ -49,7 +49,7 @@ func (s *userService) Register(ctx context.Context, req *domain.RegisterRequest)
 	}
 
 	var user *domain.User
-	err = s.userRepo.WithTypedTransaction(ctx, func(txRepo *repository.UserRepositoryImpl) error {
+	err = s.userRepo.WithTypedTransaction(ctx, func(txRepo repository.UserRepository) error {
 		hashedPassword, err := domain.HashPassword(req.Password)
 		if err != nil {
 			return err
@@ -76,7 +76,7 @@ func (s *userService) Register(ctx context.Context, req *domain.RegisterRequest)
 			UpdatedAt: time.Now(),
 		}
 
-		if err := txRepo.GetDB().Create(profile).Error; err != nil {
+		if err := txRepo.CreateProfile(ctx, profile); err != nil {
 			return err
 		}
 
@@ -156,16 +156,12 @@ func (s *userService) ResetPassword(ctx context.Context, req *domain.ResetPasswo
 		return err
 	}
 
-	return s.userRepo.WithTypedTransaction(ctx, func(txRepo *repository.UserRepositoryImpl) error {
-		if err := txRepo.GetDB().Model(&domain.User{}).
-			Where("id = ?", user.ID).
-			Update("password_hash", hashedPassword).Error; err != nil {
+	return s.userRepo.WithTypedTransaction(ctx, func(txRepo repository.UserRepository) error {
+		if err := txRepo.UpdatePassword(ctx, user.ID, hashedPassword); err != nil {
 			return err
 		}
 
-		if err := txRepo.GetDB().Model(&domain.PasswordResetToken{}).
-			Where("id = ?", resetToken.ID).
-			Update("used", true).Error; err != nil {
+		if err := txRepo.MarkResetTokenUsed(ctx, resetToken.ID); err != nil {
 			return err
 		}
 
@@ -194,13 +190,13 @@ func (s *userService) ValidateToken(tokenString string) (*jwt.Token, error) {
 }
 
 func (s *userService) Delete(ctx context.Context, userID string) error {
-	return s.userRepo.WithTypedTransaction(ctx, func(userRepo *repository.UserRepositoryImpl) error {
-		user, err := userRepo.GetByID(ctx, userID)
+	return s.userRepo.WithTypedTransaction(ctx, func(txRepo repository.UserRepository) error {
+		user, err := txRepo.GetByID(ctx, userID)
 		if err != nil {
 			return errors.New("user not found")
 		}
 
-		if err := userRepo.Delete(ctx, user.ID); err != nil {
+		if err := txRepo.Delete(ctx, user.ID); err != nil {
 			return err
 		}
 
