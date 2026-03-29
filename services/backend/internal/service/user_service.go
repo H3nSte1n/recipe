@@ -38,7 +38,7 @@ func NewUserService(userRepo repository.UserRepository, profileRepo repository.P
 		profileRepo:  profileRepo,
 		jwtSecret:    []byte(jwtSecret),
 		jwtDuration:  config.JWT.Duration,
-		emailService: email.NewEmailService(config.SMTP.From, config.SMTP.Password, config.SMTP.Host, config.SMTP.Port),
+		emailService: email.NewEmailService(config.SMTP.From, config.SMTP.Password, config.SMTP.Host, config.SMTP.Port, config.Frontend.Url),
 	}
 }
 
@@ -195,8 +195,8 @@ func (s *userService) ValidateToken(tokenString string) (*jwt.Token, error) {
 
 func (s *userService) Delete(ctx context.Context, userID string) error {
 	return s.userRepo.WithTypedTransaction(ctx, func(userRepo *repository.UserRepositoryImpl) error {
-		var user domain.User
-		if err, _ := userRepo.GetByID(ctx, userID); err != nil {
+		user, err := userRepo.GetByID(ctx, userID)
+		if err != nil {
 			return errors.New("user not found")
 		}
 

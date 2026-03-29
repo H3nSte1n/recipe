@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/H3nSte1n/recipe/internal/domain"
+	"github.com/H3nSte1n/recipe/internal/middleware"
 	"github.com/H3nSte1n/recipe/internal/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -84,8 +85,8 @@ func (h *UserHandler) ResetPassword(c *gin.Context) {
 }
 
 func (h *UserHandler) DeleteAccount(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
+	userID := middleware.GetUserID(c)
+	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
@@ -97,7 +98,7 @@ func (h *UserHandler) DeleteAccount(c *gin.Context) {
 		return
 	}
 
-	if err := h.userService.Delete(c.Request.Context(), userID.(string)); err != nil {
+	if err := h.userService.Delete(c.Request.Context(), userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete account"})
 		return
 	}

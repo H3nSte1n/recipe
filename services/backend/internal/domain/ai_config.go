@@ -29,8 +29,8 @@ type AIModel struct {
 }
 
 type CreateUserAIConfigRequest struct {
-	AIModelID string          `json:"ai_model_id" validate:"required"`
-	APIKey    string          `json:"api_key" validate:"required"`
+	AIModelID string          `json:"ai_model_id" binding:"required"`
+	APIKey    string          `json:"api_key" binding:"required"`
 	IsDefault bool            `json:"is_default"`
 	Settings  json.RawMessage `json:"settings"`
 }

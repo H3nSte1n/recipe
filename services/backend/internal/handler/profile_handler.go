@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/H3nSte1n/recipe/internal/domain"
+	"github.com/H3nSte1n/recipe/internal/middleware"
 	"github.com/H3nSte1n/recipe/internal/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -24,13 +25,13 @@ func (h *ProfileHandler) Update(c *gin.Context) {
 		return
 	}
 
-	userID, exists := c.Get("user_id")
-	if !exists {
+	userID := middleware.GetUserID(c)
+	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
-	profile, err := h.profileService.UpdateProfile(c.Request.Context(), userID.(string), &req)
+	profile, err := h.profileService.UpdateProfile(c.Request.Context(), userID, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -40,13 +41,13 @@ func (h *ProfileHandler) Update(c *gin.Context) {
 }
 
 func (h *ProfileHandler) Get(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
+	userID := middleware.GetUserID(c)
+	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
-	profile, err := h.profileService.GetProfile(c.Request.Context(), userID.(string))
+	profile, err := h.profileService.GetProfile(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
 		return

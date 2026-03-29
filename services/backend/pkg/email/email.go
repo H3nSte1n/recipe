@@ -10,25 +10,26 @@ type EmailService interface {
 }
 
 type emailService struct {
-	from     string
-	password string
-	host     string
-	port     string
+	from        string
+	password    string
+	host        string
+	port        string
+	frontendUrl string
 }
 
-func NewEmailService(from, password, host, port string) EmailService {
+func NewEmailService(from, password, host, port, frontendUrl string) EmailService {
 	return &emailService{
-		from:     from,
-		password: password,
-		host:     host,
-		port:     port,
+		from:        from,
+		password:    password,
+		host:        host,
+		port:        port,
+		frontendUrl: frontendUrl,
 	}
 }
 
 func (s *emailService) SendPasswordResetEmail(to, resetToken string) error {
 	subject := "Password Reset Request"
-	frontend_url := "localhost:3000"
-	resetLink := fmt.Sprintf("http://%s/reset-password?token=%s", frontend_url, resetToken)
+	resetLink := fmt.Sprintf("http://%s/reset-password?token=%s", s.frontendUrl, resetToken)
 	body := fmt.Sprintf(`
         Hello,
         

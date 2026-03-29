@@ -121,38 +121,38 @@ const (
 )
 
 type CreateRecipeRequest struct {
-	Title                string                `json:"title" validate:"required"`
+	Title                string                `json:"title" binding:"required"`
 	Description          string                `json:"description"`
-	SourceType           string                `json:"source_type" validate:"required,oneof=URL MANUAL PDF IMAGE"`
+	SourceType           string                `json:"source_type" binding:"required,oneof=URL MANUAL PDF IMAGE"`
 	SourceURL            string                `json:"source_url,omitempty"`
 	IsPrivate            bool                  `json:"is_private"`
-	Servings             int                   `json:"servings" validate:"required,min=1"`
+	Servings             int                   `json:"servings" binding:"required,min=1"`
 	PrepTime             int                   `json:"prep_time"`
 	CookTime             int                   `json:"cook_time"`
 	ShelfLife            int                   `json:"shelf_life"`
 	Ingredients          []RecipeIngredient    `json:"ingredients"`
 	Instructions         []RecipeInstruction   `json:"instructions"`
 	Notes                string                `json:"notes"`
-	Rating               float64               `json:"ratings" validate:"omitempty,min=0,max=5"`
+	Rating               float64               `json:"ratings" binding:"omitempty,min=0,max=5"`
 	Image                *multipart.FileHeader `json:"-" form:"image"`
-	Status               string                `json:"status" validate:"omitempty,oneof=draft published archived"`
+	Status               string                `json:"status" binding:"omitempty,oneof=draft published archived"`
 	Nutrition            *RecipeNutrition      `json:"nutrition,omitempty"`
-	NutritionDetailLevel NutritionDetailLevel  `json:"nutrition_detail_level" validate:"omitempty,oneof=base macro micro"`
+	NutritionDetailLevel NutritionDetailLevel  `json:"nutrition_detail_level" binding:"omitempty,oneof=base macro micro"`
 	SubRecipes           []SubRecipeRequest    `json:"sub_recipes,omitempty"`
 }
 
 type SubRecipeRequest struct {
-	RecipeID      string  `json:"recipe_id" validate:"required"`
-	ServingFactor float64 `json:"serving_factor" validate:"required,min=0.1"`
+	RecipeID      string  `json:"recipe_id" binding:"required"`
+	ServingFactor float64 `json:"serving_factor" binding:"required,min=0.1"`
 }
 
 type ImportURLRequest struct {
-	URL       string `json:"url" validate:"required,url"`
+	URL       string `json:"url" binding:"required,url"`
 	IsPrivate bool   `json:"is_private"`
 }
 
 type ParsePlainTextInstructionsRequest struct {
-	PlainText string `json:"plain_text" validate:"required"`
+	PlainText string `json:"plain_text" binding:"required"`
 }
 
 type ImportPDFRequest struct {
