@@ -54,36 +54,36 @@ const (
 )
 
 type CreateShoppingListRequest struct {
-	Name         string                    `json:"name" validate:"required"`
+	Name         string                    `json:"name" binding:"required"`
 	Description  string                    `json:"description"`
-	SortType     SortType                  `json:"sort_type" validate:"required,oneof=CATEGORY STORE"`
+	SortType     SortType                  `json:"sort_type" binding:"required,oneof=CATEGORY STORE"`
 	StoreChainID string                    `json:"store_chain_id,omitempty"`
 	Items        []ShoppingListItemRequest `json:"items,omitempty"`
 }
 
 type UpdateShoppingListRequest struct {
-	Name        string   `json:"name" validate:"required"`
+	Name        string   `json:"name" binding:"required"`
 	Description string   `json:"description"`
-	SortType    SortType `json:"sort_type" validate:"required,oneof=CATEGORY STORE"`
+	SortType    SortType `json:"sort_type" binding:"required,oneof=CATEGORY STORE"`
 }
 
 type UpdateShoppingListItemRequest struct {
-	Name     string   `json:"name" validate:"required"`
+	Name     string   `json:"name" binding:"required"`
 	Amount   float64  `json:"amount"`
 	Unit     string   `json:"unit"`
-	Category Category `json:"category" validate:"required"`
+	Category Category `json:"category" binding:"required"`
 	Notes    string   `json:"notes"`
 }
 
 type ShoppingListItemRequest struct {
-	Name     string   `json:"name" validate:"required"`
+	Name     string   `json:"name" binding:"required"`
 	Amount   float64  `json:"amount"`
 	Unit     string   `json:"unit"`
-	Category Category `json:"category" validate:"required"`
+	Category Category `json:"category" binding:"required"`
 	Notes    string   `json:"notes"`
 }
 
 type AddRecipeToListRequest struct {
-	RecipeID string  `json:"recipe_id" validate:"required"`
-	Servings float64 `json:"servings" validate:"required,min=0.1"`
+	RecipeID string  `json:"recipe_id" binding:"required"`
+	Servings float64 `json:"servings" binding:"required,min=0.1"`
 }

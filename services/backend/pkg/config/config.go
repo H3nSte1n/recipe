@@ -8,14 +8,15 @@ import (
 )
 
 type Config struct {
-	App      AppConfig     `mapstructure:"app"`
-	DB       DBConfig      `mapstructure:"db"`
-	JWT      JWTConfig     `mapstructure:"jwt"`
-	SMTP     SMTPConfig    `mapstructure:"smtp"`
-	Storage  StorageConfig `mapstructure:"storage"`
-	AI       AIConfig      `mapstructure:"ai"`
-	CORS     CORSConfig    `mapstructure:"cors"`
-	LogLevel string        `mapstructure:"log_level"`
+	App      AppConfig      `mapstructure:"app"`
+	Frontend FrontendConfig `mapstructure:"frontend"`
+	DB       DBConfig       `mapstructure:"db"`
+	JWT      JWTConfig      `mapstructure:"jwt"`
+	SMTP     SMTPConfig     `mapstructure:"smtp"`
+	Storage  StorageConfig  `mapstructure:"storage"`
+	AI       AIConfig       `mapstructure:"ai"`
+	CORS     CORSConfig     `mapstructure:"cors"`
+	LogLevel string         `mapstructure:"log_level"`
 }
 
 type CORSConfig struct {
@@ -26,6 +27,10 @@ type AppConfig struct {
 	Name string `mapstructure:"name"`
 	Env  string `mapstructure:"env"`
 	Port string `mapstructure:"port"`
+}
+
+type FrontendConfig struct {
+	Url string `mapstructure:"url"`
 }
 
 type DBConfig struct {

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/H3nSte1n/recipe/internal/domain"
+	"github.com/H3nSte1n/recipe/internal/middleware"
 	"github.com/H3nSte1n/recipe/internal/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -24,8 +25,8 @@ func (h *AIConfigHandler) Create(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	config, err := h.aiConfigService.Create(c.Request.Context(), userID.(string), &req)
+	userID := middleware.GetUserID(c)
+	config, err := h.aiConfigService.Create(c.Request.Context(), userID, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -41,10 +42,10 @@ func (h *AIConfigHandler) Update(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userID := middleware.GetUserID(c)
 	configID := c.Param("id")
 
-	config, err := h.aiConfigService.Update(c.Request.Context(), userID.(string), configID, &req)
+	config, err := h.aiConfigService.Update(c.Request.Context(), userID, configID, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -54,10 +55,10 @@ func (h *AIConfigHandler) Update(c *gin.Context) {
 }
 
 func (h *AIConfigHandler) Get(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := middleware.GetUserID(c)
 	configID := c.Param("id")
 
-	config, err := h.aiConfigService.GetByID(c.Request.Context(), userID.(string), configID)
+	config, err := h.aiConfigService.GetByID(c.Request.Context(), userID, configID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "AI configuration not found"})
 		return
@@ -67,9 +68,9 @@ func (h *AIConfigHandler) Get(c *gin.Context) {
 }
 
 func (h *AIConfigHandler) List(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := middleware.GetUserID(c)
 
-	configs, err := h.aiConfigService.List(c.Request.Context(), userID.(string))
+	configs, err := h.aiConfigService.List(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -79,10 +80,10 @@ func (h *AIConfigHandler) List(c *gin.Context) {
 }
 
 func (h *AIConfigHandler) Delete(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := middleware.GetUserID(c)
 	configID := c.Param("id")
 
-	if err := h.aiConfigService.Delete(c.Request.Context(), userID.(string), configID); err != nil {
+	if err := h.aiConfigService.Delete(c.Request.Context(), userID, configID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -101,10 +102,10 @@ func (h *AIConfigHandler) ListModels(c *gin.Context) {
 }
 
 func (h *AIConfigHandler) SetDefault(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := middleware.GetUserID(c)
 	configID := c.Param("id")
 
-	if err := h.aiConfigService.SetDefault(c.Request.Context(), userID.(string), configID); err != nil {
+	if err := h.aiConfigService.SetDefault(c.Request.Context(), userID, configID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -113,9 +114,9 @@ func (h *AIConfigHandler) SetDefault(c *gin.Context) {
 }
 
 func (h *AIConfigHandler) GetDefault(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := middleware.GetUserID(c)
 
-	config, err := h.aiConfigService.GetDefaultConfig(c.Request.Context(), userID.(string))
+	config, err := h.aiConfigService.GetDefaultConfig(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "No default AI configuration found"})
 		return

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"github.com/H3nSte1n/recipe/internal/domain"
+	"github.com/H3nSte1n/recipe/internal/middleware"
 	"github.com/H3nSte1n/recipe/internal/service"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -46,8 +47,8 @@ func (h *RecipeHandler) Create(c *gin.Context) {
 		}
 	}
 
-	userID, _ := c.Get("user_id")
-	recipe, err := h.recipeService.Create(c.Request.Context(), userID.(string), &req)
+	userID := middleware.GetUserID(c)
+	recipe, err := h.recipeService.Create(c.Request.Context(), userID, &req)
 	if err != nil {
 		h.logger.Error("failed to create recipe", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create recipe"})
@@ -64,10 +65,10 @@ func (h *RecipeHandler) Update(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
+	userID := middleware.GetUserID(c)
 	recipeID := c.Param("id")
 
-	recipe, err := h.recipeService.Update(c.Request.Context(), userID.(string), recipeID, &req)
+	recipe, err := h.recipeService.Update(c.Request.Context(), userID, recipeID, &req)
 	if err != nil {
 		h.logger.Error("failed to update recipe", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update recipe"})
@@ -78,10 +79,10 @@ func (h *RecipeHandler) Update(c *gin.Context) {
 }
 
 func (h *RecipeHandler) Delete(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := middleware.GetUserID(c)
 	recipeID := c.Param("id")
 
-	if err := h.recipeService.Delete(c.Request.Context(), userID.(string), recipeID); err != nil {
+	if err := h.recipeService.Delete(c.Request.Context(), userID, recipeID); err != nil {
 		h.logger.Error("failed to delete recipe", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete recipe"})
 		return
@@ -91,7 +92,7 @@ func (h *RecipeHandler) Delete(c *gin.Context) {
 }
 
 func (h *RecipeHandler) Get(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := middleware.GetUserID(c)
 	recipeID := c.Param("id")
 
 	nutritionLevel := domain.NutritionDetailLevel(c.DefaultQuery("nutrition_level", string(domain.NutritionDetailBase)))
@@ -102,7 +103,7 @@ func (h *RecipeHandler) Get(c *gin.Context) {
 		nutritionLevel = domain.NutritionDetailBase
 	}
 
-	recipe, err := h.recipeService.GetByID(c.Request.Context(), userID.(string), recipeID, nutritionLevel)
+	recipe, err := h.recipeService.GetByID(c.Request.Context(), userID, recipeID, nutritionLevel)
 	if err != nil {
 		h.logger.Error("failed to get recipe", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get recipe"})
@@ -113,9 +114,9 @@ func (h *RecipeHandler) Get(c *gin.Context) {
 }
 
 func (h *RecipeHandler) ListMine(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := middleware.GetUserID(c)
 
-	recipes, err := h.recipeService.ListUserRecipes(c.Request.Context(), userID.(string))
+	recipes, err := h.recipeService.ListUserRecipes(c.Request.Context(), userID)
 	if err != nil {
 		h.logger.Error("failed to list user recipes", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list recipes"})
@@ -151,8 +152,8 @@ func (h *RecipeHandler) ImportFromURL(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	recipe, err := h.recipeService.ImportFromURL(c.Request.Context(), userID.(string), &req)
+	userID := middleware.GetUserID(c)
+	recipe, err := h.recipeService.ImportFromURL(c.Request.Context(), userID, &req)
 	if err != nil {
 		h.logger.Error("failed to import recipe from URL", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to import recipe"})
@@ -188,8 +189,8 @@ func (h *RecipeHandler) ImportFromPDF(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	recipe, err := h.recipeService.ImportFromPDF(c.Request.Context(), userID.(string), &req, fileBytes)
+	userID := middleware.GetUserID(c)
+	recipe, err := h.recipeService.ImportFromPDF(c.Request.Context(), userID, &req, fileBytes)
 	if err != nil {
 		h.logger.Error("failed to import recipe from PDF", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to import recipe"})
@@ -206,8 +207,8 @@ func (h *RecipeHandler) ParsePlainTextInstructions(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	instructions, err := h.recipeService.ParsePlainTextInstructions(c.Request.Context(), userID.(string), &req)
+	userID := middleware.GetUserID(c)
+	instructions, err := h.recipeService.ParsePlainTextInstructions(c.Request.Context(), userID, &req)
 	if err != nil {
 		h.logger.Error("failed to parse plain text instructions", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse instructions"})
