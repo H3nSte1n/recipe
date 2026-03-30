@@ -20,7 +20,8 @@ type mockUserService struct {
 
 func (m *mockUserService) Register(ctx context.Context, req *domain.RegisterRequest) (*domain.User, error) {
 	args := m.Called(ctx, req)
-	return args.Get(0).(*domain.User), args.Error(1)
+	user, _ := args.Get(0).(*domain.User)
+	return user, args.Error(1)
 }
 
 func (m *mockUserService) Login(ctx context.Context, req *domain.LoginRequest) (*domain.LoginResponse, error) {
@@ -82,7 +83,7 @@ func Test_UserHandler_Register(t *testing.T) {
 			expectedErr:        errors.New("service error"),
 			body:               `{"email":"foo@bar.com","password":"foo123asdasd","first_name":"foo","last_name":"bar"}`,
 			mockMethod: func(m *mockUserService) {
-				m.On("Register", mock.Anything, mock.Anything).Return(&domain.User{}, errors.New("service error")).Once()
+				m.On("Register", mock.Anything, mock.Anything).Return(nil, errors.New("service error")).Once()
 			},
 		},
 	}
