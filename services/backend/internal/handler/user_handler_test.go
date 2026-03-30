@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"github.com/gin-gonic/gin"
@@ -26,12 +27,14 @@ func (m *mockUserService) Register(ctx context.Context, req *domain.RegisterRequ
 
 func (m *mockUserService) Login(ctx context.Context, req *domain.LoginRequest) (*domain.LoginResponse, error) {
 	args := m.Called(ctx, req)
-	return args.Get(0).(*domain.LoginResponse), args.Error(1)
+	loginResponse, _ := args.Get(0).(*domain.LoginResponse)
+	return loginResponse, args.Error(1)
 }
 
 func (m *mockUserService) ValidateToken(token string) (*jwt.Token, error) {
 	args := m.Called(token)
-	return args.Get(0).(*jwt.Token), args.Error(0)
+	t, _ := args.Get(0).(*jwt.Token)
+	return t, args.Error(1)
 }
 
 func (m *mockUserService) ForgotPassword(ctx context.Context, req *domain.ForgotPasswordRequest) error {
@@ -51,6 +54,8 @@ func (m *mockUserService) Delete(ctx context.Context, userID string) error {
 
 // WIP
 func Test_UserHandler_Register(t *testing.T) {
+	registerRequest := domain.RegisterRequest{Email: "foo@bar.com", Password: "foo123asdasd", FirstName: "foo", LastName: "bar"}
+	jsonRequest, _ := json.Marshal(registerRequest)
 	tests := []struct {
 		name               string
 		expectedStatusCode int
@@ -61,12 +66,14 @@ func Test_UserHandler_Register(t *testing.T) {
 		{
 			name:               "register successfully",
 			expectedStatusCode: http.StatusCreated,
-			body:               `{"email":"foo@bar.com","password":"foo123asdasd","first_name":"foo","last_name":"bar"}`,
+			body:               string(jsonRequest),
 			mockMethod: func(m *mockUserService) {
-				m.On("Register", mock.Anything, mock.Anything).
+				m.On("Register", mock.Anything, mock.MatchedBy(func(req *domain.RegisterRequest) bool {
+					return req.Email == registerRequest.Email && req.Password == registerRequest.Password && req.FirstName == registerRequest.FirstName && req.LastName == registerRequest.LastName
+				})).
 					Return(&domain.User{
 						ID:    "1",
-						Email: "foo@bar.com",
+						Email: registerRequest.Email,
 					}, nil).
 					Once()
 			},
@@ -81,7 +88,7 @@ func Test_UserHandler_Register(t *testing.T) {
 			name:               "service error",
 			expectedStatusCode: http.StatusBadRequest,
 			expectedErr:        errors.New("service error"),
-			body:               `{"email":"foo@bar.com","password":"foo123asdasd","first_name":"foo","last_name":"bar"}`,
+			body:               string(jsonRequest),
 			mockMethod: func(m *mockUserService) {
 				m.On("Register", mock.Anything, mock.Anything).Return(nil, errors.New("service error")).Once()
 			},
@@ -102,7 +109,6 @@ func Test_UserHandler_Register(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			router.ServeHTTP(w, req)
-			t.Log("response body:", w.Body.String())
 
 			assert.Equal(t, tt.expectedStatusCode, w.Code)
 			if tt.expectedErr != nil {
