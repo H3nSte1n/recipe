@@ -118,3 +118,68 @@ func Test_UserHandler_Register(t *testing.T) {
 		})
 	}
 }
+
+func Test_UserHandler_Login(t *testing.T) {
+	loginRequest := domain.LoginRequest{Email: "foo@bar.com", Password: "foo123asdasd"}
+	jsonRequest, _ := json.Marshal(loginRequest)
+
+	tests := []struct {
+		name               string
+		expectedStatusCode int
+		body               string
+		expectedErr        error
+		mockMethod         func(m *mockUserService)
+	}{
+		{
+			name:               "login successfully",
+			expectedStatusCode: http.StatusOK,
+			body:               string(jsonRequest),
+			mockMethod: func(m *mockUserService) {
+				m.On("Login", mock.Anything, mock.MatchedBy(func(req *domain.LoginRequest) bool {
+					return req.Email == loginRequest.Email && req.Password == loginRequest.Password
+				})).Return(&domain.LoginResponse{
+					Token: "fooBarToken",
+					User:  domain.User{},
+				}, nil)
+			},
+		},
+		{
+			name:               "invalid json",
+			expectedStatusCode: http.StatusBadRequest,
+			body:               `{"email":"foo@bar.com","password":"foo123as`,
+			mockMethod:         func(m *mockUserService) {},
+		},
+		{
+			name:               "service error",
+			expectedStatusCode: http.StatusUnauthorized,
+			body:               string(jsonRequest),
+			expectedErr:        errors.New("service error"),
+			mockMethod: func(m *mockUserService) {
+				m.On("Login", mock.Anything, mock.Anything).Return(nil, errors.New("service error"))
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockUserService)
+			tt.mockMethod(m)
+
+			handler := NewUserHandler(m)
+			router := gin.New()
+			router.POST("/api/v1/auth/login", handler.Login)
+
+			r := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(tt.body))
+			w := httptest.NewRecorder()
+
+			router.ServeHTTP(w, r)
+
+			assert.Equal(t, tt.expectedStatusCode, w.Code)
+			if tt.expectedErr != nil {
+				assert.Contains(t, w.Body.String(), tt.expectedErr.Error())
+			}
+
+			m.AssertExpectations(t)
+		})
+	}
+}
