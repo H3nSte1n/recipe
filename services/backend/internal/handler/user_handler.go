@@ -58,7 +58,7 @@ func (h *UserHandler) ForgotPassword(c *gin.Context) {
 	}
 
 	if err := h.userService.ForgotPassword(c.Request.Context(), &req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to process request"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

@@ -183,3 +183,63 @@ func Test_UserHandler_Login(t *testing.T) {
 		})
 	}
 }
+
+func Test_UserHandler_ForgotPassword(t *testing.T) {
+	forgotPasswordRequest := domain.ForgotPasswordRequest{Email: "foo@bar.com"}
+	jsonRequest, _ := json.Marshal(forgotPasswordRequest)
+	tests := []struct {
+		name               string
+		expectedStatusCode int
+		body               string
+		expectedErr        error
+		mockMethod         func(m *mockUserService)
+	}{
+		{
+			name:               "forgot password successfully",
+			expectedStatusCode: http.StatusOK,
+			body:               string(jsonRequest),
+			mockMethod: func(m *mockUserService) {
+				m.On("ForgotPassword", mock.Anything, mock.MatchedBy(func(req *domain.ForgotPasswordRequest) bool {
+					return req.Email == forgotPasswordRequest.Email
+				})).Return(nil)
+			},
+		},
+		{
+			name:               "invalid json",
+			expectedStatusCode: http.StatusBadRequest,
+			body:               `{"email":"foo@bar.c`,
+			mockMethod:         func(m *mockUserService) {},
+		},
+		{
+			name:               "service error",
+			expectedStatusCode: http.StatusInternalServerError,
+			body:               string(jsonRequest),
+			expectedErr:        errors.New("service error"),
+			mockMethod: func(m *mockUserService) {
+				m.On("ForgotPassword", mock.Anything, mock.Anything).Return(errors.New("service error"))
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockUserService)
+			tt.mockMethod(m)
+
+			handler := NewUserHandler(m)
+			router := gin.New()
+			router.POST("/api/v1/auth/forgot-password", handler.ForgotPassword)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/forgot-password", strings.NewReader(tt.body))
+			w := httptest.NewRecorder()
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.expectedStatusCode, w.Code)
+			if tt.expectedErr != nil {
+				assert.Contains(t, w.Body.String(), tt.expectedErr.Error())
+			}
+			m.AssertExpectations(t)
+		})
+	}
+}
