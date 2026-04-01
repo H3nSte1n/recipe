@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -231,6 +232,134 @@ func Test_UserHandler_ForgotPassword(t *testing.T) {
 			router.POST("/api/v1/auth/forgot-password", handler.ForgotPassword)
 
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/forgot-password", strings.NewReader(tt.body))
+			w := httptest.NewRecorder()
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.expectedStatusCode, w.Code)
+			if tt.expectedErr != nil {
+				assert.Contains(t, w.Body.String(), tt.expectedErr.Error())
+			}
+			m.AssertExpectations(t)
+		})
+	}
+}
+
+func Test_UserHandler_ResetPassword(t *testing.T) {
+	resetPasswordRequest := domain.ResetPasswordRequest{Token: "FoobarToken", Password: "Foobar12315123"}
+	jsonRequest, _ := json.Marshal(resetPasswordRequest)
+	tests := []struct {
+		name               string
+		body               string
+		expectedStatusCode int
+		expectedErr        error
+		mockMethod         func(m *mockUserService)
+	}{
+		{
+			name:               "reset password successfully",
+			body:               string(jsonRequest),
+			expectedStatusCode: http.StatusOK,
+			mockMethod: func(m *mockUserService) {
+				m.On("ResetPassword", mock.Anything, mock.MatchedBy(func(req *domain.ResetPasswordRequest) bool {
+					return resetPasswordRequest.Password == req.Password && resetPasswordRequest.Token == req.Token
+				})).Return(nil)
+			},
+		},
+		{
+			name:               "invalid json",
+			body:               `{"password":"foobar","token":"foobar12`,
+			expectedStatusCode: http.StatusBadRequest,
+			mockMethod:         func(m *mockUserService) {},
+		},
+		{
+			name:               "service error",
+			body:               string(jsonRequest),
+			expectedStatusCode: http.StatusBadRequest,
+			expectedErr:        errors.New("service error"),
+			mockMethod: func(m *mockUserService) {
+				m.On("ResetPassword", mock.Anything, mock.Anything).Return(errors.New("service error"))
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockUserService)
+			tt.mockMethod(m)
+
+			handler := NewUserHandler(m)
+			router := gin.New()
+			router.POST("/api/v1/auth/reset-password", handler.ResetPassword)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/reset-password", strings.NewReader(tt.body))
+			w := httptest.NewRecorder()
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.expectedStatusCode, w.Code)
+			if tt.expectedErr != nil {
+				assert.Contains(t, w.Body.String(), tt.expectedErr.Error())
+			}
+			m.AssertExpectations(t)
+		})
+	}
+}
+
+func Test_UserHandler_DeleteAccount(t *testing.T) {
+	tests := []struct {
+		name               string
+		confirm            string
+		userID             string
+		expectedStatusCode int
+		expectedErr        error
+		mockMethod         func(m *mockUserService)
+	}{
+		{
+			name:               "delete account successfully",
+			confirm:            "true",
+			userID:             "123",
+			expectedStatusCode: http.StatusOK,
+			mockMethod: func(m *mockUserService) {
+				m.On("Delete", mock.Anything, mock.Anything).Return(nil)
+			},
+		},
+		{
+			name:               "delete account without confirmation",
+			confirm:            "false",
+			userID:             "123",
+			expectedStatusCode: http.StatusBadRequest,
+			mockMethod:         func(m *mockUserService) {},
+		},
+		{
+			name:               "service error",
+			confirm:            "true",
+			userID:             "123",
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedErr:        errors.New("service error"),
+			mockMethod: func(m *mockUserService) {
+				m.On("Delete", mock.Anything, mock.Anything).Return(errors.New("service error"))
+			},
+		},
+		{
+			name:               "unauthorized",
+			expectedStatusCode: http.StatusUnauthorized,
+			mockMethod:         func(m *mockUserService) {},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockUserService)
+			tt.mockMethod(m)
+
+			handler := NewUserHandler(m)
+			router := gin.New()
+			router.DELETE("/api/v1/users/me", func(c *gin.Context) {
+				c.Set("user_id", tt.userID)
+				handler.DeleteAccount(c)
+			})
+
+			req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/users/me?confirm=%s", tt.confirm), nil)
 			w := httptest.NewRecorder()
 
 			router.ServeHTTP(w, req)
