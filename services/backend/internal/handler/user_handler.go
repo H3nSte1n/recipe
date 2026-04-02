@@ -99,7 +99,7 @@ func (h *UserHandler) DeleteAccount(c *gin.Context) {
 	}
 
 	if err := h.userService.Delete(c.Request.Context(), userID); err != nil {
-		c.JSON(http.StatusInternalServerError, err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 		return
 	}
 

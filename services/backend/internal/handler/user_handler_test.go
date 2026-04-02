@@ -53,21 +53,23 @@ func (m *mockUserService) Delete(ctx context.Context, userID string) error {
 	return args.Error(0)
 }
 
-// WIP
 func Test_UserHandler_Register(t *testing.T) {
 	registerRequest := domain.RegisterRequest{Email: "foo@bar.com", Password: "foo123asdasd", FirstName: "foo", LastName: "bar"}
 	jsonRequest, _ := json.Marshal(registerRequest)
 	tests := []struct {
-		name               string
-		expectedStatusCode int
-		body               string
-		expectedErr        error
-		mockMethod         func(m *mockUserService)
+		name                 string
+		expectedStatusCode   int
+		body                 string
+		expectedBodyContains string
+		mockMethod           func(m *mockUserService)
+		shouldCallService    bool
 	}{
 		{
-			name:               "register successfully",
-			expectedStatusCode: http.StatusCreated,
-			body:               string(jsonRequest),
+			name:                 "register successfully",
+			expectedStatusCode:   http.StatusCreated,
+			body:                 string(jsonRequest),
+			shouldCallService:    true,
+			expectedBodyContains: registerRequest.Email,
 			mockMethod: func(m *mockUserService) {
 				m.On("Register", mock.Anything, mock.MatchedBy(func(req *domain.RegisterRequest) bool {
 					return req.Email == registerRequest.Email && req.Password == registerRequest.Password && req.FirstName == registerRequest.FirstName && req.LastName == registerRequest.LastName
@@ -83,13 +85,15 @@ func Test_UserHandler_Register(t *testing.T) {
 			name:               "invalid json",
 			expectedStatusCode: http.StatusBadRequest,
 			body:               `{"email":"foo@bar.com","password":"foo123asdasd","first_name":"foo","last_nam`,
+			shouldCallService:  false,
 			mockMethod:         func(m *mockUserService) {},
 		},
 		{
-			name:               "service error",
-			expectedStatusCode: http.StatusBadRequest,
-			expectedErr:        errors.New("service error"),
-			body:               string(jsonRequest),
+			name:                 "service error",
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedBodyContains: "service error",
+			body:                 string(jsonRequest),
+			shouldCallService:    true,
 			mockMethod: func(m *mockUserService) {
 				m.On("Register", mock.Anything, mock.Anything).Return(nil, errors.New("service error")).Once()
 			},
@@ -112,8 +116,12 @@ func Test_UserHandler_Register(t *testing.T) {
 			router.ServeHTTP(w, req)
 
 			assert.Equal(t, tt.expectedStatusCode, w.Code)
-			if tt.expectedErr != nil {
-				assert.Contains(t, w.Body.String(), tt.expectedErr.Error())
+			if tt.expectedBodyContains != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedBodyContains)
+			}
+
+			if !tt.shouldCallService {
+				m.AssertNotCalled(t, "Register", mock.Anything, mock.Anything)
 			}
 			m.AssertExpectations(t)
 		})
@@ -125,42 +133,48 @@ func Test_UserHandler_Login(t *testing.T) {
 	jsonRequest, _ := json.Marshal(loginRequest)
 
 	tests := []struct {
-		name               string
-		expectedStatusCode int
-		body               string
-		expectedErr        error
-		mockMethod         func(m *mockUserService)
+		name                 string
+		expectedStatusCode   int
+		body                 string
+		expectedBodyContains string
+		shouldCallService    bool
+		mockMethod           func(m *mockUserService)
 	}{
 		{
-			name:               "login successfully",
-			expectedStatusCode: http.StatusOK,
-			body:               string(jsonRequest),
+			name:                 "login successfully",
+			expectedStatusCode:   http.StatusOK,
+			body:                 string(jsonRequest),
+			shouldCallService:    true,
+			expectedBodyContains: "fooBarToken",
 			mockMethod: func(m *mockUserService) {
 				m.On("Login", mock.Anything, mock.MatchedBy(func(req *domain.LoginRequest) bool {
 					return req.Email == loginRequest.Email && req.Password == loginRequest.Password
 				})).Return(&domain.LoginResponse{
 					Token: "fooBarToken",
 					User:  domain.User{},
-				}, nil)
+				}, nil).Once()
 			},
 		},
 		{
 			name:               "invalid json",
 			expectedStatusCode: http.StatusBadRequest,
 			body:               `{"email":"foo@bar.com","password":"foo123as`,
+			shouldCallService:  false,
 			mockMethod:         func(m *mockUserService) {},
 		},
 		{
-			name:               "service error",
-			expectedStatusCode: http.StatusUnauthorized,
-			body:               string(jsonRequest),
-			expectedErr:        errors.New("service error"),
+			name:                 "service error",
+			expectedStatusCode:   http.StatusUnauthorized,
+			body:                 string(jsonRequest),
+			expectedBodyContains: "service error",
+			shouldCallService:    true,
 			mockMethod: func(m *mockUserService) {
-				m.On("Login", mock.Anything, mock.Anything).Return(nil, errors.New("service error"))
+				m.On("Login", mock.Anything, mock.Anything).Return(nil, errors.New("service error")).Once()
 			},
 		},
 	}
 
+	gin.SetMode(gin.TestMode)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := new(mockUserService)
@@ -176,10 +190,13 @@ func Test_UserHandler_Login(t *testing.T) {
 			router.ServeHTTP(w, r)
 
 			assert.Equal(t, tt.expectedStatusCode, w.Code)
-			if tt.expectedErr != nil {
-				assert.Contains(t, w.Body.String(), tt.expectedErr.Error())
+			if tt.expectedBodyContains != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedBodyContains)
 			}
 
+			if !tt.shouldCallService {
+				m.AssertNotCalled(t, "Login", mock.Anything, mock.Anything)
+			}
 			m.AssertExpectations(t)
 		})
 	}
@@ -189,39 +206,45 @@ func Test_UserHandler_ForgotPassword(t *testing.T) {
 	forgotPasswordRequest := domain.ForgotPasswordRequest{Email: "foo@bar.com"}
 	jsonRequest, _ := json.Marshal(forgotPasswordRequest)
 	tests := []struct {
-		name               string
-		expectedStatusCode int
-		body               string
-		expectedErr        error
-		mockMethod         func(m *mockUserService)
+		name                 string
+		expectedStatusCode   int
+		body                 string
+		expectedBodyContains string
+		shouldCallService    bool
+		mockMethod           func(m *mockUserService)
 	}{
 		{
-			name:               "forgot password successfully",
-			expectedStatusCode: http.StatusOK,
-			body:               string(jsonRequest),
+			name:                 "forgot password successfully",
+			expectedStatusCode:   http.StatusOK,
+			body:                 string(jsonRequest),
+			shouldCallService:    true,
+			expectedBodyContains: "if the email exists, a password reset link will be sent",
 			mockMethod: func(m *mockUserService) {
 				m.On("ForgotPassword", mock.Anything, mock.MatchedBy(func(req *domain.ForgotPasswordRequest) bool {
 					return req.Email == forgotPasswordRequest.Email
-				})).Return(nil)
+				})).Return(nil).Once()
 			},
 		},
 		{
 			name:               "invalid json",
 			expectedStatusCode: http.StatusBadRequest,
 			body:               `{"email":"foo@bar.c`,
+			shouldCallService:  false,
 			mockMethod:         func(m *mockUserService) {},
 		},
 		{
-			name:               "service error",
-			expectedStatusCode: http.StatusInternalServerError,
-			body:               string(jsonRequest),
-			expectedErr:        errors.New("service error"),
+			name:                 "service error",
+			expectedStatusCode:   http.StatusInternalServerError,
+			body:                 string(jsonRequest),
+			expectedBodyContains: "service error",
+			shouldCallService:    true,
 			mockMethod: func(m *mockUserService) {
-				m.On("ForgotPassword", mock.Anything, mock.Anything).Return(errors.New("service error"))
+				m.On("ForgotPassword", mock.Anything, mock.Anything).Return(errors.New("service error")).Once()
 			},
 		},
 	}
 
+	gin.SetMode(gin.TestMode)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := new(mockUserService)
@@ -237,8 +260,11 @@ func Test_UserHandler_ForgotPassword(t *testing.T) {
 			router.ServeHTTP(w, req)
 
 			assert.Equal(t, tt.expectedStatusCode, w.Code)
-			if tt.expectedErr != nil {
-				assert.Contains(t, w.Body.String(), tt.expectedErr.Error())
+			if tt.expectedBodyContains != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedBodyContains)
+			}
+			if !tt.shouldCallService {
+				m.AssertNotCalled(t, "ForgotPassword", mock.Anything, mock.Anything)
 			}
 			m.AssertExpectations(t)
 		})
@@ -249,39 +275,45 @@ func Test_UserHandler_ResetPassword(t *testing.T) {
 	resetPasswordRequest := domain.ResetPasswordRequest{Token: "FoobarToken", Password: "Foobar12315123"}
 	jsonRequest, _ := json.Marshal(resetPasswordRequest)
 	tests := []struct {
-		name               string
-		body               string
-		expectedStatusCode int
-		expectedErr        error
-		mockMethod         func(m *mockUserService)
+		name                 string
+		body                 string
+		expectedStatusCode   int
+		expectedBodyContains string
+		shouldCallService    bool
+		mockMethod           func(m *mockUserService)
 	}{
 		{
-			name:               "reset password successfully",
-			body:               string(jsonRequest),
-			expectedStatusCode: http.StatusOK,
+			name:                 "reset password successfully",
+			body:                 string(jsonRequest),
+			expectedStatusCode:   http.StatusOK,
+			shouldCallService:    true,
+			expectedBodyContains: "password successfully reset",
 			mockMethod: func(m *mockUserService) {
 				m.On("ResetPassword", mock.Anything, mock.MatchedBy(func(req *domain.ResetPasswordRequest) bool {
 					return resetPasswordRequest.Password == req.Password && resetPasswordRequest.Token == req.Token
-				})).Return(nil)
+				})).Return(nil).Once()
 			},
 		},
 		{
 			name:               "invalid json",
 			body:               `{"password":"foobar","token":"foobar12`,
 			expectedStatusCode: http.StatusBadRequest,
+			shouldCallService:  false,
 			mockMethod:         func(m *mockUserService) {},
 		},
 		{
-			name:               "service error",
-			body:               string(jsonRequest),
-			expectedStatusCode: http.StatusBadRequest,
-			expectedErr:        errors.New("service error"),
+			name:                 "service error",
+			body:                 string(jsonRequest),
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedBodyContains: "service error",
+			shouldCallService:    true,
 			mockMethod: func(m *mockUserService) {
-				m.On("ResetPassword", mock.Anything, mock.Anything).Return(errors.New("service error"))
+				m.On("ResetPassword", mock.Anything, mock.Anything).Return(errors.New("service error")).Once()
 			},
 		},
 	}
 
+	gin.SetMode(gin.TestMode)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := new(mockUserService)
@@ -297,8 +329,11 @@ func Test_UserHandler_ResetPassword(t *testing.T) {
 			router.ServeHTTP(w, req)
 
 			assert.Equal(t, tt.expectedStatusCode, w.Code)
-			if tt.expectedErr != nil {
-				assert.Contains(t, w.Body.String(), tt.expectedErr.Error())
+			if tt.expectedBodyContains != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedBodyContains)
+			}
+			if !tt.shouldCallService {
+				m.AssertNotCalled(t, "ResetPassword", mock.Anything, mock.Anything)
 			}
 			m.AssertExpectations(t)
 		})
@@ -307,46 +342,55 @@ func Test_UserHandler_ResetPassword(t *testing.T) {
 
 func Test_UserHandler_DeleteAccount(t *testing.T) {
 	tests := []struct {
-		name               string
-		confirm            string
-		userID             string
-		expectedStatusCode int
-		expectedErr        error
-		mockMethod         func(m *mockUserService)
+		name                 string
+		confirm              string
+		userID               string
+		expectedStatusCode   int
+		expectedBodyContains string
+		shouldCallService    bool
+		mockMethod           func(m *mockUserService)
 	}{
 		{
-			name:               "delete account successfully",
-			confirm:            "true",
-			userID:             "123",
-			expectedStatusCode: http.StatusOK,
+			name:                 "delete account successfully",
+			confirm:              "true",
+			userID:               "123",
+			expectedStatusCode:   http.StatusOK,
+			shouldCallService:    true,
+			expectedBodyContains: "account successfully deleted",
 			mockMethod: func(m *mockUserService) {
-				m.On("Delete", mock.Anything, mock.Anything).Return(nil)
+				m.On("Delete", mock.Anything, "123").Return(nil).Once()
 			},
 		},
 		{
-			name:               "delete account without confirmation",
-			confirm:            "false",
-			userID:             "123",
-			expectedStatusCode: http.StatusBadRequest,
-			mockMethod:         func(m *mockUserService) {},
+			name:                 "delete account without confirmation",
+			confirm:              "false",
+			userID:               "123",
+			expectedStatusCode:   http.StatusBadRequest,
+			shouldCallService:    false,
+			expectedBodyContains: "please confirm account deletion by adding ?confirm=true to the request",
+			mockMethod:           func(m *mockUserService) {},
 		},
 		{
-			name:               "service error",
-			confirm:            "true",
-			userID:             "123",
-			expectedStatusCode: http.StatusInternalServerError,
-			expectedErr:        errors.New("service error"),
+			name:                 "service error",
+			confirm:              "true",
+			userID:               "123",
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: "Internal Server Error",
+			shouldCallService:    true,
 			mockMethod: func(m *mockUserService) {
-				m.On("Delete", mock.Anything, mock.Anything).Return(errors.New("service error"))
+				m.On("Delete", mock.Anything, "123").Return(errors.New("service error")).Once()
 			},
 		},
 		{
-			name:               "unauthorized",
-			expectedStatusCode: http.StatusUnauthorized,
-			mockMethod:         func(m *mockUserService) {},
+			name:                 "unauthorized",
+			expectedStatusCode:   http.StatusUnauthorized,
+			shouldCallService:    false,
+			expectedBodyContains: "unauthorized",
+			mockMethod:           func(m *mockUserService) {},
 		},
 	}
 
+	gin.SetMode(gin.TestMode)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := new(mockUserService)
@@ -355,7 +399,9 @@ func Test_UserHandler_DeleteAccount(t *testing.T) {
 			handler := NewUserHandler(m)
 			router := gin.New()
 			router.DELETE("/api/v1/users/me", func(c *gin.Context) {
-				c.Set("user_id", tt.userID)
+				if tt.userID != "" {
+					c.Set("user_id", tt.userID)
+				}
 				handler.DeleteAccount(c)
 			})
 
@@ -365,8 +411,11 @@ func Test_UserHandler_DeleteAccount(t *testing.T) {
 			router.ServeHTTP(w, req)
 
 			assert.Equal(t, tt.expectedStatusCode, w.Code)
-			if tt.expectedErr != nil {
-				assert.Contains(t, w.Body.String(), tt.expectedErr.Error())
+			if tt.expectedBodyContains != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedBodyContains)
+			}
+			if !tt.shouldCallService {
+				m.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
 			}
 			m.AssertExpectations(t)
 		})
