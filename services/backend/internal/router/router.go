@@ -64,7 +64,7 @@ func (r *Router) setupProtectedRoutes(rg *gin.RouterGroup) {
 	{
 		users.GET("", r.handlers.ProfileHandler.Get)
 		users.PUT("", r.handlers.ProfileHandler.Update)
-		users.DELETE("/me", r.handlers.UserHandler.DeleteAccount) // or /account
+		users.DELETE("/me", r.handlers.UserHandler.DeleteAccount)
 	}
 
 	aiConfigs := rg.Group("/ai-configs")
