@@ -24,6 +24,11 @@ func NewShoppingListHandler(service service.ShoppingListService, logger *zap.Log
 func (h *ShoppingListHandler) Create(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
 	var req domain.CreateShoppingListRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
