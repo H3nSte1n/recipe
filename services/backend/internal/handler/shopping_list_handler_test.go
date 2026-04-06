@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -164,6 +165,96 @@ func TestShoppingListHandler_Create(t *testing.T) {
 			require.Equal(t, tt.expectedStatusCode, w.Code)
 			if tt.expectedContainsBody != "" {
 				assert.Contains(t, w.Body.String(), tt.expectedContainsBody)
+			}
+			m.AssertExpectations(t)
+		})
+	}
+}
+
+func TestShoppingListHandler_Get(t *testing.T) {
+	userID := "550e8400-e29b-41d4-a716-446655440000"
+	shoppingList := domain.ShoppingList{ID: "1_foo", Name: "Foo", UserID: userID}
+	jsonShoppingList := mustJson(t, shoppingList)
+	tests := []struct {
+		name                 string
+		body                 []byte
+		url                  string
+		expectedStatusCode   int
+		expectedBodyContains string
+		setUserID            bool
+		mockMethod           func(m *mockShoppingListService)
+	}{
+		{
+			name:                 "returns status 200 with shopping list sorted by store when query params sortBy and storeName are attached and request is successfully",
+			url:                  fmt.Sprintf("/api/v1/shopping-lists/%v?sort_by=store&sort_direction=asc&store_name=foo", shoppingList.ID),
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: string(jsonShoppingList),
+			setUserID:            true,
+			mockMethod: func(m *mockShoppingListService) {
+				m.On("GetSortedByStoreName", mock.Anything, userID, shoppingList.ID, "foo", "asc").Return(&shoppingList, nil)
+			},
+		},
+		{
+			name:                 "returns status 200 with shopping list sorted by name when query param sortBy is attached and request is successfully",
+			url:                  fmt.Sprintf("/api/v1/shopping-lists/%v?sort_by=name&sort_direction=asc", shoppingList.ID),
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: string(jsonShoppingList),
+			setUserID:            true,
+			mockMethod: func(m *mockShoppingListService) {
+				m.On("GetSorted", mock.Anything, userID, shoppingList.ID, "name", "asc").Return(&shoppingList, nil)
+			},
+		},
+		{
+			name:                 "returns status 200 with shopping list sorted by default when no sort_by is attached and request is successfully",
+			url:                  fmt.Sprintf("/api/v1/shopping-lists/%v", shoppingList.ID),
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: string(jsonShoppingList),
+			setUserID:            true,
+			mockMethod: func(m *mockShoppingListService) {
+				m.On("GetByID", mock.Anything, userID, shoppingList.ID).Return(&shoppingList, nil)
+			},
+		},
+		{
+			name:                 "returns 401 unauthorized when user is not authenticated",
+			url:                  fmt.Sprintf("/api/v1/shopping-lists/%v", shoppingList.ID),
+			expectedStatusCode:   http.StatusUnauthorized,
+			expectedBodyContains: "unauthorized",
+			setUserID:            false,
+			mockMethod:           func(m *mockShoppingListService) {},
+		},
+		{
+			name:                 "returns 404 not found error when user service returns error",
+			url:                  fmt.Sprintf("/api/v1/shopping-lists/%v", shoppingList.ID),
+			expectedStatusCode:   http.StatusNotFound,
+			expectedBodyContains: "shopping list not found",
+			setUserID:            true,
+			mockMethod: func(m *mockShoppingListService) {
+				m.On("GetByID", mock.Anything, userID, shoppingList.ID).Return(nil, errors.New("service error"))
+			},
+		},
+	}
+
+	gin.SetMode(gin.TestMode)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockShoppingListService)
+			tt.mockMethod(m)
+
+			handler := NewShoppingListHandler(m, zap.NewNop())
+			router := gin.New()
+			router.GET("/api/v1/shopping-lists/:id", func(ctx *gin.Context) {
+				if tt.setUserID {
+					ctx.Set("user_id", userID)
+				}
+
+				handler.Get(ctx)
+			})
+
+			w := performRequest(router, http.MethodGet, tt.url, nil)
+
+			require.Equal(t, tt.expectedStatusCode, w.Code)
+			if tt.expectedBodyContains != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedBodyContains)
 			}
 			m.AssertExpectations(t)
 		})

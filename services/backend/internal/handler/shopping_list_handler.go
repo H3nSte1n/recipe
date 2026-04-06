@@ -23,7 +23,6 @@ func NewShoppingListHandler(service service.ShoppingListService, logger *zap.Log
 
 func (h *ShoppingListHandler) Create(c *gin.Context) {
 	userID := middleware.GetUserID(c)
-
 	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
@@ -47,6 +46,11 @@ func (h *ShoppingListHandler) Create(c *gin.Context) {
 
 func (h *ShoppingListHandler) Get(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
 	listID := c.Param("id")
 
 	sortBy := c.DefaultQuery("sort_by", "")
