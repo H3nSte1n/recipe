@@ -23,6 +23,10 @@ func NewShoppingListHandler(service service.ShoppingListService, logger *zap.Log
 
 func (h *ShoppingListHandler) Create(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 
 	var req domain.CreateShoppingListRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -42,6 +46,11 @@ func (h *ShoppingListHandler) Create(c *gin.Context) {
 
 func (h *ShoppingListHandler) Get(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
 	listID := c.Param("id")
 
 	sortBy := c.DefaultQuery("sort_by", "")
@@ -74,6 +83,10 @@ func (h *ShoppingListHandler) Get(c *gin.Context) {
 
 func (h *ShoppingListHandler) List(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 
 	lists, err := h.service.ListByUserID(c.Request.Context(), userID)
 	if err != nil {
@@ -87,6 +100,10 @@ func (h *ShoppingListHandler) List(c *gin.Context) {
 
 func (h *ShoppingListHandler) Update(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	listID := c.Param("id")
 
 	var req domain.UpdateShoppingListRequest
@@ -107,6 +124,10 @@ func (h *ShoppingListHandler) Update(c *gin.Context) {
 
 func (h *ShoppingListHandler) Delete(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	listID := c.Param("id")
 
 	if err := h.service.Delete(c.Request.Context(), userID, listID); err != nil {
@@ -120,6 +141,10 @@ func (h *ShoppingListHandler) Delete(c *gin.Context) {
 
 func (h *ShoppingListHandler) AddItem(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	listID := c.Param("id")
 
 	var req domain.ShoppingListItemRequest
@@ -139,6 +164,10 @@ func (h *ShoppingListHandler) AddItem(c *gin.Context) {
 
 func (h *ShoppingListHandler) UpdateItem(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	itemID := c.Param("itemId")
 
 	var req domain.UpdateShoppingListItemRequest
@@ -158,6 +187,10 @@ func (h *ShoppingListHandler) UpdateItem(c *gin.Context) {
 
 func (h *ShoppingListHandler) DeleteItem(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	itemID := c.Param("itemId")
 
 	if err := h.service.DeleteItem(c.Request.Context(), userID, itemID); err != nil {
@@ -171,6 +204,10 @@ func (h *ShoppingListHandler) DeleteItem(c *gin.Context) {
 
 func (h *ShoppingListHandler) ToggleItem(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	itemID := c.Param("itemId")
 
 	var req struct {
@@ -192,6 +229,10 @@ func (h *ShoppingListHandler) ToggleItem(c *gin.Context) {
 
 func (h *ShoppingListHandler) AddRecipe(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	listID := c.Param("id")
 
 	var req domain.AddRecipeToListRequest
@@ -211,6 +252,10 @@ func (h *ShoppingListHandler) AddRecipe(c *gin.Context) {
 
 func (h *ShoppingListHandler) SortByStore(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	listID := c.Param("id")
 	chainID := c.Query("chain_id")
 
