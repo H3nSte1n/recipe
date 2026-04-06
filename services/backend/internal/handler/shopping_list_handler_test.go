@@ -191,7 +191,7 @@ func TestShoppingListHandler_Get(t *testing.T) {
 			expectedBodyContains: string(jsonShoppingList),
 			setUserID:            true,
 			mockMethod: func(m *mockShoppingListService) {
-				m.On("GetSortedByStoreName", mock.Anything, userID, shoppingList.ID, "foo", "asc").Return(&shoppingList, nil)
+				m.On("GetSortedByStoreName", mock.Anything, userID, shoppingList.ID, "foo", "asc").Return(&shoppingList, nil).Once()
 			},
 		},
 		{
@@ -201,7 +201,7 @@ func TestShoppingListHandler_Get(t *testing.T) {
 			expectedBodyContains: string(jsonShoppingList),
 			setUserID:            true,
 			mockMethod: func(m *mockShoppingListService) {
-				m.On("GetSorted", mock.Anything, userID, shoppingList.ID, "name", "asc").Return(&shoppingList, nil)
+				m.On("GetSorted", mock.Anything, userID, shoppingList.ID, "name", "asc").Return(&shoppingList, nil).Once()
 			},
 		},
 		{
@@ -211,7 +211,7 @@ func TestShoppingListHandler_Get(t *testing.T) {
 			expectedBodyContains: string(jsonShoppingList),
 			setUserID:            true,
 			mockMethod: func(m *mockShoppingListService) {
-				m.On("GetByID", mock.Anything, userID, shoppingList.ID).Return(&shoppingList, nil)
+				m.On("GetByID", mock.Anything, userID, shoppingList.ID).Return(&shoppingList, nil).Once()
 			},
 		},
 		{
@@ -229,7 +229,7 @@ func TestShoppingListHandler_Get(t *testing.T) {
 			expectedBodyContains: "shopping list not found",
 			setUserID:            true,
 			mockMethod: func(m *mockShoppingListService) {
-				m.On("GetByID", mock.Anything, userID, shoppingList.ID).Return(nil, errors.New("service error"))
+				m.On("GetByID", mock.Anything, userID, shoppingList.ID).Return(nil, errors.New("service error")).Once()
 			},
 		},
 	}
@@ -251,6 +251,71 @@ func TestShoppingListHandler_Get(t *testing.T) {
 			})
 
 			w := performRequest(router, http.MethodGet, tt.url, nil)
+
+			require.Equal(t, tt.expectedStatusCode, w.Code)
+			if tt.expectedBodyContains != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedBodyContains)
+			}
+			m.AssertExpectations(t)
+		})
+	}
+}
+
+func TestShoppingListHandler_List(t *testing.T) {
+	userID := "550e8400-e29b-41d4-a716-446655440000"
+	shoppingLists := []domain.ShoppingList{{ID: "1_foo", UserID: userID, Name: "foo"}, {ID: "2_foo", UserID: userID, Name: "bar"}}
+	jsonShoppingLists := mustJson(t, shoppingLists)
+	tests := []struct {
+		name                 string
+		setUserID            bool
+		expectedStatusCode   int
+		expectedBodyContains string
+		mockMethod           func(m *mockShoppingListService)
+	}{
+		{
+			name:                 "returns 200 with shopping lists when request is successfully",
+			setUserID:            true,
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: string(jsonShoppingLists),
+			mockMethod: func(m *mockShoppingListService) {
+				m.On("ListByUserID", mock.Anything, userID).Return(shoppingLists, nil).Once()
+			},
+		},
+		{
+			name:                 "returns 401 unauthorized when user is not authenticated",
+			setUserID:            false,
+			expectedStatusCode:   http.StatusUnauthorized,
+			expectedBodyContains: "unauthorized",
+			mockMethod:           func(m *mockShoppingListService) {},
+		},
+		{
+			name:                 "returns 500 internal server error when service returns error",
+			setUserID:            true,
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: "failed to list shopping lists",
+			mockMethod: func(m *mockShoppingListService) {
+				m.On("ListByUserID", mock.Anything, userID).Return(nil, errors.New("service error")).Once()
+			},
+		},
+	}
+
+	gin.SetMode(gin.TestMode)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockShoppingListService)
+			tt.mockMethod(m)
+
+			handler := NewShoppingListHandler(m, zap.NewNop())
+			router := gin.New()
+			router.GET("/api/v1/shopping-lists", func(ctx *gin.Context) {
+				if tt.setUserID {
+					ctx.Set("user_id", userID)
+				}
+
+				handler.List(ctx)
+			})
+
+			w := performRequest(router, http.MethodGet, "/api/v1/shopping-lists", nil)
 
 			require.Equal(t, tt.expectedStatusCode, w.Code)
 			if tt.expectedBodyContains != "" {

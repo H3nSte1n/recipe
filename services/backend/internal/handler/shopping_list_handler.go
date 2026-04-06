@@ -83,6 +83,10 @@ func (h *ShoppingListHandler) Get(c *gin.Context) {
 
 func (h *ShoppingListHandler) List(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 
 	lists, err := h.service.ListByUserID(c.Request.Context(), userID)
 	if err != nil {
