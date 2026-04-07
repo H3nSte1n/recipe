@@ -150,3 +150,67 @@ func TestRecipeHandler_Update(t *testing.T) {
 		})
 	}
 }
+
+func TestRecipeHandler_Delete(t *testing.T) {
+	userID := "550e8400-e29b-41d4-a716-446655440000"
+	recipeID := "1_foo"
+	tests := []struct {
+		name                 string
+		setUserID            bool
+		expectedStatusCode   int
+		expectedBodyContains string
+		mockMethod           func(m *mockRecipeService)
+	}{
+		{
+			name:                 "returns 200 status ok when request is successfully",
+			setUserID:            true,
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "recipe deleted",
+			mockMethod: func(m *mockRecipeService) {
+				m.On("Delete", mock.Anything, userID, recipeID).Return(nil).Once()
+			},
+		},
+		{
+			name:                 "returns 401 unauthorized when user is not authenticated",
+			setUserID:            false,
+			expectedStatusCode:   http.StatusUnauthorized,
+			expectedBodyContains: "unauthorized",
+			mockMethod:           func(m *mockRecipeService) {},
+		},
+		{
+			name:                 "returns 500 internal server error when service returns error",
+			setUserID:            true,
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: "failed to delete recipe",
+			mockMethod: func(m *mockRecipeService) {
+				m.On("Delete", mock.Anything, userID, recipeID).Return(errors.New("service error"))
+			},
+		},
+	}
+
+	gin.SetMode(gin.TestMode)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockRecipeService)
+			tt.mockMethod(m)
+
+			handler := NewRecipeHandler(m, zap.NewNop())
+			router := gin.New()
+			router.DELETE("/api/v1/recipes/:id", func(ctx *gin.Context) {
+				if tt.setUserID {
+					ctx.Set("user_id", userID)
+				}
+
+				handler.Delete(ctx)
+			})
+
+			w := performRequest(router, http.MethodDelete, fmt.Sprintf("/api/v1/recipes/%v", recipeID), nil)
+
+			require.Equal(t, tt.expectedStatusCode, w.Code)
+			if tt.expectedBodyContains != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedBodyContains)
+			}
+			m.AssertExpectations(t)
+		})
+	}
+}
