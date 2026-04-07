@@ -66,6 +66,10 @@ func (h *RecipeHandler) Update(c *gin.Context) {
 	}
 
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	recipeID := c.Param("id")
 
 	recipe, err := h.recipeService.Update(c.Request.Context(), userID, recipeID, &req)
