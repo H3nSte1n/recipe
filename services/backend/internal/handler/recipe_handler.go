@@ -101,6 +101,10 @@ func (h *RecipeHandler) Delete(c *gin.Context) {
 
 func (h *RecipeHandler) Get(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"errors": "unauthorized"})
+		return
+	}
 	recipeID := c.Param("id")
 
 	nutritionLevel := domain.NutritionDetailLevel(c.DefaultQuery("nutrition_level", string(domain.NutritionDetailBase)))

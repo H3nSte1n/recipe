@@ -20,7 +20,7 @@ type mockRecipeService struct {
 
 func (m *mockRecipeService) Create(ctx context.Context, userID string, req *domain.CreateRecipeRequest) (*domain.Recipe, error) {
 	args := m.Called(ctx, userID, req)
-	v := args.Get(0).(*domain.Recipe)
+	v, _ := args.Get(0).(*domain.Recipe)
 	return v, args.Error(1)
 }
 
@@ -37,37 +37,37 @@ func (m *mockRecipeService) Delete(ctx context.Context, userID string, recipeID 
 
 func (m *mockRecipeService) GetByID(ctx context.Context, userID string, recipeID string, nutritionLevel domain.NutritionDetailLevel) (*domain.Recipe, error) {
 	args := m.Called(ctx, userID, recipeID, nutritionLevel)
-	v := args.Get(0).(*domain.Recipe)
+	v, _ := args.Get(0).(*domain.Recipe)
 	return v, args.Error(1)
 }
 
 func (m *mockRecipeService) ListUserRecipes(ctx context.Context, userID string) ([]domain.Recipe, error) {
 	args := m.Called(ctx, userID)
-	v := args.Get(0).([]domain.Recipe)
+	v, _ := args.Get(0).([]domain.Recipe)
 	return v, args.Error(1)
 }
 
 func (m *mockRecipeService) ListPublicRecipes(ctx context.Context, page, pageSize int) ([]domain.Recipe, int64, error) {
 	args := m.Called(ctx, page, pageSize)
-	v := args.Get(0).([]domain.Recipe)
+	v, _ := args.Get(0).([]domain.Recipe)
 	return v, args.Get(1).(int64), args.Error(2)
 }
 
 func (m *mockRecipeService) ImportFromURL(ctx context.Context, userID string, req *domain.ImportURLRequest) (*domain.Recipe, error) {
 	args := m.Called(ctx, userID, req)
-	v := args.Get(0).(*domain.Recipe)
+	v, _ := args.Get(0).(*domain.Recipe)
 	return v, args.Error(1)
 }
 
 func (m *mockRecipeService) ImportFromPDF(ctx context.Context, userID string, req *domain.ImportPDFRequest, file []byte) (*domain.Recipe, error) {
 	args := m.Called(ctx, userID, req, file)
-	v := args.Get(0).(*domain.Recipe)
+	v, _ := args.Get(0).(*domain.Recipe)
 	return v, args.Error(1)
 }
 
 func (m *mockRecipeService) ParsePlainTextInstructions(ctx context.Context, userID string, req *domain.ParsePlainTextInstructionsRequest) (*[]domain.RecipeInstruction, error) {
 	args := m.Called(ctx, userID, req)
-	v := args.Get(0).(*[]domain.RecipeInstruction)
+	v, _ := args.Get(0).(*[]domain.RecipeInstruction)
 	return v, args.Error(1)
 }
 
@@ -205,6 +205,85 @@ func TestRecipeHandler_Delete(t *testing.T) {
 			})
 
 			w := performRequest(router, http.MethodDelete, fmt.Sprintf("/api/v1/recipes/%v", recipeID), nil)
+
+			require.Equal(t, tt.expectedStatusCode, w.Code)
+			if tt.expectedBodyContains != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedBodyContains)
+			}
+			m.AssertExpectations(t)
+		})
+	}
+}
+
+func TestRecipeHandler_Get(t *testing.T) {
+	userID := "550e8400-e29b-41d4-a716-446655440000"
+	recipe := domain.Recipe{ID: "1_foo", Title: "foobar"}
+	jsonRecipe := mustJson(t, recipe)
+	tests := []struct {
+		name                 string
+		setUserID            bool
+		url                  string
+		expectedStatusCode   int
+		expectedBodyContains string
+		mockMethod           func(m *mockRecipeService)
+	}{
+		{
+			name:                 "returns 200 with recipe when request is successfully",
+			setUserID:            true,
+			url:                  fmt.Sprintf("/api/v1/recipes/%v", recipe.ID),
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: string(jsonRecipe),
+			mockMethod: func(m *mockRecipeService) {
+				m.On("GetByID", mock.Anything, userID, recipe.ID, domain.NutritionDetailBase).Return(&recipe, nil).Once()
+			},
+		},
+		{
+			name:                 "returns 200 with recipe and specific nutrition level when request is successfully with nutrition_level as query param",
+			setUserID:            true,
+			url:                  fmt.Sprintf("/api/v1/recipes/%v?nutrition_level=macro", recipe.ID),
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: string(jsonRecipe),
+			mockMethod: func(m *mockRecipeService) {
+				m.On("GetByID", mock.Anything, userID, recipe.ID, domain.NutritionDetailMacro).Return(&recipe, nil).Once()
+			},
+		},
+		{
+			name:                 "returns 401 unauthorized when user is not authenticated",
+			setUserID:            false,
+			url:                  fmt.Sprintf("/api/v1/recipes/%v", recipe.ID),
+			expectedStatusCode:   http.StatusUnauthorized,
+			expectedBodyContains: "unauthorized",
+			mockMethod:           func(m *mockRecipeService) {},
+		},
+		{
+			name:                 "returns 500 internal server error when service returns error",
+			setUserID:            true,
+			url:                  fmt.Sprintf("/api/v1/recipes/%v", recipe.ID),
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: "failed to get recipe",
+			mockMethod: func(m *mockRecipeService) {
+				m.On("GetByID", mock.Anything, userID, recipe.ID, domain.NutritionDetailBase).Return(nil, errors.New("service error")).Once()
+			},
+		},
+	}
+
+	gin.SetMode(gin.TestMode)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockRecipeService)
+			tt.mockMethod(m)
+
+			handler := NewRecipeHandler(m, zap.NewNop())
+			router := gin.New()
+			router.GET("/api/v1/recipes/:id", func(ctx *gin.Context) {
+				if tt.setUserID {
+					ctx.Set("user_id", userID)
+				}
+
+				handler.Get(ctx)
+			})
+
+			w := performRequest(router, http.MethodGet, tt.url, nil)
 
 			require.Equal(t, tt.expectedStatusCode, w.Code)
 			if tt.expectedBodyContains != "" {
