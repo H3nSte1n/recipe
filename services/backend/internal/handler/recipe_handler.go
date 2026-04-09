@@ -48,6 +48,11 @@ func (h *RecipeHandler) Create(c *gin.Context) {
 	}
 
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
 	recipe, err := h.recipeService.Create(c.Request.Context(), userID, &req)
 	if err != nil {
 		h.logger.Error("failed to create recipe", zap.Error(err))
@@ -66,6 +71,10 @@ func (h *RecipeHandler) Update(c *gin.Context) {
 	}
 
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	recipeID := c.Param("id")
 
 	recipe, err := h.recipeService.Update(c.Request.Context(), userID, recipeID, &req)
@@ -80,6 +89,10 @@ func (h *RecipeHandler) Update(c *gin.Context) {
 
 func (h *RecipeHandler) Delete(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
 	recipeID := c.Param("id")
 
 	if err := h.recipeService.Delete(c.Request.Context(), userID, recipeID); err != nil {
@@ -93,6 +106,10 @@ func (h *RecipeHandler) Delete(c *gin.Context) {
 
 func (h *RecipeHandler) Get(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"errors": "unauthorized"})
+		return
+	}
 	recipeID := c.Param("id")
 
 	nutritionLevel := domain.NutritionDetailLevel(c.DefaultQuery("nutrition_level", string(domain.NutritionDetailBase)))
@@ -115,6 +132,10 @@ func (h *RecipeHandler) Get(c *gin.Context) {
 
 func (h *RecipeHandler) ListMine(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"errors": "unauthorized"})
+		return
+	}
 
 	recipes, err := h.recipeService.ListUserRecipes(c.Request.Context(), userID)
 	if err != nil {
@@ -146,13 +167,18 @@ func (h *RecipeHandler) ListPublic(c *gin.Context) {
 }
 
 func (h *RecipeHandler) ImportFromURL(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
 	var req domain.ImportURLRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	userID := middleware.GetUserID(c)
 	recipe, err := h.recipeService.ImportFromURL(c.Request.Context(), userID, &req)
 	if err != nil {
 		h.logger.Error("failed to import recipe from URL", zap.Error(err))
@@ -201,13 +227,18 @@ func (h *RecipeHandler) ImportFromPDF(c *gin.Context) {
 }
 
 func (h *RecipeHandler) ParsePlainTextInstructions(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
 	var req domain.ParsePlainTextInstructionsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	userID := middleware.GetUserID(c)
 	instructions, err := h.recipeService.ParsePlainTextInstructions(c.Request.Context(), userID, &req)
 	if err != nil {
 		h.logger.Error("failed to parse plain text instructions", zap.Error(err))
