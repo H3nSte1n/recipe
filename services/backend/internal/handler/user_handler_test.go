@@ -53,6 +53,12 @@ func (m *mockUserService) Delete(ctx context.Context, userID string) error {
 	return args.Error(0)
 }
 
+func (m *mockUserService) ListAll(ctx context.Context) ([]domain.User, error) {
+	args := m.Called(ctx)
+	v, _ := args.Get(0).([]domain.User)
+	return v, args.Error(1)
+}
+
 func Test_UserHandler_Register(t *testing.T) {
 	registerRequest := domain.RegisterRequest{Email: "foo@bar.com", Password: "foo123asdasd", FirstName: "foo", LastName: "bar"}
 	jsonRequest, _ := json.Marshal(registerRequest)
@@ -416,6 +422,58 @@ func Test_UserHandler_DeleteAccount(t *testing.T) {
 			}
 			if !tt.shouldCallService {
 				m.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
+			}
+			m.AssertExpectations(t)
+		})
+	}
+}
+
+func Test_UserHandler_ListAll(t *testing.T) {
+	users := []domain.User{
+		{ID: "1", Email: "foo@bar.com", FirstName: "Foo", LastName: "Bar"},
+		{ID: "2", Email: "baz@bar.com", FirstName: "Baz", LastName: "Qux"},
+	}
+	jsonUsers := mustJson(t, users)
+
+	tests := []struct {
+		name                 string
+		expectedStatusCode   int
+		expectedBodyContains string
+		mockMethod           func(m *mockUserService)
+	}{
+		{
+			name:                 "returns 200 with all users when request is successful",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: string(jsonUsers),
+			mockMethod: func(m *mockUserService) {
+				m.On("ListAll", mock.Anything).Return(users, nil).Once()
+			},
+		},
+		{
+			name:                 "returns 500 internal server error when service returns error",
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: "failed to list users",
+			mockMethod: func(m *mockUserService) {
+				m.On("ListAll", mock.Anything).Return(nil, errors.New("service error")).Once()
+			},
+		},
+	}
+
+	gin.SetMode(gin.TestMode)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockUserService)
+			tt.mockMethod(m)
+
+			handler := NewUserHandler(m)
+			router := gin.New()
+			router.GET("/api/v1/users/list", handler.ListAll)
+
+			w := performRequest(router, http.MethodGet, "/api/v1/users/list", nil)
+
+			assert.Equal(t, tt.expectedStatusCode, w.Code)
+			if tt.expectedBodyContains != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedBodyContains)
 			}
 			m.AssertExpectations(t)
 		})

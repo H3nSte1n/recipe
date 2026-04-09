@@ -22,6 +22,7 @@ type UserService interface {
 	ForgotPassword(ctx context.Context, req *domain.ForgotPasswordRequest) error
 	ResetPassword(ctx context.Context, req *domain.ResetPasswordRequest) error
 	Delete(ctx context.Context, userID string) error
+	ListAll(ctx context.Context) ([]domain.User, error)
 }
 
 type userService struct {
@@ -202,4 +203,8 @@ func (s *userService) Delete(ctx context.Context, userID string) error {
 
 		return nil
 	})
+}
+
+func (s *userService) ListAll(ctx context.Context) ([]domain.User, error) {
+	return s.userRepo.ListAll(ctx)
 }

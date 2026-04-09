@@ -48,9 +48,10 @@ func (m *AuthMiddleware) AuthRequired() gin.HandlerFunc {
 			return
 		}
 
-		// Store user info in context
-		c.Set("user_id", claims["user_id"])
-		c.Set("email", claims["email"])
+		userID, _ := claims["user_id"].(string)
+		email, _ := claims["email"].(string)
+		c.Set("user_id", userID)
+		c.Set("email", email)
 
 		c.Next()
 	}

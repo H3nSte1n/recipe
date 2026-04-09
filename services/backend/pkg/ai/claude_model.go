@@ -10,14 +10,16 @@ import (
 )
 
 type ClaudeModel struct {
-	client *anthropic.Client
-	logger *zap.Logger
+	client       *anthropic.Client
+	modelVersion string
+	logger       *zap.Logger
 }
 
-func NewClaudeModel(apiKey string, logger *zap.Logger) *ClaudeModel {
+func NewClaudeModel(modelVersion string, apiKey string, logger *zap.Logger) *ClaudeModel {
 	return &ClaudeModel{
-		client: anthropic.NewClient(option.WithAPIKey(apiKey)),
-		logger: logger,
+		client:       anthropic.NewClient(option.WithAPIKey(apiKey)),
+		modelVersion: modelVersion,
+		logger:       logger,
 	}
 }
 
@@ -25,7 +27,7 @@ func (m *ClaudeModel) Parse(ctx context.Context, content string, contentType str
 	prompt := createPrompt(content, contentType)
 
 	message, err := m.client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:     anthropic.F(anthropic.ModelClaude3_7SonnetLatest),
+		Model:     anthropic.F(anthropic.Model(m.modelVersion)),
 		MaxTokens: anthropic.F(int64(2000)),
 		Messages: anthropic.F([]anthropic.MessageParam{
 			anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)),
@@ -49,7 +51,7 @@ func (m *ClaudeModel) ParseInstructions(ctx context.Context, content string) (*[
 	prompt := createParseInstructionsPrompt(content)
 
 	message, err := m.client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:     anthropic.F(anthropic.ModelClaude3_7SonnetLatest),
+		Model:     anthropic.F(anthropic.Model(m.modelVersion)),
 		MaxTokens: anthropic.F(int64(2000)),
 		Messages: anthropic.F([]anthropic.MessageParam{
 			anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)),
@@ -71,7 +73,7 @@ func (m *ClaudeModel) CategorizeItems(ctx context.Context, items []string) ([]st
 	prompt := createPromptToCategorizeShoppingListItems(items)
 
 	message, err := m.client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:     anthropic.F(anthropic.ModelClaude3_7SonnetLatest),
+		Model:     anthropic.F(anthropic.Model(m.modelVersion)),
 		MaxTokens: anthropic.F(int64(2000)),
 		Messages: anthropic.F([]anthropic.MessageParam{
 			anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)),

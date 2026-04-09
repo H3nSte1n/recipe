@@ -105,3 +105,13 @@ func (h *UserHandler) DeleteAccount(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "account successfully deleted"})
 }
+
+func (h *UserHandler) ListAll(c *gin.Context) {
+	users, err := h.userService.ListAll(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list users"})
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
+}

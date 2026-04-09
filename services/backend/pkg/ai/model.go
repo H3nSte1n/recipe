@@ -11,10 +11,16 @@ import (
 type ModelType string
 
 const (
-	ModelGPT4    ModelType = "gpt-4"
-	ModelGPT35   ModelType = "gpt-3.5-turbo"
-	ModelClaude2 ModelType = "claude-3-7-sonnet-latest"
-	ModelDefault ModelType = ModelClaude2
+	ModelGPT4      ModelType = "gpt-4"
+	ModelGPT4Turbo ModelType = "gpt-4-turbo-preview"
+	ModelGPT35     ModelType = "gpt-3.5-turbo"
+
+	ModelClaude35Sonnet ModelType = "claude-3-5-sonnet-20241022"
+	ModelClaude3Opus    ModelType = "claude-3-opus-20240229"
+	ModelClaude3Sonnet  ModelType = "claude-3-sonnet-20240229"
+	ModelClaude3Haiku   ModelType = "claude-3-haiku-20240307"
+
+	ModelDefault ModelType = ModelClaude3Haiku
 )
 
 type AIModel interface {
@@ -37,18 +43,18 @@ func NewModelFactory(config *config.Config, logger *zap.Logger) *ModelFactory {
 
 func (f *ModelFactory) CreateModel(modelType ModelType, apiKey string) (AIModel, error) {
 	switch modelType {
-	case ModelGPT4, ModelGPT35:
+	case ModelGPT4, ModelGPT4Turbo, ModelGPT35:
 		key := apiKey
 		if key == "" {
 			key = f.config.AI.OpenAIAPIKey
 		}
 		return NewGPTModel(modelType, key, f.logger), nil
-	case ModelClaude2:
+	case ModelClaude35Sonnet, ModelClaude3Opus, ModelClaude3Sonnet, ModelClaude3Haiku:
 		key := apiKey
 		if key == "" {
 			key = f.config.AI.AnthropicAPIKey
 		}
-		return NewClaudeModel(key, f.logger), nil
+		return NewClaudeModel(string(modelType), key, f.logger), nil
 	default:
 		return nil, fmt.Errorf("unsupported model type: %s", modelType)
 	}
