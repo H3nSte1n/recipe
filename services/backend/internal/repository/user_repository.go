@@ -12,6 +12,7 @@ type UserRepository interface {
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetByID(ctx context.Context, id string) (*domain.User, error)
 	Delete(ctx context.Context, userID string) error
+	ListAll(ctx context.Context) ([]domain.User, error)
 	UpdatePassword(ctx context.Context, userID string, passwordHash string) error
 	CreateProfile(ctx context.Context, profile *domain.Profile) error
 	CreateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
@@ -96,4 +97,12 @@ func (r *UserRepositoryImpl) MarkResetTokenUsed(ctx context.Context, tokenID str
 
 func (r *UserRepositoryImpl) Delete(ctx context.Context, userID string) error {
 	return r.DB.WithContext(ctx).Delete(&domain.User{ID: userID}).Error
+}
+
+func (r *UserRepositoryImpl) ListAll(ctx context.Context) ([]domain.User, error) {
+	var users []domain.User
+	if err := r.DB.WithContext(ctx).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
 }
