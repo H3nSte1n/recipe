@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -69,6 +70,125 @@ func (m *mockRecipeService) ParsePlainTextInstructions(ctx context.Context, user
 	args := m.Called(ctx, userID, req)
 	v, _ := args.Get(0).(*[]domain.RecipeInstruction)
 	return v, args.Error(1)
+}
+
+func TestRecipeHandler_Create(t *testing.T) {
+	userID := "550e8400-e29b-41d4-a716-446655440000"
+	createRecipeRequest := domain.CreateRecipeRequest{Description: "Foo", Title: "Foobar", IsPrivate: false, SourceType: "MANUAL", Servings: 1}
+	recipe := domain.Recipe{ID: "1_foo", Description: createRecipeRequest.Description, Title: createRecipeRequest.Title, IsPrivate: createRecipeRequest.IsPrivate}
+	jsonCreateRecipeRequest := mustJson(t, createRecipeRequest)
+	jsonRecipe := mustJson(t, recipe)
+
+	tests := []struct {
+		name                 string
+		body                 []byte
+		multipart            bool
+		setUserID            bool
+		expectedStatusCode   int
+		expectedBodyContains string
+		mockMethod           func(m *mockRecipeService)
+	}{
+		{
+			name:                 "returns 201 with created recipe when JSON request is successful",
+			body:                 jsonCreateRecipeRequest,
+			multipart:            false,
+			setUserID:            true,
+			expectedStatusCode:   http.StatusCreated,
+			expectedBodyContains: string(jsonRecipe),
+			mockMethod: func(m *mockRecipeService) {
+				m.On("Create", mock.Anything, userID, mock.MatchedBy(func(req *domain.CreateRecipeRequest) bool {
+					return req.Title == createRecipeRequest.Title &&
+						req.Description == createRecipeRequest.Description &&
+						req.IsPrivate == createRecipeRequest.IsPrivate &&
+						req.SourceType == createRecipeRequest.SourceType &&
+						req.Servings == createRecipeRequest.Servings
+				})).Return(&recipe, nil).Once()
+			},
+		},
+		{
+			name:                 "returns 201 with created recipe when multipart/form-data request is successful",
+			multipart:            true,
+			setUserID:            true,
+			expectedStatusCode:   http.StatusCreated,
+			expectedBodyContains: string(jsonRecipe),
+			mockMethod: func(m *mockRecipeService) {
+				m.On("Create", mock.Anything, userID, mock.MatchedBy(func(req *domain.CreateRecipeRequest) bool {
+					return req.Title == createRecipeRequest.Title &&
+						req.Description == createRecipeRequest.Description &&
+						req.SourceType == createRecipeRequest.SourceType &&
+						req.Servings == createRecipeRequest.Servings
+				})).Return(&recipe, nil).Once()
+			},
+		},
+		{
+			name:                 "returns 401 unauthorized when user is not authenticated (JSON)",
+			body:                 jsonCreateRecipeRequest,
+			multipart:            false,
+			setUserID:            false,
+			expectedStatusCode:   http.StatusUnauthorized,
+			expectedBodyContains: "unauthorized",
+			mockMethod:           func(m *mockRecipeService) {},
+		},
+		{
+			name:                 "returns 401 unauthorized when user is not authenticated (multipart)",
+			multipart:            true,
+			setUserID:            false,
+			expectedStatusCode:   http.StatusUnauthorized,
+			expectedBodyContains: "unauthorized",
+			mockMethod:           func(m *mockRecipeService) {},
+		},
+		{
+			name:                 "returns 400 bad request when JSON body is invalid",
+			body:                 []byte(`{invalid`),
+			multipart:            false,
+			setUserID:            true,
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedBodyContains: "error",
+			mockMethod:           func(m *mockRecipeService) {},
+		},
+		{
+			name:                 "returns 500 internal server error when service returns error",
+			body:                 jsonCreateRecipeRequest,
+			multipart:            false,
+			setUserID:            true,
+			expectedStatusCode:   http.StatusInternalServerError,
+			expectedBodyContains: "failed to create recipe",
+			mockMethod: func(m *mockRecipeService) {
+				m.On("Create", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("service error")).Once()
+			},
+		},
+	}
+
+	gin.SetMode(gin.TestMode)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockRecipeService)
+			tt.mockMethod(m)
+
+			handler := NewRecipeHandler(m, zap.NewNop())
+			router := gin.New()
+			router.POST("/api/v1/recipes", func(ctx *gin.Context) {
+				if tt.setUserID {
+					ctx.Set("user_id", userID)
+				}
+				handler.Create(ctx)
+			})
+
+			var w *httptest.ResponseRecorder
+			if tt.multipart {
+				recipeJSON := string(jsonCreateRecipeRequest)
+				w = performMultipartRequest(t, router, http.MethodPost, "/api/v1/recipes", "", nil, map[string]string{"recipe": recipeJSON})
+			} else {
+				w = performRequest(router, http.MethodPost, "/api/v1/recipes", tt.body)
+			}
+
+			require.Equal(t, tt.expectedStatusCode, w.Code)
+			if tt.expectedBodyContains != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedBodyContains)
+			}
+			m.AssertExpectations(t)
+		})
+	}
 }
 
 func TestRecipeHandler_Update(t *testing.T) {

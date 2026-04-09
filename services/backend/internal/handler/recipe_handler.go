@@ -48,6 +48,11 @@ func (h *RecipeHandler) Create(c *gin.Context) {
 	}
 
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
 	recipe, err := h.recipeService.Create(c.Request.Context(), userID, &req)
 	if err != nil {
 		h.logger.Error("failed to create recipe", zap.Error(err))
