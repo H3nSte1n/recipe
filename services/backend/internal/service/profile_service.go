@@ -32,7 +32,6 @@ func (s *profileService) UpdateProfile(ctx context.Context, userID string, req *
 		return nil, errors.ErrNotFound.Wrap("profile not found")
 	}
 
-	// Update only provided fields
 	if req.Bio != nil {
 		profile.Bio = *req.Bio
 	}
