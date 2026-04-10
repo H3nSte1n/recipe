@@ -53,7 +53,7 @@ func (m *GPTModel) ParseInstructions(ctx context.Context, content string) (*[]do
 	return parseInstructions(resp.Choices[0].Message.Content)
 }
 
-func (m *GPTModel) CategorizeItems(ctx context.Context, content []string) ([]string, error) {
+func (m *GPTModel) CategorizeItems(ctx context.Context, content []string) (map[string]string, error) {
 	prompt := createPromptToCategorizeShoppingListItems(content)
 
 	resp, err := m.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{

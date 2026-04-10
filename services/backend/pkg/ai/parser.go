@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/H3nSte1n/recipe/internal/domain"
-	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -36,12 +34,12 @@ func parseAIResponse(response string) (*domain.Recipe, error) {
 
 	recipe.Ingredients = make([]domain.RecipeIngredient, len(aiResponse.Ingredients))
 	for i, ing := range aiResponse.Ingredients {
-		name, amount, unit, notes := parseIngredient(ing.Description)
 		recipe.Ingredients[i] = domain.RecipeIngredient{
-			Name:   name,
-			Amount: amount,
-			Unit:   unit,
-			Notes:  notes,
+			Name:        ing.Name,
+			Description: ing.Description,
+			Amount:      ing.Amount,
+			Unit:        ing.Unit,
+			Notes:       ing.Notes,
 		}
 	}
 
@@ -81,42 +79,21 @@ func parseAIResponse(response string) (*domain.Recipe, error) {
 	return recipe, nil
 }
 
-func parseIngredient(description string) (name string, amount float64, unit string, notes string) {
-	re := regexp.MustCompile(`^(?:(\d+(?:/\d+)?(?:\.\d+)?)\s*([a-zA-Z]+(?:\s+[a-zA-Z]+)?))?\s*([^(]*)(?:\((.*)\))?$`)
-	matches := re.FindStringSubmatch(description)
-
-	if len(matches) > 1 && matches[1] != "" {
-		// Handle fractions like "1/2"
-		if strings.Contains(matches[1], "/") {
-			parts := strings.Split(matches[1], "/")
-			if len(parts) == 2 {
-				num, _ := strconv.ParseFloat(parts[0], 64)
-				den, _ := strconv.ParseFloat(parts[1], 64)
-				if den != 0 {
-					amount = num / den
-				}
-			}
-		} else {
-			amount, _ = strconv.ParseFloat(matches[1], 64)
-		}
+func stripMarkdownFences(content string) string {
+	if strings.HasPrefix(content, "```") {
+		content = strings.TrimPrefix(content, "```json")
+		content = strings.TrimPrefix(content, "```")
+		content = strings.TrimSuffix(content, "```")
+		content = strings.TrimSpace(content)
 	}
-	if len(matches) > 2 {
-		unit = strings.TrimSpace(matches[2])
-	}
-	if len(matches) > 3 {
-		name = strings.TrimSpace(matches[3])
-	}
-	if len(matches) > 4 {
-		notes = strings.TrimSpace(matches[4])
-	}
-
-	return name, amount, unit, notes
+	return content
 }
 
 func parseInstructions(content string) (*[]domain.RecipeInstruction, error) {
 	content = strings.TrimSpace(content)
+	content = stripMarkdownFences(content)
 
-	// Validate that content starts and ends with brackets
+	// Validate that content is a JSON array
 	if !strings.HasPrefix(content, "[") || !strings.HasSuffix(content, "]") {
 		return nil, fmt.Errorf("invalid JSON array format")
 	}
@@ -139,19 +116,19 @@ func parseInstructions(content string) (*[]domain.RecipeInstruction, error) {
 	return &instructions, nil
 }
 
-func parseCategorizeItemsResponse(content string) ([]string, error) {
+func parseCategorizeItemsResponse(content string) (map[string]string, error) {
 	content = strings.TrimSpace(content)
+	content = stripMarkdownFences(content)
 
-	// Validate that content starts and ends with brackets
-	if !strings.HasPrefix(content, "[") || !strings.HasSuffix(content, "]") {
-		return nil, fmt.Errorf("invalid JSON array format")
+	// Validate that content is a JSON object
+	if !strings.HasPrefix(content, "{") || !strings.HasSuffix(content, "}") {
+		return nil, fmt.Errorf("invalid JSON object format")
 	}
 
-	// Parse into intermediate struct
-	var aiResponse []string
-	if err := json.Unmarshal([]byte(content), &aiResponse); err != nil {
+	var result map[string]string
+	if err := json.Unmarshal([]byte(content), &result); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON response: %w", err)
 	}
 
-	return aiResponse, nil
+	return result, nil
 }

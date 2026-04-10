@@ -69,7 +69,7 @@ func (m *ClaudeModel) ParseInstructions(ctx context.Context, content string) (*[
 	return nil, fmt.Errorf("no response content from Claude")
 }
 
-func (m *ClaudeModel) CategorizeItems(ctx context.Context, items []string) ([]string, error) {
+func (m *ClaudeModel) CategorizeItems(ctx context.Context, items []string) (map[string]string, error) {
 	prompt := createPromptToCategorizeShoppingListItems(items)
 
 	message, err := m.client.Messages.New(ctx, anthropic.MessageNewParams{

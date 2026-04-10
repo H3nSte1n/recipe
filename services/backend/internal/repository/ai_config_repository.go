@@ -19,6 +19,7 @@ type AIConfigRepository interface {
 	SetDefault(ctx context.Context, userID, configID string) error
 	ClearDefaultByUserID(ctx context.Context, userID string, excludeIDs ...string) error
 	WithTypedTransaction(ctx context.Context, fn func(AIConfigRepository) error) error
+	RunTx(ctx context.Context, fn func() error) error
 }
 
 type AIConfigRepositoryImpl struct {
@@ -35,6 +36,12 @@ func (r *AIConfigRepositoryImpl) WithTypedTransaction(ctx context.Context, fn fu
 	return r.RunInTransaction(ctx, func(tx *gorm.DB) error {
 		txRepo := &AIConfigRepositoryImpl{BaseRepository: NewBaseRepository(tx)}
 		return fn(txRepo)
+	})
+}
+
+func (r *AIConfigRepositoryImpl) RunTx(ctx context.Context, fn func() error) error {
+	return r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return fn()
 	})
 }
 

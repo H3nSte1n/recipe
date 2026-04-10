@@ -7,7 +7,11 @@ type AIRecipeResponse struct {
 	PrepTime    int    `json:"prepTime"`
 	CookTime    int    `json:"cookTime"`
 	Ingredients []struct {
-		Description string `json:"description"`
+		Name        string  `json:"name"`
+		Description string  `json:"description"`
+		Amount      float64 `json:"amount"`
+		Unit        string  `json:"unit"`
+		Notes       string  `json:"notes"`
 	} `json:"ingredients"`
 	Instructions []struct {
 		StepNumber  int    `json:"stepNumber"`
