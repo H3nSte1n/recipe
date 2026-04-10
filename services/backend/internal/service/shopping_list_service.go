@@ -4,11 +4,26 @@ import (
 	"context"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"github.com/H3nSte1n/recipe/internal/errors"
-	"github.com/H3nSte1n/recipe/internal/repository"
 	"github.com/H3nSte1n/recipe/pkg/ai"
 	"go.uber.org/zap"
 	"sort"
 )
+
+type shoppingListRepository interface {
+	GetByID(ctx context.Context, listID string) (*domain.ShoppingList, error)
+	GetItemByID(ctx context.Context, itemID string) (*domain.ShoppingListItem, error)
+	Create(ctx context.Context, list *domain.ShoppingList) error
+	Update(ctx context.Context, list *domain.ShoppingList) error
+	Delete(ctx context.Context, id string) error
+	ListByUserID(ctx context.Context, userID string) ([]domain.ShoppingList, error)
+	AddItems(ctx context.Context, items []domain.ShoppingListItem) error
+	UpdateItem(ctx context.Context, item *domain.ShoppingListItem) error
+	DeleteItem(ctx context.Context, id string) error
+}
+
+type shoppingListRecipeRepository interface {
+	GetByID(ctx context.Context, id string, nutritionLevel domain.NutritionDetailLevel) (*domain.Recipe, error)
+}
 
 type ShoppingListService interface {
 	Create(ctx context.Context, userID string, req *domain.CreateShoppingListRequest) (*domain.ShoppingList, error)
@@ -27,14 +42,14 @@ type ShoppingListService interface {
 }
 
 type shoppingListService struct {
-	shoppingListRepo  repository.ShoppingListRepository
-	recipeRepo        repository.RecipeRepository
+	shoppingListRepo  shoppingListRepository
+	recipeRepo        shoppingListRecipeRepository
 	storeChainService StoreChainService
 	aiModel           ai.AIModel
 	logger            *zap.Logger
 }
 
-func NewShoppingListService(shoppingListRepo repository.ShoppingListRepository, recipeRepo repository.RecipeRepository, storeChainService StoreChainService, aiModel ai.AIModel, logger *zap.Logger) ShoppingListService {
+func NewShoppingListService(shoppingListRepo shoppingListRepository, recipeRepo shoppingListRecipeRepository, storeChainService StoreChainService, aiModel ai.AIModel, logger *zap.Logger) ShoppingListService {
 	return &shoppingListService{
 		shoppingListRepo:  shoppingListRepo,
 		recipeRepo:        recipeRepo,
@@ -189,8 +204,8 @@ func (s *shoppingListService) AddItem(ctx context.Context, userID string, listID
 	categories, err := s.aiModel.CategorizeItems(ctx, []string{req.Name})
 	if err != nil {
 		s.logger.Warn("failed to classify item", zap.Error(err))
-	} else {
-		category = domain.Category(categories[0])
+	} else if cat, ok := categories[req.Name]; ok {
+		category = domain.Category(cat)
 	}
 
 	// Create the item
@@ -289,32 +304,28 @@ func (s *shoppingListService) AddRecipeToList(ctx context.Context, userID string
 	// Prepare item names for categorization
 	itemNames := make([]string, len(recipe.Ingredients))
 	for i, ingredient := range recipe.Ingredients {
-		itemNames[i] = ingredient.Description
+		itemNames[i] = ingredient.Name
 	}
 
 	// Categorize all items at once
 	categories, err := s.aiModel.CategorizeItems(ctx, itemNames)
 	if err != nil {
 		s.logger.Warn("failed to classify items", zap.Error(err))
-		// Fill with default category if categorization fails
-		categories = make([]string, len(itemNames))
-		for i := range categories {
-			categories[i] = string(domain.CategoryOther)
-		}
+		categories = make(map[string]string)
 	}
 
 	// Create shopping list items from recipe ingredients
 	items := make([]domain.ShoppingListItem, len(recipe.Ingredients))
 	for i, ingredient := range recipe.Ingredients {
 		category := domain.CategoryOther
-		if i < len(categories) {
-			category = domain.Category(categories[i])
+		if cat, ok := categories[ingredient.Name]; ok {
+			category = domain.Category(cat)
 		}
 
 		items[i] = domain.ShoppingListItem{
 			ListID:   listID,
 			RecipeID: &recipe.ID,
-			Name:     ingredient.Description,
+			Name:     ingredient.Name,
 			Amount:   ingredient.Amount * scalingFactor,
 			Unit:     ingredient.Unit,
 			Category: category,

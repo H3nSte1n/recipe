@@ -5,13 +5,30 @@ import (
 	"fmt"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"github.com/H3nSte1n/recipe/internal/errors"
-	"github.com/H3nSte1n/recipe/internal/repository"
 	"github.com/H3nSte1n/recipe/pkg/ai"
 	"github.com/H3nSte1n/recipe/pkg/pdfparser"
 	"github.com/H3nSte1n/recipe/pkg/storage"
 	"github.com/H3nSte1n/recipe/pkg/urlparser"
 	"go.uber.org/zap"
 )
+
+type recipeRepository interface {
+	Create(ctx context.Context, recipe *domain.Recipe) error
+	Update(ctx context.Context, recipe *domain.Recipe) error
+	Delete(ctx context.Context, id string) error
+	GetByID(ctx context.Context, id string, nutritionLevel domain.NutritionDetailLevel) (*domain.Recipe, error)
+	ListByUserID(ctx context.Context, userID string, includePrivate bool) ([]domain.Recipe, error)
+	ListPublic(ctx context.Context, page, pageSize int) ([]domain.Recipe, int64, error)
+	RunTx(ctx context.Context, fn func() error) error
+}
+
+type recipeUserRepository interface {
+	GetByID(ctx context.Context, id string) (*domain.User, error)
+}
+
+type recipeAIConfigRepository interface {
+	GetDefaultConfig(ctx context.Context, userID string) (*domain.UserAIConfig, error)
+}
 
 type RecipeService interface {
 	Create(ctx context.Context, userID string, req *domain.CreateRecipeRequest) (*domain.Recipe, error)
@@ -26,9 +43,9 @@ type RecipeService interface {
 }
 
 type recipeService struct {
-	recipeRepo   repository.RecipeRepository
-	userRepo     repository.UserRepository
-	aiConfigRepo repository.AIConfigRepository
+	recipeRepo   recipeRepository
+	userRepo     recipeUserRepository
+	aiConfigRepo recipeAIConfigRepository
 	fileStorage  storage.FileStore
 	logger       *zap.Logger
 	modelFactory *ai.ModelFactory
@@ -37,9 +54,9 @@ type recipeService struct {
 }
 
 func NewRecipeService(
-	recipeRepo repository.RecipeRepository,
-	userRepo repository.UserRepository,
-	aiConfigRepo repository.AIConfigRepository,
+	recipeRepo recipeRepository,
+	userRepo recipeUserRepository,
+	aiConfigRepo recipeAIConfigRepository,
 	fileStorage storage.FileStore,
 	logger *zap.Logger,
 	modelFactory *ai.ModelFactory,
@@ -182,16 +199,16 @@ func (s *recipeService) Update(ctx context.Context, userID string, recipeID stri
 		}
 	}
 
-	err = s.recipeRepo.WithTypedTransaction(ctx, func(recipeRepo repository.RecipeRepository) error {
+	err = s.recipeRepo.RunTx(ctx, func() error {
 		recipe := &domain.Recipe{
 			ID:           recipeID,
 			UserID:       userID,
 			Title:        req.Title,
 			Description:  req.Description,
-			Notes:        req.Notes,  // Update notes
-			Rating:       req.Rating, // Update rating
-			ImageURL:     imageURL,   // Updated image URL
-			Status:       req.Status, // Update status
+			Notes:        req.Notes,
+			Rating:       req.Rating,
+			ImageURL:     imageURL,
+			Status:       req.Status,
 			SourceType:   req.SourceType,
 			Source:       req.SourceURL,
 			IsPrivate:    req.IsPrivate,
@@ -203,12 +220,10 @@ func (s *recipeService) Update(ctx context.Context, userID string, recipeID stri
 			Nutrition:    req.Nutrition,
 		}
 
-		// Update base recipe
-		if err := recipeRepo.Update(ctx, recipe); err != nil {
+		if err := s.recipeRepo.Update(ctx, recipe); err != nil {
 			return err
 		}
 
-		// Update sub-recipes if provided
 		if len(req.SubRecipes) > 0 {
 			recipe.SubRecipes = make([]domain.SubRecipe, len(req.SubRecipes))
 			for i, sr := range req.SubRecipes {
@@ -218,7 +233,7 @@ func (s *recipeService) Update(ctx context.Context, userID string, recipeID stri
 					ServingFactor: sr.ServingFactor,
 				}
 			}
-			if err := recipeRepo.Update(ctx, recipe); err != nil {
+			if err := s.recipeRepo.Update(ctx, recipe); err != nil {
 				return err
 			}
 		}
@@ -254,8 +269,8 @@ func (s *recipeService) Delete(ctx context.Context, userID string, recipeID stri
 		return errors.ErrUnauthorized
 	}
 
-	return s.recipeRepo.WithTypedTransaction(ctx, func(recipeRepo repository.RecipeRepository) error {
-		if err := recipeRepo.Delete(ctx, recipeID); err != nil {
+	return s.recipeRepo.RunTx(ctx, func() error {
+		if err := s.recipeRepo.Delete(ctx, recipeID); err != nil {
 			return err
 		}
 

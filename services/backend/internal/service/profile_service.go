@@ -2,10 +2,14 @@ package service
 
 import (
 	"context"
-	"errors"
 	"github.com/H3nSte1n/recipe/internal/domain"
-	"github.com/H3nSte1n/recipe/internal/repository"
+	"github.com/H3nSte1n/recipe/internal/errors"
 )
+
+type profileRepository interface {
+	GetByUserID(ctx context.Context, userID string) (*domain.Profile, error)
+	Update(ctx context.Context, profile *domain.Profile) error
+}
 
 type ProfileService interface {
 	UpdateProfile(ctx context.Context, userID string, req *domain.UpdateProfileRequest) (*domain.Profile, error)
@@ -13,21 +17,19 @@ type ProfileService interface {
 }
 
 type profileService struct {
-	profileRepo repository.ProfileRepository
-	userRepo    repository.UserRepository
+	profileRepo profileRepository
 }
 
-func NewProfileService(profileRepo repository.ProfileRepository, userRepo repository.UserRepository) ProfileService {
+func NewProfileService(profileRepo profileRepository) ProfileService {
 	return &profileService{
 		profileRepo: profileRepo,
-		userRepo:    userRepo,
 	}
 }
 
 func (s *profileService) UpdateProfile(ctx context.Context, userID string, req *domain.UpdateProfileRequest) (*domain.Profile, error) {
 	profile, err := s.profileRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return nil, errors.New("profile not found")
+		return nil, errors.ErrNotFound.Wrap("profile not found")
 	}
 
 	// Update only provided fields

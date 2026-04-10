@@ -33,8 +33,8 @@ func NewServices(repos *repository.Repositories, config config.Config, fileStora
 	storeChainService := NewStoreChainService(repos.StoreChainRepository, logger)
 
 	return &Services{
-		UserService:         NewUserService(repos.UserRepository, repos.ProfileRepository, config.JWT.Secret, config),
-		ProfileService:      NewProfileService(repos.ProfileRepository, repos.UserRepository),
+		UserService:         NewUserService(repos.UserRepository, config.JWT.Secret, config),
+		ProfileService:      NewProfileService(repos.ProfileRepository),
 		AIConfigService:     NewAIConfigService(repos.AIConfigRepository),
 		RecipeService:       NewRecipeService(repos.RecipeRepository, repos.UserRepository, repos.AIConfigRepository, fileStorage, logger, &factory, urlParserService, pdfParserService),
 		ShoppingListService: NewShoppingListService(repos.ShoppingListRepository, repos.RecipeRepository, storeChainService, aiModel, logger),

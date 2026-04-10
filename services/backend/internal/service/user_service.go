@@ -4,16 +4,29 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"github.com/H3nSte1n/recipe/internal/domain"
-	"github.com/H3nSte1n/recipe/internal/repository"
+	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/H3nSte1n/recipe/pkg/config"
 	"github.com/H3nSte1n/recipe/pkg/email"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"time"
 )
+
+type userRepository interface {
+	Create(ctx context.Context, user *domain.User) error
+	GetByEmail(ctx context.Context, email string) (*domain.User, error)
+	GetByID(ctx context.Context, id string) (*domain.User, error)
+	Delete(ctx context.Context, userID string) error
+	ListAll(ctx context.Context) ([]domain.User, error)
+	UpdatePassword(ctx context.Context, userID string, passwordHash string) error
+	CreateProfile(ctx context.Context, profile *domain.Profile) error
+	CreateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
+	GetResetTokenByToken(ctx context.Context, token string) (*domain.PasswordResetToken, error)
+	MarkResetTokenUsed(ctx context.Context, tokenID string) error
+	RunTx(ctx context.Context, fn func() error) error
+}
 
 type UserService interface {
 	Register(ctx context.Context, req *domain.RegisterRequest) (*domain.User, error)
@@ -26,17 +39,15 @@ type UserService interface {
 }
 
 type userService struct {
-	userRepo     repository.UserRepository
-	profileRepo  repository.ProfileRepository
+	userRepo     userRepository
 	jwtSecret    []byte
 	jwtDuration  time.Duration
 	emailService email.EmailService
 }
 
-func NewUserService(userRepo repository.UserRepository, profileRepo repository.ProfileRepository, jwtSecret string, config config.Config) UserService {
+func NewUserService(userRepo userRepository, jwtSecret string, config config.Config) UserService {
 	return &userService{
 		userRepo:     userRepo,
-		profileRepo:  profileRepo,
 		jwtSecret:    []byte(jwtSecret),
 		jwtDuration:  config.JWT.Duration,
 		emailService: email.NewEmailService(config.SMTP.From, config.SMTP.Password, config.SMTP.Host, config.SMTP.Port, config.Frontend.Url),
@@ -46,11 +57,11 @@ func NewUserService(userRepo repository.UserRepository, profileRepo repository.P
 func (s *userService) Register(ctx context.Context, req *domain.RegisterRequest) (*domain.User, error) {
 	existingUser, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err == nil && existingUser != nil {
-		return nil, errors.New("email already registered")
+		return nil, apperrors.New("email already registered")
 	}
 
 	var user *domain.User
-	err = s.userRepo.WithTypedTransaction(ctx, func(txRepo repository.UserRepository) error {
+	err = s.userRepo.RunTx(ctx, func() error {
 		hashedPassword, err := domain.HashPassword(req.Password)
 		if err != nil {
 			return err
@@ -64,7 +75,7 @@ func (s *userService) Register(ctx context.Context, req *domain.RegisterRequest)
 			LastName:     req.LastName,
 		}
 
-		if err := txRepo.Create(ctx, user); err != nil {
+		if err := s.userRepo.Create(ctx, user); err != nil {
 			return err
 		}
 
@@ -72,16 +83,12 @@ func (s *userService) Register(ctx context.Context, req *domain.RegisterRequest)
 			ID:        uuid.New().String(),
 			UserID:    user.ID,
 			Bio:       fmt.Sprintf("Hello, I'm %s %s", user.FirstName, user.LastName),
-			Location:  "", // Default empty or can come from request if you add it
+			Location:  "",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		}
 
-		if err := txRepo.CreateProfile(ctx, profile); err != nil {
-			return err
-		}
-
-		return nil
+		return s.userRepo.CreateProfile(ctx, profile)
 	})
 
 	if err != nil {
@@ -94,11 +101,11 @@ func (s *userService) Register(ctx context.Context, req *domain.RegisterRequest)
 func (s *userService) Login(ctx context.Context, req *domain.LoginRequest) (*domain.LoginResponse, error) {
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
-		return nil, errors.New("invalid credentials")
+		return nil, apperrors.New("invalid credentials")
 	}
 
 	if !domain.CheckPasswordHash(req.Password, user.PasswordHash) {
-		return nil, errors.New("invalid credentials")
+		return nil, apperrors.New("invalid credentials")
 	}
 
 	token, err := s.generateToken(user)
@@ -140,16 +147,16 @@ func (s *userService) ForgotPassword(ctx context.Context, req *domain.ForgotPass
 func (s *userService) ResetPassword(ctx context.Context, req *domain.ResetPasswordRequest) error {
 	resetToken, err := s.userRepo.GetResetTokenByToken(ctx, req.Token)
 	if err != nil {
-		return errors.New("invalid token")
+		return apperrors.New("invalid token")
 	}
 
 	if resetToken.Used || time.Now().After(resetToken.ExpiresAt) {
-		return errors.New("token expired or already used")
+		return apperrors.New("token expired or already used")
 	}
 
 	user, err := s.userRepo.GetByID(ctx, resetToken.UserID)
 	if err != nil {
-		return errors.New("user not found")
+		return apperrors.New("user not found")
 	}
 
 	hashedPassword, err := domain.HashPassword(req.Password)
@@ -157,16 +164,11 @@ func (s *userService) ResetPassword(ctx context.Context, req *domain.ResetPasswo
 		return err
 	}
 
-	return s.userRepo.WithTypedTransaction(ctx, func(txRepo repository.UserRepository) error {
-		if err := txRepo.UpdatePassword(ctx, user.ID, hashedPassword); err != nil {
+	return s.userRepo.RunTx(ctx, func() error {
+		if err := s.userRepo.UpdatePassword(ctx, user.ID, hashedPassword); err != nil {
 			return err
 		}
-
-		if err := txRepo.MarkResetTokenUsed(ctx, resetToken.ID); err != nil {
-			return err
-		}
-
-		return nil
+		return s.userRepo.MarkResetTokenUsed(ctx, resetToken.ID)
 	})
 }
 
@@ -184,24 +186,19 @@ func (s *userService) generateToken(user *domain.User) (string, error) {
 func (s *userService) ValidateToken(tokenString string) (*jwt.Token, error) {
 	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
+			return nil, apperrors.New("unexpected signing method")
 		}
 		return s.jwtSecret, nil
 	})
 }
 
 func (s *userService) Delete(ctx context.Context, userID string) error {
-	return s.userRepo.WithTypedTransaction(ctx, func(txRepo repository.UserRepository) error {
-		user, err := txRepo.GetByID(ctx, userID)
-		if err != nil {
-			return errors.New("user not found")
-		}
-
-		if err := txRepo.Delete(ctx, user.ID); err != nil {
-			return err
-		}
-
-		return nil
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return apperrors.ErrNotFound.Wrap("user not found")
+	}
+	return s.userRepo.RunTx(ctx, func() error {
+		return s.userRepo.Delete(ctx, user.ID)
 	})
 }
 

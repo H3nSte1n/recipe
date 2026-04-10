@@ -20,6 +20,7 @@ type UserRepository interface {
 	GetResetTokenByToken(ctx context.Context, token string) (*domain.PasswordResetToken, error)
 	MarkResetTokenUsed(ctx context.Context, tokenID string) error
 	WithTypedTransaction(ctx context.Context, fn func(UserRepository) error) error
+	RunTx(ctx context.Context, fn func() error) error
 }
 
 type UserRepositoryImpl struct {
@@ -36,6 +37,12 @@ func (r *UserRepositoryImpl) WithTypedTransaction(ctx context.Context, fn func(U
 	return r.RunInTransaction(ctx, func(tx *gorm.DB) error {
 		txRepo := &UserRepositoryImpl{BaseRepository: NewBaseRepository(tx)}
 		return fn(txRepo)
+	})
+}
+
+func (r *UserRepositoryImpl) RunTx(ctx context.Context, fn func() error) error {
+	return r.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return fn()
 	})
 }
 

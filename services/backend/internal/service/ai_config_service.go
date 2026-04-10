@@ -2,10 +2,22 @@ package service
 
 import (
 	"context"
-	"errors"
 	"github.com/H3nSte1n/recipe/internal/domain"
-	"github.com/H3nSte1n/recipe/internal/repository"
+	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 )
+
+type aiConfigRepository interface {
+	Create(ctx context.Context, config *domain.UserAIConfig) error
+	Update(ctx context.Context, config *domain.UserAIConfig) error
+	GetByID(ctx context.Context, id string) (*domain.UserAIConfig, error)
+	ListByUserID(ctx context.Context, userID string) ([]domain.UserAIConfig, error)
+	Delete(ctx context.Context, id string) error
+	GetAIModels(ctx context.Context) ([]domain.AIModel, error)
+	GetDefaultConfig(ctx context.Context, userID string) (*domain.UserAIConfig, error)
+	SetDefault(ctx context.Context, userID, configID string) error
+	ClearDefaultByUserID(ctx context.Context, userID string, excludeIDs ...string) error
+	RunTx(ctx context.Context, fn func() error) error
+}
 
 type AIConfigService interface {
 	Create(ctx context.Context, userID string, req *domain.CreateUserAIConfigRequest) (*domain.UserAIConfig, error)
@@ -19,10 +31,10 @@ type AIConfigService interface {
 }
 
 type aiConfigService struct {
-	aiConfigRepo repository.AIConfigRepository
+	aiConfigRepo aiConfigRepository
 }
 
-func NewAIConfigService(aiConfigRepo repository.AIConfigRepository) AIConfigService {
+func NewAIConfigService(aiConfigRepo aiConfigRepository) AIConfigService {
 	return &aiConfigService{
 		aiConfigRepo: aiConfigRepo,
 	}
@@ -31,9 +43,9 @@ func NewAIConfigService(aiConfigRepo repository.AIConfigRepository) AIConfigServ
 func (s *aiConfigService) Create(ctx context.Context, userID string, req *domain.CreateUserAIConfigRequest) (*domain.UserAIConfig, error) {
 	var config *domain.UserAIConfig
 
-	err := s.aiConfigRepo.WithTypedTransaction(ctx, func(txRepo repository.AIConfigRepository) error {
+	err := s.aiConfigRepo.RunTx(ctx, func() error {
 		if req.IsDefault {
-			if err := txRepo.ClearDefaultByUserID(ctx, userID); err != nil {
+			if err := s.aiConfigRepo.ClearDefaultByUserID(ctx, userID); err != nil {
 				return err
 			}
 		}
@@ -46,11 +58,7 @@ func (s *aiConfigService) Create(ctx context.Context, userID string, req *domain
 			Settings:  req.Settings,
 		}
 
-		if err := txRepo.Create(ctx, config); err != nil {
-			return err
-		}
-
-		return nil
+		return s.aiConfigRepo.Create(ctx, config)
 	})
 
 	if err != nil {
@@ -66,9 +74,9 @@ func (s *aiConfigService) Update(ctx context.Context, userID string, configID st
 		return nil, err
 	}
 
-	err = s.aiConfigRepo.WithTypedTransaction(ctx, func(txRepo repository.AIConfigRepository) error {
+	err = s.aiConfigRepo.RunTx(ctx, func() error {
 		if req.IsDefault != nil && *req.IsDefault {
-			if err := txRepo.ClearDefaultByUserID(ctx, userID, configID); err != nil {
+			if err := s.aiConfigRepo.ClearDefaultByUserID(ctx, userID, configID); err != nil {
 				return err
 			}
 		}
@@ -83,11 +91,7 @@ func (s *aiConfigService) Update(ctx context.Context, userID string, configID st
 			config.Settings = req.Settings
 		}
 
-		if err := txRepo.Update(ctx, config); err != nil {
-			return err
-		}
-
-		return nil
+		return s.aiConfigRepo.Update(ctx, config)
 	})
 
 	if err != nil {
@@ -104,7 +108,7 @@ func (s *aiConfigService) GetByID(ctx context.Context, userID string, configID s
 	}
 
 	if config.UserID != userID {
-		return nil, errors.New("unauthorized")
+		return nil, apperrors.ErrUnauthorized
 	}
 
 	return config, nil
@@ -134,7 +138,7 @@ func (s *aiConfigService) SetDefault(ctx context.Context, userID string, configI
 	}
 
 	if config.UserID != userID {
-		return errors.New("unauthorized")
+		return apperrors.ErrUnauthorized
 	}
 
 	return s.aiConfigRepo.SetDefault(ctx, userID, configID)
@@ -143,7 +147,7 @@ func (s *aiConfigService) SetDefault(ctx context.Context, userID string, configI
 func (s *aiConfigService) GetDefaultConfig(ctx context.Context, userID string) (*domain.UserAIConfig, error) {
 	config, err := s.aiConfigRepo.GetDefaultConfig(ctx, userID)
 	if err != nil {
-		return nil, errors.New("default AI configuration not found")
+		return nil, apperrors.ErrNotFound.Wrap("default AI configuration not found")
 	}
 
 	return config, nil

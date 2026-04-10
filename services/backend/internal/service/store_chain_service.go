@@ -3,10 +3,15 @@ package service
 import (
 	"context"
 	"github.com/H3nSte1n/recipe/internal/domain"
-	"github.com/H3nSte1n/recipe/internal/repository"
 	"go.uber.org/zap"
 	"sort"
 )
+
+type storeChainRepository interface {
+	GetChain(ctx context.Context, chainID string) (*domain.StoreChain, error)
+	GetChainByName(ctx context.Context, name string, country string) (*domain.StoreChain, error)
+	ListChains(ctx context.Context, country string) ([]domain.StoreChain, error)
+}
 
 type StoreChainService interface {
 	GetChain(ctx context.Context, chainID string) (*domain.StoreChain, error)
@@ -16,11 +21,11 @@ type StoreChainService interface {
 }
 
 type storeChainService struct {
-	storeChainRepo repository.StoreChainRepository
+	storeChainRepo storeChainRepository
 	logger         *zap.Logger
 }
 
-func NewStoreChainService(storeChainRepo repository.StoreChainRepository, logger *zap.Logger) StoreChainService {
+func NewStoreChainService(storeChainRepo storeChainRepository, logger *zap.Logger) StoreChainService {
 	return &storeChainService{
 		storeChainRepo: storeChainRepo,
 		logger:         logger,
