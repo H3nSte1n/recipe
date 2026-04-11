@@ -45,13 +45,11 @@ func (s *storeChainService) ListChains(ctx context.Context, country string) ([]d
 }
 
 func (s *storeChainService) OrganizeShoppingList(ctx context.Context, list *domain.ShoppingList, chainID string) error {
-	// Get store layout
 	chain, err := s.storeChainRepo.GetChain(ctx, chainID)
 	if err != nil {
 		return err
 	}
 
-	// Create a map for quick category lookup
 	sectionOrder := make(map[domain.Category]int)
 	for _, section := range chain.Layout {
 		for _, category := range section.Categories {
@@ -59,17 +57,14 @@ func (s *storeChainService) OrganizeShoppingList(ctx context.Context, list *doma
 		}
 	}
 
-	// Sort items based on section order
 	sort.SliceStable(list.Items, func(i, j int) bool {
 		orderI := sectionOrder[list.Items[i].Category]
 		orderJ := sectionOrder[list.Items[j].Category]
 
-		// If items are in different sections, sort by section order
 		if orderI != orderJ {
 			return orderI < orderJ
 		}
 
-		// If in same section, keep original order
 		return i < j
 	})
 
