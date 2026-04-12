@@ -2,8 +2,13 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/H3nSte1n/recipe/internal/domain"
+	"github.com/H3nSte1n/recipe/pkg/config"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 type mockUserRepository struct {
@@ -66,5 +71,107 @@ func (m *mockUserRepository) MarkResetTokenUsed(ctx context.Context, tokenID str
 
 func (m *mockUserRepository) RunTx(ctx context.Context, fn func() error) error {
 	args := m.Called(ctx, fn)
-	return args.Error(0)
+	if args.Error(0) != nil {
+		return args.Error(0)
+	}
+	return fn()
+}
+
+func TestUserService_Register(t *testing.T) {
+	user := domain.User{ID: "1_foo", FirstName: "Foo", LastName: "Bar", Email: "foo@bar.com"}
+	req := domain.RegisterRequest{Email: user.Email, Password: "foobar", FirstName: user.FirstName, LastName: user.LastName}
+	var createdUser *domain.User
+	tests := []struct {
+		name        string
+		expectedErr string
+		mockMethod  func(m *mockUserRepository)
+	}{
+		{
+			name:        "returns error when email is already registered",
+			expectedErr: "email already registered",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(&user, nil).Once()
+			},
+		},
+		{
+			name: "continues registration when email is not found",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, nil).Once()
+				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("Create", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("CreateProfile", mock.Anything, mock.Anything).Return(nil).Once()
+			},
+		},
+		{
+			name: "continues registration when email is not found and GetByEmail returns err",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, errors.New("GetByEmail err")).Once()
+				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("Create", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("CreateProfile", mock.Anything, mock.Anything).Return(nil).Once()
+			},
+		},
+		{
+			name:        "returns error when repos Create method returns error",
+			expectedErr: "repo create error",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, nil).Once()
+				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("Create", mock.Anything, mock.Anything).Return(errors.New("repo create error")).Once()
+			},
+		},
+		{
+			name:        "returns error when repos CreateProfile method returns error",
+			expectedErr: "repo createProfile error",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, nil).Once()
+				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("Create", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("CreateProfile", mock.Anything, mock.Anything).Return(errors.New("repo createProfile error")).Once()
+			},
+		},
+		{
+			name:        "returns error when RunTx returns err",
+			expectedErr: "tx error",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, nil).Once()
+				m.On("RunTx", mock.Anything, mock.Anything).Return(errors.New("tx error")).Once()
+			},
+		},
+		{
+			name: "creates user and profile and returns user when request is successfully",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, nil).Once()
+				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("Create", mock.Anything, mock.MatchedBy(func(userReq *domain.User) bool {
+					createdUser = userReq
+					return userReq.Email == user.Email && userReq.FirstName == user.FirstName && userReq.LastName == user.LastName && userReq.ID != ""
+				})).Return(nil).Once()
+				m.On("CreateProfile", mock.Anything, mock.MatchedBy(func(profileReq *domain.Profile) bool {
+					return profileReq.UserID == createdUser.ID && profileReq.Location == "" && !profileReq.CreatedAt.IsZero() && !profileReq.UpdatedAt.IsZero() && profileReq.ID != "" && profileReq.Bio == fmt.Sprintf("Hello, I'm %s %s", user.FirstName, user.LastName)
+				})).Return(nil).Once()
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockUserRepository)
+			if tt.mockMethod != nil {
+				tt.mockMethod(m)
+			}
+
+			srv := NewUserService(m, "foobarJWT", config.Config{})
+			u, err := srv.Register(context.Background(), &req)
+
+			if tt.expectedErr != "" {
+				require.ErrorContains(t, err, tt.expectedErr)
+				require.Nil(t, u)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, u)
+			}
+			m.AssertExpectations(t)
+		})
+	}
 }
