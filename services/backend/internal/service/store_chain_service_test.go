@@ -45,7 +45,7 @@ func TestStoreChainService_GetChain_Success(t *testing.T) {
 	m.AssertExpectations(t)
 }
 
-func TestStoreChainService_GetChain_Err(t *testing.T) {
+func TestStoreChainService_GetChain_Error(t *testing.T) {
 	storeChainID := "1_foo"
 	expectedErr := errors.New("service error")
 	m := new(mockStoreChainRepo)
@@ -74,7 +74,7 @@ func TestStoreChainService_GetChainByName_Success(t *testing.T) {
 	m.AssertExpectations(t)
 }
 
-func TestStoreChainService_GetChainByName_Err(t *testing.T) {
+func TestStoreChainService_GetChainByName_Error(t *testing.T) {
 	expectedErr := errors.New("service error")
 	name := "foo"
 	country := "germany"
@@ -103,7 +103,7 @@ func TestStoreChainService_ListChains_Success(t *testing.T) {
 	m.AssertExpectations(t)
 }
 
-func TestStoreChainService_ListChains_Err(t *testing.T) {
+func TestStoreChainService_ListChains_Error(t *testing.T) {
 	expectedErr := errors.New("service error")
 	country := "netherlands"
 	m := new(mockStoreChainRepo)
@@ -125,30 +125,36 @@ func TestStoreChainService_OrganizeShoppingList(t *testing.T) {
 		{Order: 2, Name: "bar", Categories: []domain.Category{domain.CategoryBakery}},
 	}
 	storeChain := domain.StoreChain{ID: chainID, Layout: layout}
-	sortedShoppingList := domain.ShoppingList{ID: "1_foo", Items: []domain.ShoppingListItem{{Category: domain.CategoryBeverages}, {Category: domain.CategoryProduce}, {Category: domain.CategoryBakery}, {Category: domain.CategoryBakery}}}
 
 	errStoreChainNotFound := errors.New("store chain not found")
 
 	tests := []struct {
 		name        string
+		items       []domain.ShoppingListItem
+		sortedItems []domain.ShoppingListItem
 		expectedErr error
 		mockMethod  func(m *mockStoreChainRepo)
 	}{
 		{
-			name:        "returns err when repo GetChain method returns error",
+			name:        "returns error when repo GetChain method returns error",
+			items:       []domain.ShoppingListItem{{Category: domain.CategoryBakery}, {Category: domain.CategoryProduce}, {Category: domain.CategoryBakery}, {Category: domain.CategoryBeverages}},
 			expectedErr: errStoreChainNotFound,
 			mockMethod: func(m *mockStoreChainRepo) {
 				m.On("GetChain", mock.Anything, chainID).Return(nil, errStoreChainNotFound).Once()
 			},
 		},
 		{
-			name: "sorts shopping list and returns nil when sorting was successfully",
+			name:        "sorts shopping list by store section order when sorting was successfully",
+			items:       []domain.ShoppingListItem{{Category: domain.CategoryBakery}, {Category: domain.CategoryProduce}, {Category: domain.CategoryBakery}, {Category: domain.CategoryBeverages}},
+			sortedItems: []domain.ShoppingListItem{{Category: domain.CategoryBeverages}, {Category: domain.CategoryProduce}, {Category: domain.CategoryBakery}, {Category: domain.CategoryBakery}},
 			mockMethod: func(m *mockStoreChainRepo) {
 				m.On("GetChain", mock.Anything, chainID).Return(&storeChain, nil).Once()
 			},
 		},
 		{
-			name: "edge case, handles unknown category",
+			name:        "unknown category sorts with order 0",
+			items:       []domain.ShoppingListItem{{Category: domain.CategoryBakery}, {Category: domain.CategoryProduce}, {Category: domain.CategoryBakery}, {Category: domain.CategoryBeverages}, {Category: domain.CategoryDairy}},
+			sortedItems: []domain.ShoppingListItem{{Category: domain.CategoryBeverages}, {Category: domain.CategoryDairy}, {Category: domain.CategoryProduce}, {Category: domain.CategoryBakery}, {Category: domain.CategoryBakery}},
 			mockMethod: func(m *mockStoreChainRepo) {
 				m.On("GetChain", mock.Anything, chainID).Return(&storeChain, nil).Once()
 			},
@@ -159,7 +165,7 @@ func TestStoreChainService_OrganizeShoppingList(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := new(mockStoreChainRepo)
 			tt.mockMethod(m)
-			shoppingList := domain.ShoppingList{ID: "1_foo", Items: []domain.ShoppingListItem{{Category: domain.CategoryBakery}, {Category: domain.CategoryProduce}, {Category: domain.CategoryBakery}, {Category: domain.CategoryBeverages}}}
+			shoppingList := domain.ShoppingList{ID: "1_foo", Items: tt.items}
 
 			srv := NewStoreChainService(m, zap.NewNop())
 			err := srv.OrganizeShoppingList(context.Background(), &shoppingList, chainID)
@@ -168,6 +174,7 @@ func TestStoreChainService_OrganizeShoppingList(t *testing.T) {
 				require.ErrorIs(t, err, tt.expectedErr)
 			} else {
 				require.NoError(t, err)
+				sortedShoppingList := domain.ShoppingList{ID: "1_foo", Items: tt.sortedItems}
 				require.Equal(t, sortedShoppingList, shoppingList)
 			}
 			m.AssertExpectations(t)
