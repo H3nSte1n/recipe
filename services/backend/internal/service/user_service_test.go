@@ -78,6 +78,15 @@ func (m *mockUserRepository) RunTx(ctx context.Context, fn func() error) error {
 	return fn()
 }
 
+type mockEmailService struct {
+	mock.Mock
+}
+
+func (m *mockEmailService) SendPasswordResetEmail(to, resetToken string) error {
+	args := m.Called(to, resetToken)
+	return args.Error(0)
+}
+
 func TestUserService_Register(t *testing.T) {
 	user := domain.User{ID: "1_foo", FirstName: "Foo", LastName: "Bar", Email: "foo@bar.com"}
 	req := domain.RegisterRequest{Email: user.Email, Password: "foobar", FirstName: user.FirstName, LastName: user.LastName}
@@ -162,7 +171,7 @@ func TestUserService_Register(t *testing.T) {
 				tt.mockMethod(m)
 			}
 
-			srv := NewUserService(m, "foobarJWT", config.Config{})
+			srv := NewUserService(m, "foobarJWT", config.Config{}, nil)
 			u, err := srv.Register(context.Background(), &req)
 
 			if tt.expectedErr != "" {
@@ -215,7 +224,7 @@ func TestUserService_Login(t *testing.T) {
 			m := new(mockUserRepository)
 			tt.mockMethod(m)
 
-			srv := NewUserService(m, "foobar", config.Config{})
+			srv := NewUserService(m, "foobar", config.Config{}, nil)
 			resp, err := srv.Login(context.Background(), &req)
 
 			if tt.expectedErr != "" {
@@ -229,6 +238,104 @@ func TestUserService_Login(t *testing.T) {
 				require.Equal(t, user.Email, resp.User.Email)
 			}
 			m.AssertExpectations(t)
+		})
+	}
+}
+
+func TestUserService_ForgotPassword(t *testing.T) {
+	validPassword, _ := bcrypt.GenerateFromPassword([]byte("foobar"), bcrypt.MinCost)
+	user := domain.User{ID: "1_foo", Email: "foo@bar.com", PasswordHash: string(validPassword)}
+	req := domain.ForgotPasswordRequest{Email: "foo@bar.com"}
+	tests := []struct {
+		name            string
+		expectedErr     string
+		shouldSendEmail bool
+		mockRepo        func(m *mockUserRepository)
+		mockEmail       func(m *mockEmailService)
+	}{
+		{
+			name:            "returns nil when no user is found for the email",
+			shouldSendEmail: false,
+			mockRepo: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, errors.New("email doesnt exist")).Once()
+			},
+		},
+		{
+			name:            "returns error when CreateResetToken fails",
+			expectedErr:     "failed to save resetToken",
+			shouldSendEmail: false,
+			mockRepo: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(&user, nil).Once()
+				m.On("CreateResetToken", mock.Anything, mock.Anything).Return(errors.New("failed to save resetToken")).Once()
+			},
+		},
+		{
+			name:            "creates password reset token with correct fields",
+			shouldSendEmail: true,
+			mockRepo: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(&user, nil).Once()
+				m.On("CreateResetToken", mock.Anything, mock.MatchedBy(func(resetToken *domain.PasswordResetToken) bool {
+					return resetToken.UserID == user.ID && !resetToken.ExpiresAt.IsZero() && resetToken.Token != ""
+				})).Return(nil).Once()
+			},
+			mockEmail: func(m *mockEmailService) {
+				m.On("SendPasswordResetEmail", user.Email, mock.AnythingOfType("string")).Return(nil).Once()
+			},
+		},
+		{
+			name:            "calls SendPasswordResetEmail with correct email and token",
+			shouldSendEmail: true,
+			mockRepo: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(&user, nil).Once()
+				m.On("CreateResetToken", mock.Anything, mock.Anything).Return(nil).Once()
+			},
+			mockEmail: func(m *mockEmailService) {
+				m.On("SendPasswordResetEmail", user.Email, mock.MatchedBy(func(token string) bool {
+					return len(token) == 64
+				})).Return(nil).Once()
+			},
+		},
+		{
+			name:            "returns error when SendPasswordResetEmail fails",
+			expectedErr:     "failed to send password reset email",
+			shouldSendEmail: true,
+			mockRepo: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(&user, nil).Once()
+				m.On("CreateResetToken", mock.Anything, mock.Anything).Return(nil).Once()
+			},
+			mockEmail: func(m *mockEmailService) {
+				m.On("SendPasswordResetEmail", user.Email, mock.MatchedBy(func(token string) bool {
+					return len(token) == 64
+				})).Return(errors.New("failed to send password reset email")).Once()
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mRepo := new(mockUserRepository)
+			mEmail := new(mockEmailService)
+			if tt.mockRepo != nil {
+				tt.mockRepo(mRepo)
+			}
+			if tt.mockEmail != nil {
+				tt.mockEmail(mEmail)
+			}
+
+			srv := NewUserService(mRepo, "foobar", config.Config{}, mEmail)
+			err := srv.ForgotPassword(context.Background(), &req)
+
+			if tt.expectedErr != "" {
+				require.ErrorContains(t, err, tt.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
+			mRepo.AssertExpectations(t)
+			mEmail.AssertExpectations(t)
+
+			if !tt.shouldSendEmail {
+				mEmail.AssertNotCalled(t, "SendPasswordResetEmail", mock.Anything, mock.Anything)
+			}
 		})
 	}
 }

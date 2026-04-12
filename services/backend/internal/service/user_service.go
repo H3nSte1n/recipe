@@ -45,12 +45,12 @@ type userService struct {
 	emailService email.EmailService
 }
 
-func NewUserService(userRepo userRepository, jwtSecret string, config config.Config) UserService {
+func NewUserService(userRepo userRepository, jwtSecret string, config config.Config, emailService email.EmailService) UserService {
 	return &userService{
 		userRepo:     userRepo,
 		jwtSecret:    []byte(jwtSecret),
 		jwtDuration:  config.JWT.Duration,
-		emailService: email.NewEmailService(config.SMTP.From, config.SMTP.Password, config.SMTP.Host, config.SMTP.Port, config.Frontend.Url),
+		emailService: emailService,
 	}
 }
 
