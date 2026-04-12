@@ -8,6 +8,7 @@ import (
 	"github.com/H3nSte1n/recipe/pkg/config"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 	"testing"
 )
 
@@ -170,6 +171,62 @@ func TestUserService_Register(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, u)
+			}
+			m.AssertExpectations(t)
+		})
+	}
+}
+
+func TestUserService_Login(t *testing.T) {
+	validPassword, _ := bcrypt.GenerateFromPassword([]byte("foobar"), bcrypt.MinCost)
+	invalidPassword, _ := bcrypt.GenerateFromPassword([]byte("barfoo"), bcrypt.MinCost)
+	user := domain.User{ID: "1_foo", Email: "foo@bar.com", PasswordHash: string(validPassword)}
+	invalidUser := domain.User{ID: "1_foo", Email: "foo@bar.com", PasswordHash: string(invalidPassword)}
+	req := domain.LoginRequest{Password: "foobar", Email: user.Email}
+	tests := []struct {
+		name        string
+		expectedErr string
+		mockMethod  func(m *mockUserRepository)
+	}{
+		{
+			name:        "returns invalid Credentials when GetByEmail returns error",
+			expectedErr: "invalid credentials",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, errors.New("login error")).Once()
+			},
+		},
+		{
+			name:        "returns invalid Credentials when password does not match",
+			expectedErr: "invalid credentials",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(&invalidUser, nil).Once()
+			},
+		},
+		{
+			name: "returns LoginResponse when credentials are valid",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(&user, nil).Once()
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockUserRepository)
+			tt.mockMethod(m)
+
+			srv := NewUserService(m, "foobar", config.Config{})
+			resp, err := srv.Login(context.Background(), &req)
+
+			if tt.expectedErr != "" {
+				require.ErrorContains(t, err, tt.expectedErr)
+				require.Nil(t, resp)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, resp)
+				require.NotEmpty(t, resp.Token)
+				require.Equal(t, user.ID, resp.User.ID)
+				require.Equal(t, user.Email, resp.User.Email)
 			}
 			m.AssertExpectations(t)
 		})
