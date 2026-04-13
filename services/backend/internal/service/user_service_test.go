@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 	"testing"
+	"time"
 )
 
 type mockUserRepository struct {
@@ -336,6 +337,106 @@ func TestUserService_ForgotPassword(t *testing.T) {
 			if !tt.shouldSendEmail {
 				mEmail.AssertNotCalled(t, "SendPasswordResetEmail", mock.Anything, mock.Anything)
 			}
+		})
+	}
+}
+
+func TestUserService_ResetPassword(t *testing.T) {
+	user := domain.User{ID: "1_foo", PasswordHash: "asdasd"}
+	req := domain.ResetPasswordRequest{Token: "foobarasd", Password: "foobar"}
+	resetTokenUsed := domain.PasswordResetToken{ID: "1_token", UserID: user.ID, Token: req.Token, ExpiresAt: time.Now().Add(1 * time.Hour), Used: true}
+	resetTokenExpired := domain.PasswordResetToken{ID: "1_token", UserID: user.ID, Token: req.Token, ExpiresAt: time.Now().Add(-1 * time.Hour), Used: false}
+	resetTokenValid := domain.PasswordResetToken{ID: "1_token", UserID: user.ID, Token: req.Token, ExpiresAt: time.Now().Add(1 * time.Hour), Used: false}
+	tests := []struct {
+		name        string
+		expectedErr string
+		mockMethod  func(m *mockUserRepository)
+	}{
+		{
+			name:        "returns error 'invalid token' when GetResetTokenByToken fails",
+			expectedErr: "invalid token",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetResetTokenByToken", mock.Anything, req.Token).Return(nil, errors.New("reset token issue")).Once()
+			},
+		},
+		{
+			name:        "returns error  'token expired or already used' when token is already used",
+			expectedErr: "token expired or already used",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetResetTokenByToken", mock.Anything, req.Token).Return(&resetTokenUsed, nil).Once()
+			},
+		},
+		{
+			name:        "returns error 'token expired or already used' when token is already expired",
+			expectedErr: "token expired or already used",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetResetTokenByToken", mock.Anything, req.Token).Return(&resetTokenExpired, nil).Once()
+			},
+		},
+		{
+			name:        "returns error 'user not found' when GetByID fails",
+			expectedErr: "user not found",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetResetTokenByToken", mock.Anything, req.Token).Return(&resetTokenValid, nil).Once()
+				m.On("GetByID", mock.Anything, resetTokenValid.UserID).Return(nil, errors.New("user doesnt exist with this id")).Once()
+			},
+		},
+		{
+			name:        "returns error when UpdatePassword fails",
+			expectedErr: "user password update failed",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetResetTokenByToken", mock.Anything, req.Token).Return(&resetTokenValid, nil).Once()
+				m.On("GetByID", mock.Anything, resetTokenValid.UserID).Return(&user, nil).Once()
+				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("UpdatePassword", mock.Anything, user.ID, mock.AnythingOfType("string")).Return(errors.New("user password update failed")).Once()
+			},
+		},
+		{
+			name:        "returns error when MarkResetTokenUsed fails",
+			expectedErr: "mark reset token as used failed",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetResetTokenByToken", mock.Anything, req.Token).Return(&resetTokenValid, nil).Once()
+				m.On("GetByID", mock.Anything, resetTokenValid.UserID).Return(&user, nil).Once()
+				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("UpdatePassword", mock.Anything, user.ID, mock.AnythingOfType("string")).Return(nil).Once()
+				m.On("MarkResetTokenUsed", mock.Anything, resetTokenValid.ID).Return(errors.New("mark reset token as used failed")).Once()
+			},
+		},
+		{
+			name:        "returns error when tx returns returns error",
+			expectedErr: "tx error occurred",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetResetTokenByToken", mock.Anything, req.Token).Return(&resetTokenValid, nil).Once()
+				m.On("GetByID", mock.Anything, resetTokenValid.UserID).Return(&user, nil).Once()
+				m.On("RunTx", mock.Anything, mock.Anything).Return(errors.New("tx error occurred")).Once()
+			},
+		},
+		{
+			name: "returns nil when password reset succeeds",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetResetTokenByToken", mock.Anything, req.Token).Return(&resetTokenValid, nil).Once()
+				m.On("GetByID", mock.Anything, resetTokenValid.UserID).Return(&user, nil).Once()
+				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("UpdatePassword", mock.Anything, user.ID, mock.AnythingOfType("string")).Return(nil).Once()
+				m.On("MarkResetTokenUsed", mock.Anything, resetTokenValid.ID).Return(nil).Once()
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockUserRepository)
+			tt.mockMethod(m)
+
+			srv := NewUserService(m, "foobar", config.Config{}, new(mockEmailService))
+			err := srv.ResetPassword(context.Background(), &req)
+
+			if tt.expectedErr != "" {
+				require.ErrorContains(t, err, tt.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
+			m.AssertExpectations(t)
 		})
 	}
 }
