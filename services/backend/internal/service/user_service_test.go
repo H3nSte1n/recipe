@@ -440,3 +440,89 @@ func TestUserService_ResetPassword(t *testing.T) {
 		})
 	}
 }
+
+func TestUserService_Delete(t *testing.T) {
+	user := domain.User{ID: "1_foo"}
+	tests := []struct {
+		name        string
+		expectedErr string
+		mockMethod  func(m *mockUserRepository)
+	}{
+		{
+			name:        "returns error 'user not found' when GetByID fails",
+			expectedErr: "user not found",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByID", mock.Anything, user.ID).Return(nil, errors.New("user can't be found")).Once()
+			},
+		},
+		{
+			name:        "returns error 'delete failed' when Delete fails",
+			expectedErr: "delete failed",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByID", mock.Anything, user.ID).Return(&user, nil).Once()
+				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("Delete", mock.Anything, user.ID).Return(errors.New("delete failed")).Once()
+			},
+		},
+		{
+			name:        "returns error when RunTx fails",
+			expectedErr: "tx error",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByID", mock.Anything, user.ID).Return(&user, nil).Once()
+				m.On("RunTx", mock.Anything, mock.Anything).Return(errors.New("tx error")).Once()
+			},
+		},
+		{
+			name: "returns nil when user is deleted successfully",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByID", mock.Anything, user.ID).Return(&user, nil).Once()
+				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("Delete", mock.Anything, user.ID).Return(nil).Once()
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockUserRepository)
+			tt.mockMethod(m)
+
+			srv := NewUserService(m, "foobar", config.Config{}, new(mockEmailService))
+			err := srv.Delete(context.Background(), user.ID)
+
+			if tt.expectedErr != "" {
+				require.ErrorContains(t, err, tt.expectedErr)
+			} else {
+				require.NoError(t, err)
+			}
+			m.AssertExpectations(t)
+		})
+	}
+}
+
+func TestUserService_ListAll(t *testing.T) {
+	t.Run("returns users when users are fetched successfully", func(t *testing.T) {
+		users := []domain.User{{ID: "1_foo"}, {ID: "2_foo"}}
+		m := new(mockUserRepository)
+		m.On("ListAll", mock.Anything).Return(users, nil).Once()
+
+		srv := NewUserService(m, "foobar", config.Config{}, new(mockEmailService))
+		userList, err := srv.ListAll(context.Background())
+
+		require.NoError(t, err)
+		require.Equal(t, users, userList)
+		m.AssertExpectations(t)
+	})
+
+	t.Run("returns error when ListAll fails", func(t *testing.T) {
+		expectedErr := errors.New("user fetch failed")
+		m := new(mockUserRepository)
+		m.On("ListAll", mock.Anything).Return(nil, expectedErr).Once()
+
+		srv := NewUserService(m, "foobar", config.Config{}, new(mockEmailService))
+		_, err := srv.ListAll(context.Background())
+
+		require.ErrorIs(t, err, expectedErr)
+		m.AssertExpectations(t)
+	})
+}
