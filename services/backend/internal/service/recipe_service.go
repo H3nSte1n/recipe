@@ -78,7 +78,7 @@ func NewRecipeService(
 func (s *recipeService) Create(ctx context.Context, userID string, req *domain.CreateRecipeRequest) (*domain.Recipe, error) {
 	_, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		return nil, errors.New("user not found")
+		return nil, errors.ErrNotFound
 	}
 
 	var imageURL string
@@ -97,10 +97,10 @@ func (s *recipeService) Create(ctx context.Context, userID string, req *domain.C
 		for _, sr := range req.SubRecipes {
 			subRecipe, err := s.recipeRepo.GetByID(ctx, sr.RecipeID, domain.NutritionDetailBase)
 			if err != nil {
-				return nil, errors.New("sub-recipe not found")
+				return nil, errors.ErrNotFound
 			}
 			if subRecipe.IsPrivate && subRecipe.UserID != userID {
-				return nil, errors.New("unauthorized")
+				return nil, errors.ErrUnauthorized
 			}
 		}
 	}
@@ -289,12 +289,11 @@ func (s *recipeService) Delete(ctx context.Context, userID string, recipeID stri
 func (s *recipeService) GetByID(ctx context.Context, userID string, recipeID string, nutritionLevel domain.NutritionDetailLevel) (*domain.Recipe, error) {
 	recipe, err := s.recipeRepo.GetByID(ctx, recipeID, nutritionLevel)
 	if err != nil {
-		return nil, errors.New("recipe not found")
+		return nil, errors.ErrNotFound
 	}
 
-	// Check access rights
 	if recipe.IsPrivate && recipe.UserID != userID {
-		return nil, errors.New("unauthorized")
+		return nil, errors.ErrUnauthorized
 	}
 
 	return recipe, nil
