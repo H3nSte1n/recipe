@@ -9,6 +9,7 @@ import (
 	"github.com/H3nSte1n/recipe/internal/domain"
 	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/H3nSte1n/recipe/pkg/ai"
+	"github.com/H3nSte1n/recipe/pkg/config"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -93,28 +94,6 @@ func (m *mockFileStore) DeleteFile(ctx context.Context, fileURL string) error {
 	return args.Error(0)
 }
 
-type mockAIModel struct {
-	mock.Mock
-}
-
-func (m *mockAIModel) Parse(ctx context.Context, content string, contentType string) (*domain.Recipe, error) {
-	args := m.Called(ctx, content, contentType)
-	v, _ := args.Get(0).(*domain.Recipe)
-	return v, args.Error(1)
-}
-
-func (m *mockAIModel) ParseInstructions(ctx context.Context, content string) (*[]domain.RecipeInstruction, error) {
-	args := m.Called(ctx, content)
-	v, _ := args.Get(0).(*[]domain.RecipeInstruction)
-	return v, args.Error(1)
-}
-
-func (m *mockAIModel) CategorizeItems(ctx context.Context, items []string) (map[string]string, error) {
-	args := m.Called(ctx, items)
-	v, _ := args.Get(0).(map[string]string)
-	return v, args.Error(1)
-}
-
 type mockURLParser struct {
 	mock.Mock
 }
@@ -143,7 +122,8 @@ func newTestRecipeService(
 	urlParser *mockURLParser,
 	pdfParser *mockPDFParser,
 ) RecipeService {
-	return NewRecipeService(recipeRepo, userRepo, aiConfigRepo, fileStore, zap.NewNop(), nil, urlParser, pdfParser)
+	modelFactory := ai.NewModelFactory(&config.Config{}, zap.NewNop())
+	return NewRecipeService(recipeRepo, userRepo, aiConfigRepo, fileStore, zap.NewNop(), modelFactory, urlParser, pdfParser)
 }
 
 func TestRecipeService_GetByID_Success(t *testing.T) {
@@ -243,6 +223,27 @@ func TestRecipeService_Create_RepoError(t *testing.T) {
 	require.Error(t, err)
 	recipeRepo.AssertExpectations(t)
 	userRepo.AssertExpectations(t)
+}
+
+func TestRecipeService_Update_Success(t *testing.T) {
+	userID := "user-1"
+	recipeID := "recipe-1"
+	req := &domain.CreateRecipeRequest{Title: "Updated", SourceType: "MANUAL", Servings: 2}
+	existingRecipe := &domain.Recipe{ID: recipeID, UserID: userID}
+	updatedRecipe := &domain.Recipe{ID: recipeID, UserID: userID, Title: "Updated"}
+
+	recipeRepo := new(mockRecipeRepo)
+	recipeRepo.On("GetByID", mock.Anything, recipeID, domain.NutritionDetailBase).Return(existingRecipe, nil).Once()
+	recipeRepo.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+	recipeRepo.On("Update", mock.Anything, mock.Anything).Return(nil).Once()
+	recipeRepo.On("GetByID", mock.Anything, recipeID, domain.NutritionDetailBase).Return(updatedRecipe, nil).Once()
+
+	srv := newTestRecipeService(recipeRepo, new(mockRecipeUserRepo), new(mockRecipeAIConfigRepo), new(mockFileStore), new(mockURLParser), new(mockPDFParser))
+	result, err := srv.Update(context.Background(), userID, recipeID, req)
+
+	require.NoError(t, err)
+	require.Equal(t, updatedRecipe, result)
+	recipeRepo.AssertExpectations(t)
 }
 
 func TestRecipeService_Update_NotFound(t *testing.T) {
@@ -364,4 +365,80 @@ func TestRecipeService_ListPublicRecipes_Error(t *testing.T) {
 	require.Nil(t, result)
 	require.Equal(t, int64(0), count)
 	recipeRepo.AssertExpectations(t)
+}
+
+func TestRecipeService_ImportFromURL_Success(t *testing.T) {
+	userID := "user-1"
+	req := &domain.ImportURLRequest{URL: "https://example.com/recipe"}
+	parsedRecipe := &domain.Recipe{ID: "recipe-1", Title: "Imported Recipe"}
+
+	aiConfigRepo := new(mockRecipeAIConfigRepo)
+	aiConfigRepo.On("GetDefaultConfig", mock.Anything, userID).Return(nil, errors.New("no config")).Once()
+
+	urlParser := new(mockURLParser)
+	urlParser.On("Parse", mock.Anything, req.URL, mock.Anything).Return(parsedRecipe, nil).Once()
+
+	srv := newTestRecipeService(new(mockRecipeRepo), new(mockRecipeUserRepo), aiConfigRepo, new(mockFileStore), urlParser, new(mockPDFParser))
+	result, err := srv.ImportFromURL(context.Background(), userID, req)
+
+	require.NoError(t, err)
+	require.Equal(t, parsedRecipe, result)
+	urlParser.AssertExpectations(t)
+}
+
+func TestRecipeService_ImportFromURL_ParseError(t *testing.T) {
+	userID := "user-1"
+	req := &domain.ImportURLRequest{URL: "https://example.com/recipe"}
+
+	aiConfigRepo := new(mockRecipeAIConfigRepo)
+	aiConfigRepo.On("GetDefaultConfig", mock.Anything, userID).Return(nil, errors.New("no config")).Once()
+
+	urlParser := new(mockURLParser)
+	urlParser.On("Parse", mock.Anything, req.URL, mock.Anything).Return(nil, errors.New("parse error")).Once()
+
+	srv := newTestRecipeService(new(mockRecipeRepo), new(mockRecipeUserRepo), aiConfigRepo, new(mockFileStore), urlParser, new(mockPDFParser))
+	result, err := srv.ImportFromURL(context.Background(), userID, req)
+
+	require.Nil(t, result)
+	require.Error(t, err)
+	urlParser.AssertExpectations(t)
+}
+
+func TestRecipeService_ImportFromPDF_Success(t *testing.T) {
+	userID := "user-1"
+	req := &domain.ImportPDFRequest{}
+	fileData := []byte("pdf data")
+	parsedRecipe := &domain.Recipe{ID: "recipe-1", Title: "PDF Recipe"}
+
+	aiConfigRepo := new(mockRecipeAIConfigRepo)
+	aiConfigRepo.On("GetDefaultConfig", mock.Anything, userID).Return(nil, errors.New("no config")).Once()
+
+	pdfParser := new(mockPDFParser)
+	pdfParser.On("Parse", mock.Anything, fileData, mock.Anything).Return(parsedRecipe, nil).Once()
+
+	srv := newTestRecipeService(new(mockRecipeRepo), new(mockRecipeUserRepo), aiConfigRepo, new(mockFileStore), new(mockURLParser), pdfParser)
+	result, err := srv.ImportFromPDF(context.Background(), userID, req, fileData)
+
+	require.NoError(t, err)
+	require.Equal(t, parsedRecipe, result)
+	pdfParser.AssertExpectations(t)
+}
+
+func TestRecipeService_ImportFromPDF_ParseError(t *testing.T) {
+	userID := "user-1"
+	req := &domain.ImportPDFRequest{}
+	fileData := []byte("pdf data")
+
+	aiConfigRepo := new(mockRecipeAIConfigRepo)
+	aiConfigRepo.On("GetDefaultConfig", mock.Anything, userID).Return(nil, errors.New("no config")).Once()
+
+	pdfParser := new(mockPDFParser)
+	pdfParser.On("Parse", mock.Anything, fileData, mock.Anything).Return(nil, errors.New("parse error")).Once()
+
+	srv := newTestRecipeService(new(mockRecipeRepo), new(mockRecipeUserRepo), aiConfigRepo, new(mockFileStore), new(mockURLParser), pdfParser)
+	result, err := srv.ImportFromPDF(context.Background(), userID, req, fileData)
+
+	require.Nil(t, result)
+	require.Error(t, err)
+	pdfParser.AssertExpectations(t)
 }
