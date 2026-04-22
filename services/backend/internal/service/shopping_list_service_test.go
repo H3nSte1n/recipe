@@ -11,6 +11,14 @@ import (
 	"testing"
 )
 
+func itemIDs(items []domain.ShoppingListItem) []string {
+	ids := make([]string, len(items))
+	for i, item := range items {
+		ids[i] = item.ID
+	}
+	return ids
+}
+
 type mockShoppingListRepository struct {
 	mock.Mock
 }
@@ -271,7 +279,6 @@ func TestShoppingListService_GetSorted(t *testing.T) {
 	var errGetByID = errors.New("user not found")
 
 	shoppingList := domain.ShoppingList{ID: "1_foo", UserID: "123", Items: []domain.ShoppingListItem{{ID: "2", Name: "b"}, {ID: "1", Name: "a"}, {ID: "3", Name: "c"}}}
-	wrongUserID := "321"
 	tests := []struct {
 		name           string
 		userID         string
@@ -289,7 +296,7 @@ func TestShoppingListService_GetSorted(t *testing.T) {
 		},
 		{
 			name:        "returns Unauthorized error when User is Unauthorized",
-			userID:      wrongUserID,
+			userID:      "321",
 			expectedErr: internalErr.ErrUnauthorized,
 			mockMethod: func(m *mockShoppingListRepository) {
 				m.On("GetByID", mock.Anything, shoppingList.ID).Return(&domain.ShoppingList{UserID: shoppingList.UserID, ID: shoppingList.ID}, nil)
@@ -300,7 +307,9 @@ func TestShoppingListService_GetSorted(t *testing.T) {
 			userID:         shoppingList.UserID,
 			expectedReturn: domain.ShoppingList{ID: shoppingList.ID, UserID: shoppingList.UserID, Items: []domain.ShoppingListItem{{ID: "1", Name: "a"}, {ID: "2", Name: "b"}, {ID: "3", Name: "c"}}},
 			mockMethod: func(m *mockShoppingListRepository) {
-				m.On("GetByID", mock.Anything, shoppingList.ID).Return(&domain.ShoppingList{UserID: shoppingList.UserID, ID: shoppingList.ID, Items: shoppingList.Items}, nil)
+				items := make([]domain.ShoppingListItem, len(shoppingList.Items))
+				copy(items, shoppingList.Items)
+				m.On("GetByID", mock.Anything, shoppingList.ID).Return(&domain.ShoppingList{UserID: shoppingList.UserID, ID: shoppingList.ID, Items: items}, nil)
 			},
 		},
 	}
@@ -322,6 +331,127 @@ func TestShoppingListService_GetSorted(t *testing.T) {
 				require.Equal(t, v.Items, tt.expectedReturn.Items)
 			}
 			m.AssertExpectations(t)
+		})
+	}
+}
+
+func TestShoppingListService_GetSortedByStoreName(t *testing.T) {
+	var (
+		errGetByID              = errors.New("getByID error")
+		errGetChainByName       = errors.New("getChainByName error")
+		errOrganizeShoppingList = errors.New("organizeShoppingList error")
+	)
+	shoppingList := domain.ShoppingList{ID: "1_foo", UserID: "123", Items: []domain.ShoppingListItem{{ID: "2", Category: domain.CategoryDairy}, {ID: "1", Category: domain.CategoryBeverages}, {ID: "3", Category: domain.CategoryBakery}}}
+	sortedItems := []domain.ShoppingListItem{{ID: "1", Category: domain.CategoryBeverages}, {ID: "2", Category: domain.CategoryDairy}, {ID: "3", Category: domain.CategoryBakery}}
+	reversedSortedItems := []domain.ShoppingListItem{{ID: "3", Category: domain.CategoryBakery}, {ID: "2", Category: domain.CategoryDairy}, {ID: "1", Category: domain.CategoryBeverages}}
+	storeChain := domain.StoreChain{ID: "1_bar", Name: "foobar", Layout: []domain.StoreSection{{Categories: []domain.Category{domain.CategoryDairy}, Order: 2}, {Categories: []domain.Category{domain.CategoryBeverages}, Order: 1}, {Categories: []domain.Category{domain.CategoryBakery}, Order: 3}}}
+	tests := []struct {
+		name                           string
+		userID                         string
+		sortDirection                  string
+		expectedErr                    error
+		expectedReturn                 domain.ShoppingList
+		mockShoppingListRepositoryFunc func(m *mockShoppingListRepository)
+		mockStoreChainServiceFunc      func(m *mockStoreChainService)
+	}{
+		{
+			name:          "returns error when GetByID returns an error",
+			userID:        shoppingList.UserID,
+			sortDirection: "desc",
+			expectedErr:   errGetByID,
+			mockShoppingListRepositoryFunc: func(m *mockShoppingListRepository) {
+				m.On("GetByID", mock.Anything, shoppingList.ID).Return(nil, errGetByID).Once()
+			},
+		},
+		{
+			name:          "returns ErrUnauthorized when User is not authorized",
+			userID:        "wrong-user",
+			sortDirection: "desc",
+			expectedErr:   internalErr.ErrUnauthorized,
+			mockShoppingListRepositoryFunc: func(m *mockShoppingListRepository) {
+				m.On("GetByID", mock.Anything, shoppingList.ID).Return(&domain.ShoppingList{ID: shoppingList.ID, UserID: shoppingList.UserID}, nil).Once()
+			},
+		},
+		{
+			name:          "returns error when GetChainByName returns error",
+			userID:        shoppingList.UserID,
+			sortDirection: "desc",
+			expectedErr:   errGetChainByName,
+			mockShoppingListRepositoryFunc: func(m *mockShoppingListRepository) {
+				m.On("GetByID", mock.Anything, shoppingList.ID).Return(&domain.ShoppingList{ID: shoppingList.ID, UserID: shoppingList.UserID}, nil).Once()
+			},
+			mockStoreChainServiceFunc: func(m *mockStoreChainService) {
+				m.On("GetChainByName", mock.Anything, storeChain.Name, "").Return(nil, errGetChainByName).Once()
+			},
+		},
+		{
+			name:          "returns error when OrganizeShoppingList returns error",
+			userID:        shoppingList.UserID,
+			sortDirection: "desc",
+			expectedErr:   errOrganizeShoppingList,
+			mockShoppingListRepositoryFunc: func(m *mockShoppingListRepository) {
+				m.On("GetByID", mock.Anything, shoppingList.ID).Return(&domain.ShoppingList{ID: shoppingList.ID, UserID: shoppingList.UserID}, nil).Once()
+			},
+			mockStoreChainServiceFunc: func(m *mockStoreChainService) {
+				m.On("GetChainByName", mock.Anything, storeChain.Name, "").Return(&domain.StoreChain{ID: storeChain.ID, Name: storeChain.Name}, nil).Once()
+				m.On("OrganizeShoppingList", mock.Anything, mock.AnythingOfType("*domain.ShoppingList"), storeChain.ID).Return(errOrganizeShoppingList).Once()
+			},
+		},
+		{
+			name:           "returns shopping list sorted in descending order when request is successfully with sortDirection eq desc",
+			userID:         shoppingList.UserID,
+			sortDirection:  "desc",
+			expectedReturn: domain.ShoppingList{ID: shoppingList.ID, Name: shoppingList.Name, Items: reversedSortedItems},
+			mockShoppingListRepositoryFunc: func(m *mockShoppingListRepository) {
+				m.On("GetByID", mock.Anything, shoppingList.ID).Return(&domain.ShoppingList{ID: shoppingList.ID, UserID: shoppingList.UserID, Items: shoppingList.Items}, nil).Once()
+			},
+			mockStoreChainServiceFunc: func(m *mockStoreChainService) {
+				m.On("GetChainByName", mock.Anything, storeChain.Name, "").Return(&domain.StoreChain{ID: storeChain.ID, Name: storeChain.Name}, nil).Once()
+				m.On("OrganizeShoppingList", mock.Anything, mock.AnythingOfType("*domain.ShoppingList"), storeChain.ID).Return(nil).Once()
+			},
+		},
+		{
+			name:           "returns shopping list sorted in ascending order when request is successfully without sortDirection is desc",
+			userID:         shoppingList.UserID,
+			sortDirection:  "asc",
+			expectedReturn: domain.ShoppingList{ID: shoppingList.ID, Name: shoppingList.Name, Items: sortedItems},
+			mockShoppingListRepositoryFunc: func(m *mockShoppingListRepository) {
+				m.On("GetByID", mock.Anything, shoppingList.ID).Return(&domain.ShoppingList{ID: shoppingList.ID, UserID: shoppingList.UserID, Items: shoppingList.Items}, nil).Once()
+			},
+			mockStoreChainServiceFunc: func(m *mockStoreChainService) {
+				m.On("GetChainByName", mock.Anything, storeChain.Name, "").Return(&domain.StoreChain{ID: storeChain.ID, Name: storeChain.Name}, nil).Once()
+				m.On("OrganizeShoppingList", mock.Anything, mock.AnythingOfType("*domain.ShoppingList"), storeChain.ID).Return(nil).Once()
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockShoppingListRepo := new(mockShoppingListRepository)
+			mockStoreChainSrv := new(mockStoreChainService)
+
+			if tt.mockShoppingListRepositoryFunc != nil {
+				tt.mockShoppingListRepositoryFunc(mockShoppingListRepo)
+			}
+
+			if tt.mockStoreChainServiceFunc != nil {
+				tt.mockStoreChainServiceFunc(mockStoreChainSrv)
+			}
+
+			srv := NewShoppingListService(mockShoppingListRepo, new(mockShoppingListRecipeRepository), mockStoreChainSrv, new(mockAIModel), zap.NewNop())
+			v, err := srv.GetSortedByStoreName(context.Background(), tt.userID, shoppingList.ID, storeChain.Name, tt.sortDirection)
+
+			if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
+				require.Nil(t, v)
+			} else {
+				require.Nil(t, err)
+				require.Equal(t, v.ID, tt.expectedReturn.ID)
+				require.Equal(t, v.Name, tt.expectedReturn.Name)
+				require.Equal(t, itemIDs(v.Items), itemIDs(tt.expectedReturn.Items))
+			}
+			mockShoppingListRepo.AssertExpectations(t)
+			mockStoreChainSrv.AssertExpectations(t)
 		})
 	}
 }
