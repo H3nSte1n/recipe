@@ -463,3 +463,103 @@ func TestShoppingListService_GetSortedByStoreName(t *testing.T) {
 		})
 	}
 }
+
+func TestShoppingListService_AddItem(t *testing.T) {
+	var (
+		errGetByID  = errors.New("getByID error")
+		errAddItems = errors.New("addItems error")
+	)
+	shoppingList := domain.ShoppingList{ID: "1_foo", UserID: "123"}
+	req := domain.ShoppingListItemRequest{Name: "foo", Amount: 1, Unit: "kg", Category: "NotExist", Notes: "foobar"}
+
+	tests := []struct {
+		name                     string
+		userID                   string
+		req                      domain.ShoppingListItemRequest
+		expectedErr              error
+		mockShoppingListRepoFunc func(m *mockShoppingListRepository)
+		mockAiModelFunc          func(m *mockAIModel)
+	}{
+		{
+			name:        "returns error when GetByID fails",
+			userID:      shoppingList.UserID,
+			expectedErr: errGetByID,
+			mockShoppingListRepoFunc: func(m *mockShoppingListRepository) {
+				m.On("GetByID", mock.Anything, shoppingList.ID).Return(nil, errGetByID).Once()
+			},
+		},
+		{
+			name:        "returns error when User is not authorized",
+			userID:      "wrong-user",
+			expectedErr: internalErr.ErrUnauthorized,
+			mockShoppingListRepoFunc: func(m *mockShoppingListRepository) {
+				m.On("GetByID", mock.Anything, shoppingList.ID).Return(&domain.ShoppingList{ID: shoppingList.ID, UserID: shoppingList.UserID}, nil).Once()
+			},
+		},
+		{
+			name:   "falls back to OtherCategory when categorization fails",
+			userID: shoppingList.UserID,
+			req:    req,
+			mockShoppingListRepoFunc: func(m *mockShoppingListRepository) {
+				m.On("GetByID", mock.Anything, shoppingList.ID).Return(&domain.ShoppingList{ID: shoppingList.ID, UserID: shoppingList.UserID}, nil).Once()
+				m.On("AddItems", mock.Anything, mock.MatchedBy(func(items []domain.ShoppingListItem) bool {
+					return len(items) == 1 && items[0].Category == domain.CategoryOther
+				})).Return(nil).Once()
+			},
+			mockAiModelFunc: func(m *mockAIModel) {
+				m.On("CategorizeItems", mock.Anything, mock.Anything).Return(nil, errors.New("categorization error")).Once()
+			},
+		},
+		{
+			name:        "returns error when AddItems fails",
+			userID:      shoppingList.UserID,
+			expectedErr: errAddItems,
+			req:         req,
+			mockShoppingListRepoFunc: func(m *mockShoppingListRepository) {
+				m.On("GetByID", mock.Anything, shoppingList.ID).Return(&domain.ShoppingList{ID: shoppingList.ID, UserID: shoppingList.UserID}, nil).Once()
+				m.On("AddItems", mock.Anything, mock.Anything).Return(errAddItems).Once()
+			},
+			mockAiModelFunc: func(m *mockAIModel) {
+				m.On("CategorizeItems", mock.Anything, mock.Anything).Return(map[string]string{"foo": string(domain.CategoryDairy)}, nil).Once()
+			},
+		},
+		{
+			name:   "returns nil when creation of a new Item was successfully",
+			userID: shoppingList.UserID,
+			req:    req,
+			mockShoppingListRepoFunc: func(m *mockShoppingListRepository) {
+				m.On("GetByID", mock.Anything, shoppingList.ID).Return(&domain.ShoppingList{ID: shoppingList.ID, UserID: shoppingList.UserID}, nil).Once()
+				m.On("AddItems", mock.Anything, mock.Anything).Return(nil).Once()
+			},
+			mockAiModelFunc: func(m *mockAIModel) {
+				m.On("CategorizeItems", mock.Anything, mock.Anything).Return(map[string]string{"foo": string(domain.CategoryDairy)}, nil).Once()
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mShoppingListRepo := new(mockShoppingListRepository)
+			mAIModel := new(mockAIModel)
+
+			if tt.mockShoppingListRepoFunc != nil {
+				tt.mockShoppingListRepoFunc(mShoppingListRepo)
+			}
+
+			if tt.mockAiModelFunc != nil {
+				tt.mockAiModelFunc(mAIModel)
+			}
+
+			srv := NewShoppingListService(mShoppingListRepo, new(mockShoppingListRecipeRepository), new(mockStoreChainService), mAIModel, zap.NewNop())
+			err := srv.AddItem(context.Background(), tt.userID, shoppingList.ID, &tt.req)
+
+			if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
+			} else {
+				require.Nil(t, err)
+			}
+			mShoppingListRepo.AssertExpectations(t)
+			mAIModel.AssertExpectations(t)
+		})
+	}
+}
