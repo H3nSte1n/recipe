@@ -470,7 +470,7 @@ func TestShoppingListService_AddItem(t *testing.T) {
 		errAddItems = errors.New("addItems error")
 	)
 	shoppingList := domain.ShoppingList{ID: "1_foo", UserID: "123"}
-	req := domain.ShoppingListItemRequest{Name: "foo", Amount: 1, Unit: "kg", Category: "NotExist", Notes: "foobar"}
+	req := domain.ShoppingListItemRequest{Name: "foo", Amount: 1, Unit: "kg", Notes: "foobar"}
 
 	tests := []struct {
 		name                     string
@@ -497,7 +497,7 @@ func TestShoppingListService_AddItem(t *testing.T) {
 			},
 		},
 		{
-			name:   "falls back to OtherCategory when categorization fails",
+			name:   "falls back to CategoryOther when categorization fails",
 			userID: shoppingList.UserID,
 			req:    req,
 			mockShoppingListRepoFunc: func(m *mockShoppingListRepository) {
@@ -524,12 +524,14 @@ func TestShoppingListService_AddItem(t *testing.T) {
 			},
 		},
 		{
-			name:   "returns nil when creation of a new Item was successfully",
+			name:   "returns nil and applies AI category when creation was successfully",
 			userID: shoppingList.UserID,
 			req:    req,
 			mockShoppingListRepoFunc: func(m *mockShoppingListRepository) {
 				m.On("GetByID", mock.Anything, shoppingList.ID).Return(&domain.ShoppingList{ID: shoppingList.ID, UserID: shoppingList.UserID}, nil).Once()
-				m.On("AddItems", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("AddItems", mock.Anything, mock.MatchedBy(func(items []domain.ShoppingListItem) bool {
+					return len(items) == 1 && items[0].Category == domain.CategoryDairy
+				})).Return(nil).Once()
 			},
 			mockAiModelFunc: func(m *mockAIModel) {
 				m.On("CategorizeItems", mock.Anything, mock.Anything).Return(map[string]string{"foo": string(domain.CategoryDairy)}, nil).Once()
