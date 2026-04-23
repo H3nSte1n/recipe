@@ -407,7 +407,11 @@ func TestShoppingListService_GetSortedByStoreName(t *testing.T) {
 			},
 			mockStoreChainServiceFunc: func(m *mockStoreChainService) {
 				m.On("GetChainByName", mock.Anything, storeChain.Name, "").Return(&domain.StoreChain{ID: storeChain.ID, Name: storeChain.Name}, nil).Once()
-				m.On("OrganizeShoppingList", mock.Anything, mock.AnythingOfType("*domain.ShoppingList"), storeChain.ID).Return(nil).Once()
+				m.On("OrganizeShoppingList", mock.Anything, mock.AnythingOfType("*domain.ShoppingList"), storeChain.ID).
+					Run(func(args mock.Arguments) {
+						list := args.Get(1).(*domain.ShoppingList)
+						list.Items = sortedItems
+					}).Return(nil).Once()
 			},
 		},
 		{
@@ -420,7 +424,11 @@ func TestShoppingListService_GetSortedByStoreName(t *testing.T) {
 			},
 			mockStoreChainServiceFunc: func(m *mockStoreChainService) {
 				m.On("GetChainByName", mock.Anything, storeChain.Name, "").Return(&domain.StoreChain{ID: storeChain.ID, Name: storeChain.Name}, nil).Once()
-				m.On("OrganizeShoppingList", mock.Anything, mock.AnythingOfType("*domain.ShoppingList"), storeChain.ID).Return(nil).Once()
+				m.On("OrganizeShoppingList", mock.Anything, mock.AnythingOfType("*domain.ShoppingList"), storeChain.ID).
+					Run(func(args mock.Arguments) {
+						list := args.Get(1).(*domain.ShoppingList)
+						list.Items = sortedItems
+					}).Return(nil).Once()
 			},
 		},
 	}
