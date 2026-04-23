@@ -166,8 +166,7 @@ func (s *shoppingListService) GetSortedByStoreName(ctx context.Context, userID s
 		return nil, errors.ErrUnauthorized
 	}
 
-	// Get store chain by name (try without country first)
-	chain, err := s.storeChainService.GetChainByName(ctx, storeName, "")
+	chain, err := s.storeChainService.GetChainByName(ctx, storeName, "") // TODO: Do I need the country property
 	if err != nil {
 		return nil, err
 	}
