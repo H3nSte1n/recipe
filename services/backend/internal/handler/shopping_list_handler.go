@@ -56,6 +56,7 @@ func (h *ShoppingListHandler) Get(c *gin.Context) {
 	sortBy := c.DefaultQuery("sort_by", "")
 	sortDirection := c.DefaultQuery("sort_direction", "asc")
 	storeName := c.Query("store_name")
+	country := c.Query("country")
 
 	var list *domain.ShoppingList
 	var err error
@@ -65,7 +66,7 @@ func (h *ShoppingListHandler) Get(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "store_name is required when sort_by=store"})
 			return
 		}
-		list, err = h.service.GetSortedByStoreName(c.Request.Context(), userID, listID, storeName, sortDirection)
+		list, err = h.service.GetSortedByStoreName(c.Request.Context(), userID, listID, storeName, country, sortDirection)
 	} else if sortBy != "" {
 		list, err = h.service.GetSorted(c.Request.Context(), userID, listID, sortBy, sortDirection)
 	} else {

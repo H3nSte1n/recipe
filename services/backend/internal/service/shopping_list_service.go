@@ -31,7 +31,7 @@ type ShoppingListService interface {
 	Delete(ctx context.Context, userID string, listID string) error
 	GetByID(ctx context.Context, userID string, listID string) (*domain.ShoppingList, error)
 	GetSorted(ctx context.Context, userID string, listID string, sortBy string, sortDirection string) (*domain.ShoppingList, error)
-	GetSortedByStoreName(ctx context.Context, userID string, listID string, storeName string, sortDirection string) (*domain.ShoppingList, error)
+	GetSortedByStoreName(ctx context.Context, userID string, listID string, storeName string, country string, sortDirection string) (*domain.ShoppingList, error)
 	ListByUserID(ctx context.Context, userID string) ([]domain.ShoppingList, error)
 	AddItem(ctx context.Context, userID string, listID string, req *domain.ShoppingListItemRequest) error
 	UpdateItem(ctx context.Context, userID string, itemID string, req *domain.UpdateShoppingListItemRequest) error
@@ -75,6 +75,10 @@ func (s *shoppingListService) Create(ctx context.Context, userID string, req *do
 		return nil, err
 	}
 
+	if list.ID == "" {
+		return nil, errors.New("failed to retrieve generated list ID after creation", "INTERNAL")
+	}
+
 	// Add initial items if provided
 	if len(req.Items) > 0 {
 		items := make([]domain.ShoppingListItem, len(req.Items))
@@ -94,17 +98,24 @@ func (s *shoppingListService) Create(ctx context.Context, userID string, req *do
 		}
 	}
 
-	// Reload the list with items and store chain
 	return s.shoppingListRepo.GetByID(ctx, list.ID)
 }
 
-func (s *shoppingListService) Update(ctx context.Context, userID string, listID string, req *domain.UpdateShoppingListRequest) (*domain.ShoppingList, error) {
+func (s *shoppingListService) verifyListOwnership(ctx context.Context, userID string, listID string) (*domain.ShoppingList, error) {
 	list, err := s.shoppingListRepo.GetByID(ctx, listID)
 	if err != nil {
 		return nil, err
 	}
 	if list.UserID != userID {
 		return nil, errors.ErrUnauthorized
+	}
+	return list, nil
+}
+
+func (s *shoppingListService) Update(ctx context.Context, userID string, listID string, req *domain.UpdateShoppingListRequest) (*domain.ShoppingList, error) {
+	list, err := s.verifyListOwnership(ctx, userID, listID)
+	if err != nil {
+		return nil, err
 	}
 
 	list.Name = req.Name
@@ -115,58 +126,45 @@ func (s *shoppingListService) Update(ctx context.Context, userID string, listID 
 		return nil, err
 	}
 
-	return list, nil
+	// Reload from DB to reflect any fields set on save (e.g. UpdatedAt)
+	return s.shoppingListRepo.GetByID(ctx, listID)
 }
 
 func (s *shoppingListService) Delete(ctx context.Context, userID string, listID string) error {
-	list, err := s.shoppingListRepo.GetByID(ctx, listID)
-	if err != nil {
+	if _, err := s.verifyListOwnership(ctx, userID, listID); err != nil {
 		return err
 	}
-	if list.UserID != userID {
-		return errors.ErrUnauthorized
-	}
-
 	return s.shoppingListRepo.Delete(ctx, listID)
 }
 
 func (s *shoppingListService) GetByID(ctx context.Context, userID string, listID string) (*domain.ShoppingList, error) {
-	list, err := s.shoppingListRepo.GetByID(ctx, listID)
-	if err != nil {
-		return nil, err
-	}
-	if list.UserID != userID {
-		return nil, errors.ErrUnauthorized
-	}
-
-	return list, nil
+	return s.verifyListOwnership(ctx, userID, listID)
 }
 
 func (s *shoppingListService) GetSorted(ctx context.Context, userID string, listID string, sortBy string, sortDirection string) (*domain.ShoppingList, error) {
-	list, err := s.shoppingListRepo.GetByID(ctx, listID)
+	list, err := s.verifyListOwnership(ctx, userID, listID)
 	if err != nil {
 		return nil, err
 	}
-	if list.UserID != userID {
-		return nil, errors.ErrUnauthorized
+
+	// Warn on unknown sortBy so callers can detect misconfiguration
+	validSortFields := map[string]bool{"name": true, "category": true, "amount": true, "checked": true, "created_at": true}
+	if !validSortFields[sortBy] {
+		s.logger.Warn("unknown sortBy field, defaulting to name", zap.String("sortBy", sortBy))
 	}
 
-	// Sort items based on sortBy field
 	sortItems(list.Items, sortBy, sortDirection)
 
 	return list, nil
 }
 
-func (s *shoppingListService) GetSortedByStoreName(ctx context.Context, userID string, listID string, storeName string, sortDirection string) (*domain.ShoppingList, error) {
-	list, err := s.shoppingListRepo.GetByID(ctx, listID)
+func (s *shoppingListService) GetSortedByStoreName(ctx context.Context, userID string, listID string, storeName string, country string, sortDirection string) (*domain.ShoppingList, error) {
+	list, err := s.verifyListOwnership(ctx, userID, listID)
 	if err != nil {
 		return nil, err
 	}
-	if list.UserID != userID {
-		return nil, errors.ErrUnauthorized
-	}
 
-	chain, err := s.storeChainService.GetChainByName(ctx, storeName, "") // TODO: Do I need the country property
+	chain, err := s.storeChainService.GetChainByName(ctx, storeName, country)
 	if err != nil {
 		return nil, err
 	}
@@ -189,13 +187,8 @@ func (s *shoppingListService) ListByUserID(ctx context.Context, userID string) (
 }
 
 func (s *shoppingListService) AddItem(ctx context.Context, userID string, listID string, req *domain.ShoppingListItemRequest) error {
-	// Get the list to verify ownership
-	list, err := s.shoppingListRepo.GetByID(ctx, listID)
-	if err != nil {
+	if _, err := s.verifyListOwnership(ctx, userID, listID); err != nil {
 		return err
-	}
-	if list.UserID != userID {
-		return errors.ErrUnauthorized
 	}
 
 	// Classify the item
@@ -207,7 +200,6 @@ func (s *shoppingListService) AddItem(ctx context.Context, userID string, listID
 		category = domain.Category(cat)
 	}
 
-	// Create the item
 	item := &domain.ShoppingListItem{
 		ListID:   listID,
 		Name:     req.Name,
@@ -220,19 +212,25 @@ func (s *shoppingListService) AddItem(ctx context.Context, userID string, listID
 	return s.shoppingListRepo.AddItems(ctx, []domain.ShoppingListItem{*item})
 }
 
-func (s *shoppingListService) UpdateItem(ctx context.Context, userID string, itemID string, req *domain.UpdateShoppingListItemRequest) error {
+func (s *shoppingListService) verifyItemOwnership(ctx context.Context, userID string, itemID string) (*domain.ShoppingListItem, error) {
 	item, err := s.shoppingListRepo.GetItemByID(ctx, itemID)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	// Verify ownership
 	list, err := s.shoppingListRepo.GetByID(ctx, item.ListID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if list.UserID != userID {
-		return errors.ErrUnauthorized
+		return nil, errors.ErrUnauthorized
+	}
+	return item, nil
+}
+
+func (s *shoppingListService) UpdateItem(ctx context.Context, userID string, itemID string, req *domain.UpdateShoppingListItemRequest) error {
+	item, err := s.verifyItemOwnership(ctx, userID, itemID)
+	if err != nil {
+		return err
 	}
 
 	item.Name = req.Name
@@ -245,56 +243,41 @@ func (s *shoppingListService) UpdateItem(ctx context.Context, userID string, ite
 }
 
 func (s *shoppingListService) DeleteItem(ctx context.Context, userID string, itemID string) error {
-	item, err := s.shoppingListRepo.GetItemByID(ctx, itemID)
+	item, err := s.verifyItemOwnership(ctx, userID, itemID)
 	if err != nil {
 		return err
 	}
-
-	// Verify ownership
-	list, err := s.shoppingListRepo.GetByID(ctx, item.ListID)
-	if err != nil {
-		return err
-	}
-	if list.UserID != userID {
-		return errors.ErrUnauthorized
-	}
-
-	return s.shoppingListRepo.DeleteItem(ctx, itemID)
+	return s.shoppingListRepo.DeleteItem(ctx, item.ID)
 }
 
 func (s *shoppingListService) ToggleItem(ctx context.Context, userID string, itemID string, checked bool) error {
-	item, err := s.shoppingListRepo.GetItemByID(ctx, itemID)
+	item, err := s.verifyItemOwnership(ctx, userID, itemID)
 	if err != nil {
 		return err
 	}
-
-	// Verify ownership
-	list, err := s.shoppingListRepo.GetByID(ctx, item.ListID)
-	if err != nil {
-		return err
-	}
-	if list.UserID != userID {
-		return errors.ErrUnauthorized
-	}
-
 	item.IsChecked = checked
 	return s.shoppingListRepo.UpdateItem(ctx, item)
 }
 
 func (s *shoppingListService) AddRecipeToList(ctx context.Context, userID string, listID string, req *domain.AddRecipeToListRequest) error {
-	// Get the list to verify ownership
-	list, err := s.shoppingListRepo.GetByID(ctx, listID)
-	if err != nil {
+	if _, err := s.verifyListOwnership(ctx, userID, listID); err != nil {
 		return err
-	}
-	if list.UserID != userID {
-		return errors.ErrUnauthorized
 	}
 
 	// Get the recipe with base nutrition level (we only need ingredients)
 	recipe, err := s.recipeRepo.GetByID(ctx, req.RecipeID, domain.NutritionDetailBase)
 	if err != nil {
 		return err
+	}
+
+	// Guard against divide by zero
+	if recipe.Servings == 0 {
+		return errors.New("recipe has no servings defined", "INVALID_INPUT")
+	}
+
+	// Short-circuit if recipe has no ingredients — avoids a needless AI call
+	if len(recipe.Ingredients) == 0 {
+		return nil
 	}
 
 	// Calculate scaling factor
@@ -328,7 +311,8 @@ func (s *shoppingListService) AddRecipeToList(ctx context.Context, userID string
 			Amount:   ingredient.Amount * scalingFactor,
 			Unit:     ingredient.Unit,
 			Category: category,
-			Notes:    "",
+			// Recipe ingredients don't carry free-text notes — set manually by the user after adding
+			Notes: "",
 		}
 	}
 
@@ -336,13 +320,9 @@ func (s *shoppingListService) AddRecipeToList(ctx context.Context, userID string
 }
 
 func (s *shoppingListService) GetSortedForStore(ctx context.Context, userID string, listID string, chainID string) (*domain.ShoppingList, error) {
-	// Get the shopping list and verify ownership
-	list, err := s.shoppingListRepo.GetByID(ctx, listID)
+	list, err := s.verifyListOwnership(ctx, userID, listID)
 	if err != nil {
 		return nil, err
-	}
-	if list.UserID != userID {
-		return nil, errors.ErrUnauthorized
 	}
 
 	// Organize items according to store layout (sorts in-memory, doesn't persist)
@@ -353,23 +333,8 @@ func (s *shoppingListService) GetSortedForStore(ctx context.Context, userID stri
 	return list, nil
 }
 
-func (s *shoppingListService) SortForStore(ctx context.Context, listID string, chainID string) error {
-	// Get the shopping list
-	list, err := s.shoppingListRepo.GetByID(ctx, listID)
-	if err != nil {
-		return err
-	}
-
-	// Organize items according to store layout
-	if err := s.storeChainService.OrganizeShoppingList(ctx, list, chainID); err != nil {
-		return err
-	}
-
-	// Save the organized list
-	return s.shoppingListRepo.Update(ctx, list)
-}
-
-// sortItems sorts shopping list items based on the specified field and direction
+// sortItems sorts shopping list items based on the specified field and direction.
+// Unknown sortBy values fall back to name sort — callers should validate before invoking.
 func sortItems(items []domain.ShoppingListItem, sortBy string, sortDirection string) {
 	if len(items) == 0 {
 		return
@@ -390,11 +355,9 @@ func sortItems(items []domain.ShoppingListItem, sortBy string, sortDirection str
 		case "created_at":
 			less = items[i].CreatedAt.Before(items[j].CreatedAt)
 		default:
-			// Default to name sorting
 			less = items[i].Name < items[j].Name
 		}
 
-		// Reverse if direction is desc
 		if sortDirection == "desc" {
 			return !less
 		}
