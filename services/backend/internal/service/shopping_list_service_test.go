@@ -565,3 +565,86 @@ func TestShoppingListService_AddItem(t *testing.T) {
 		})
 	}
 }
+
+func TestShoppingListService_UpdateItem(t *testing.T) {
+	var (
+		errGetItemByID = errors.New("GetItemByID error")
+		errGetByID     = errors.New("GetByID error")
+		errUpdateItem  = errors.New("UpdateItem error")
+	)
+	req := domain.UpdateShoppingListItemRequest{Name: "foo_edited", Amount: 312, Unit: "bar", Category: domain.CategoryProduce, Notes: "foobar edited"}
+	list := domain.ShoppingList{ID: "1", UserID: "123"}
+	item := domain.ShoppingListItem{ID: "1_foo", ListID: list.ID, Name: "foo", Amount: 213, Unit: "foo", Category: domain.CategoryBakery, Notes: "foobar"}
+	tests := []struct {
+		name        string
+		userID      string
+		expectedErr error
+		mockFunc    func(m *mockShoppingListRepository)
+	}{
+		{
+			name:        "returns error when GetItemByID fails",
+			userID:      list.UserID,
+			expectedErr: errGetItemByID,
+			mockFunc: func(m *mockShoppingListRepository) {
+				m.On("GetItemByID", mock.Anything, item.ID).Return(nil, errGetItemByID).Once()
+			},
+		},
+		{
+			name:        "returns error when GetByID fails",
+			userID:      list.UserID,
+			expectedErr: errGetByID,
+			mockFunc: func(m *mockShoppingListRepository) {
+				m.On("GetItemByID", mock.Anything, item.ID).Return(&domain.ShoppingListItem{ID: item.ID, ListID: item.ListID}, nil).Once()
+				m.On("GetByID", mock.Anything, list.ID).Return(nil, errGetByID).Once()
+			},
+		},
+		{
+			name:        "returns Unauthorized when user is not authorized",
+			userID:      "wrong-user",
+			expectedErr: internalErr.ErrUnauthorized,
+			mockFunc: func(m *mockShoppingListRepository) {
+				m.On("GetItemByID", mock.Anything, item.ID).Return(&domain.ShoppingListItem{ID: item.ID, ListID: item.ListID}, nil).Once()
+				m.On("GetByID", mock.Anything, list.ID).Return(&domain.ShoppingList{ID: list.ID, UserID: list.UserID}, nil).Once()
+			},
+		},
+		{
+			name:        "returns error when UpdateItem fails",
+			userID:      list.UserID,
+			expectedErr: errUpdateItem,
+			mockFunc: func(m *mockShoppingListRepository) {
+				m.On("GetItemByID", mock.Anything, item.ID).Return(&domain.ShoppingListItem{ID: item.ID, ListID: item.ListID}, nil).Once()
+				m.On("GetByID", mock.Anything, list.ID).Return(&domain.ShoppingList{ID: list.ID, UserID: list.UserID}, nil).Once()
+				m.On("UpdateItem", mock.Anything, mock.AnythingOfType("*domain.ShoppingListItem")).Return(errUpdateItem).Once()
+			},
+		},
+		{
+			name:   "calls UpdateItem with Name, Amount, Unit, Category, Notes updated and returns nil when request is successfully",
+			userID: list.UserID,
+			mockFunc: func(m *mockShoppingListRepository) {
+				m.On("GetItemByID", mock.Anything, item.ID).Return(&domain.ShoppingListItem{ID: item.ID, ListID: item.ListID}, nil).Once()
+				m.On("GetByID", mock.Anything, list.ID).Return(&domain.ShoppingList{ID: list.ID, UserID: list.UserID}, nil).Once()
+				m.On("UpdateItem", mock.Anything, mock.MatchedBy(func(r *domain.ShoppingListItem) bool {
+					return req.Name == r.Name && req.Amount == r.Amount && req.Unit == r.Unit && req.Category == r.Category && req.Notes == r.Notes
+				})).Return(nil).Once()
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockShoppingListRepository)
+			tt.mockFunc(m)
+
+			srv := NewShoppingListService(m, new(mockShoppingListRecipeRepository), new(mockStoreChainService), new(mockAIModel), zap.NewNop())
+			err := srv.UpdateItem(context.Background(), tt.userID, item.ID, &req)
+
+			if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
+			} else {
+				require.Nil(t, err)
+			}
+
+			m.AssertExpectations(t)
+		})
+	}
+}
