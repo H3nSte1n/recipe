@@ -47,8 +47,8 @@ func (m *mockShoppingListService) GetSorted(ctx context.Context, userID string, 
 	return v, args.Error(1)
 }
 
-func (m *mockShoppingListService) GetSortedByStoreName(ctx context.Context, userID string, listID string, storeName string, sortDirection string) (*domain.ShoppingList, error) {
-	args := m.Called(ctx, userID, listID, storeName, sortDirection)
+func (m *mockShoppingListService) GetSortedByStoreName(ctx context.Context, userID string, listID string, storeName string, country string, sortDirection string) (*domain.ShoppingList, error) {
+	args := m.Called(ctx, userID, listID, storeName, country, sortDirection)
 	v, _ := args.Get(0).(*domain.ShoppingList)
 	return v, args.Error(1)
 }
@@ -191,7 +191,17 @@ func TestShoppingListHandler_Get(t *testing.T) {
 			expectedBodyContains: string(jsonShoppingList),
 			setUserID:            true,
 			mockMethod: func(m *mockShoppingListService) {
-				m.On("GetSortedByStoreName", mock.Anything, userID, shoppingList.ID, "foo", "asc").Return(&shoppingList, nil).Once()
+				m.On("GetSortedByStoreName", mock.Anything, userID, shoppingList.ID, "foo", "", "asc").Return(&shoppingList, nil).Once()
+			},
+		},
+		{
+			name:                 "returns status 200 with shopping list sorted by store with country when country query param is attached",
+			url:                  fmt.Sprintf("/api/v1/shopping-lists/%v?sort_by=store&sort_direction=asc&store_name=foo&country=DE", shoppingList.ID),
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: string(jsonShoppingList),
+			setUserID:            true,
+			mockMethod: func(m *mockShoppingListService) {
+				m.On("GetSortedByStoreName", mock.Anything, userID, shoppingList.ID, "foo", "DE", "asc").Return(&shoppingList, nil).Once()
 			},
 		},
 		{
