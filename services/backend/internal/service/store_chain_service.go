@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"go.uber.org/zap"
+	"math"
 	"sort"
 )
 
@@ -50,6 +51,13 @@ func (s *storeChainService) OrganizeShoppingList(ctx context.Context, list *doma
 		return err
 	}
 
+	organizeByChain(list, chain)
+	return nil
+}
+
+// organizeByChain sorts list.Items in-place according to the store chain's section layout.
+// Items whose category is not found in the layout are moved to the end.
+func organizeByChain(list *domain.ShoppingList, chain *domain.StoreChain) {
 	sectionOrder := make(map[domain.Category]int)
 	for _, section := range chain.Layout {
 		for _, category := range section.Categories {
@@ -58,8 +66,15 @@ func (s *storeChainService) OrganizeShoppingList(ctx context.Context, list *doma
 	}
 
 	sort.SliceStable(list.Items, func(i, j int) bool {
-		orderI := sectionOrder[list.Items[i].Category]
-		orderJ := sectionOrder[list.Items[j].Category]
+		orderI, okI := sectionOrder[list.Items[i].Category]
+		orderJ, okJ := sectionOrder[list.Items[j].Category]
+
+		if !okI {
+			orderI = math.MaxInt
+		}
+		if !okJ {
+			orderJ = math.MaxInt
+		}
 
 		if orderI != orderJ {
 			return orderI < orderJ
@@ -67,6 +82,4 @@ func (s *storeChainService) OrganizeShoppingList(ctx context.Context, list *doma
 
 		return i < j
 	})
-
-	return nil
 }
