@@ -15,6 +15,10 @@ func (e *AppError) Error() string {
 	return e.Message
 }
 
+func (e *AppError) Unwrap() error {
+	return e.Err
+}
+
 func (e *AppError) Wrap(msg string) *AppError {
 	return &AppError{
 		Code:    e.Code,
@@ -31,6 +35,13 @@ func New(message string, code ...string) *AppError {
 		err.Code = code[0]
 	}
 	return err
+}
+
+func IsNotFound(err error) bool {
+	if appErr, ok := err.(*AppError); ok {
+		return appErr.Code == "NOT_FOUND"
+	}
+	return false
 }
 
 var (

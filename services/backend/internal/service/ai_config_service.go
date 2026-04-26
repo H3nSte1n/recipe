@@ -41,7 +41,7 @@ func NewAIConfigService(aiConfigRepo aiConfigRepository) AIConfigService {
 }
 
 func (s *aiConfigService) Create(ctx context.Context, userID string, req *domain.CreateUserAIConfigRequest) (*domain.UserAIConfig, error) {
-	var config *domain.UserAIConfig
+	var configID string
 
 	err := s.aiConfigRepo.RunTx(ctx, func() error {
 		if req.IsDefault {
@@ -50,7 +50,7 @@ func (s *aiConfigService) Create(ctx context.Context, userID string, req *domain
 			}
 		}
 
-		config = &domain.UserAIConfig{
+		config := &domain.UserAIConfig{
 			UserID:    userID,
 			AIModelID: req.AIModelID,
 			APIKey:    req.APIKey,
@@ -58,14 +58,18 @@ func (s *aiConfigService) Create(ctx context.Context, userID string, req *domain
 			Settings:  req.Settings,
 		}
 
-		return s.aiConfigRepo.Create(ctx, config)
+		if err := s.aiConfigRepo.Create(ctx, config); err != nil {
+			return err
+		}
+		configID = config.ID
+		return nil
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	return config, nil
+	return s.aiConfigRepo.GetByID(ctx, configID)
 }
 
 func (s *aiConfigService) Update(ctx context.Context, userID string, configID string, req *domain.UpdateUserAIConfigRequest) (*domain.UserAIConfig, error) {
@@ -98,7 +102,7 @@ func (s *aiConfigService) Update(ctx context.Context, userID string, configID st
 		return nil, err
 	}
 
-	return config, nil
+	return s.aiConfigRepo.GetByID(ctx, configID)
 }
 
 func (s *aiConfigService) GetByID(ctx context.Context, userID string, configID string) (*domain.UserAIConfig, error) {
@@ -147,7 +151,10 @@ func (s *aiConfigService) SetDefault(ctx context.Context, userID string, configI
 func (s *aiConfigService) GetDefaultConfig(ctx context.Context, userID string) (*domain.UserAIConfig, error) {
 	config, err := s.aiConfigRepo.GetDefaultConfig(ctx, userID)
 	if err != nil {
-		return nil, apperrors.ErrNotFound.Wrap("default AI configuration not found")
+		if apperrors.IsNotFound(err) {
+			return nil, apperrors.ErrNotFound.Wrap("default AI configuration not found")
+		}
+		return nil, err
 	}
 
 	return config, nil

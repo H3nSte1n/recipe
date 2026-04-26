@@ -35,7 +35,7 @@ func NewServices(repos *repository.Repositories, config config.Config, fileStora
 	emailSvc := email.NewEmailService(config.SMTP.From, config.SMTP.Password, config.SMTP.Host, config.SMTP.Port, config.Frontend.Url)
 
 	return &Services{
-		UserService:         NewUserService(repos.UserRepository, config.JWT.Secret, config, emailSvc),
+		UserService:         NewUserService(repos.UserRepository, config.JWT.Secret, config, emailSvc, logger),
 		ProfileService:      NewProfileService(repos.ProfileRepository),
 		AIConfigService:     NewAIConfigService(repos.AIConfigRepository),
 		RecipeService:       NewRecipeService(repos.RecipeRepository, repos.UserRepository, repos.AIConfigRepository, fileStorage, logger, &factory, urlParserService, pdfParserService),

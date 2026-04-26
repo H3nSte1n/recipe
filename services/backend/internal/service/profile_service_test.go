@@ -25,81 +25,132 @@ func (m *mockProfileRepository) Update(ctx context.Context, profile *domain.Prof
 	return args.Error(0)
 }
 
-func TestProfileService_GetProfile_Success(t *testing.T) {
+func TestProfileService_GetProfile(t *testing.T) {
+	var errGetByUserID = errors.New("getByUserID error")
+
 	userID := "550e8400-e29b-41d4-a716-446655440000"
-	profile := domain.Profile{ID: "1_foo", UserID: userID, Bio: "foobar"}
+	profile := domain.Profile{ID: "profile-1", UserID: userID, Bio: "foobar"}
 
-	m := new(mockProfileRepository)
-	m.On("GetByUserID", mock.Anything, userID).Return(&profile, nil)
+	tests := []struct {
+		name           string
+		expectedReturn *domain.Profile
+		expectedErr    error
+		mockFunc       func(m *mockProfileRepository)
+	}{
+		{
+			name:        "returns error when GetByUserID fails",
+			expectedErr: errGetByUserID,
+			mockFunc: func(m *mockProfileRepository) {
+				m.On("GetByUserID", mock.Anything, userID).Return(nil, errGetByUserID).Once()
+			},
+		},
+		{
+			name:           "returns profile when request is successfully",
+			expectedReturn: &profile,
+			mockFunc: func(m *mockProfileRepository) {
+				m.On("GetByUserID", mock.Anything, userID).Return(&profile, nil).Once()
+			},
+		},
+	}
 
-	service := NewProfileService(m)
-	p, err := service.GetProfile(context.Background(), userID)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockProfileRepository)
+			tt.mockFunc(m)
 
-	require.NoError(t, err)
-	require.Equal(t, profile, *p)
-	m.AssertExpectations(t)
-}
+			svc := NewProfileService(m)
+			got, err := svc.GetProfile(context.Background(), userID)
 
-func TestProfileService_GetProfile_Err(t *testing.T) {
-	userID := "550e8400-e29b-41d4-a716-446655440000"
-	expectedErr := errors.New("repo error")
-
-	m := new(mockProfileRepository)
-	m.On("GetByUserID", mock.Anything, userID).Return(nil, expectedErr)
-
-	service := NewProfileService(m)
-	p, err := service.GetProfile(context.Background(), userID)
-
-	require.ErrorIs(t, err, expectedErr)
-	require.Nil(t, p)
-	m.AssertExpectations(t)
+			if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
+				require.Nil(t, got)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.expectedReturn, got)
+			}
+			m.AssertExpectations(t)
+		})
+	}
 }
 
 func TestProfileService_UpdateProfile(t *testing.T) {
-	userID := "550e8400-e29b-41d4-a716-446655440000"
+	var (
+		errGetByUserID = errors.New("getByUserID error")
+		errUpdate      = errors.New("update error")
+	)
 
 	strPtr := func(s string) *string { return &s }
+	userID := "550e8400-e29b-41d4-a716-446655440000"
 
-	existingProfile := &domain.Profile{
-		ID:         "profile-1",
-		UserID:     userID,
-		Bio:        "old bio",
-		Location:   "old location",
-		WebsiteURL: "https://old.example.com",
+	newProfile := func() *domain.Profile {
+		return &domain.Profile{
+			ID:         "profile-1",
+			UserID:     userID,
+			Bio:        "old bio",
+			Location:   "old location",
+			WebsiteURL: "https://old.example.com",
+		}
 	}
 
 	tests := []struct {
-		name        string
-		req         *domain.UpdateProfileRequest
-		setupMock   func(m *mockProfileRepository)
-		wantProfile *domain.Profile
-		wantErrCode string
+		name            string
+		req             *domain.UpdateProfileRequest
+		expectedReturn  *domain.Profile
+		expectedErr     error
+		expectedErrCode string
+		mockFunc        func(m *mockProfileRepository)
 	}{
 		{
-			name: "profile not found",
-			req:  &domain.UpdateProfileRequest{Bio: strPtr("new bio")},
-			setupMock: func(m *mockProfileRepository) {
-				m.On("GetByUserID", mock.Anything, userID).Return(nil, errors.New("not found"))
+			name:            "returns ErrNotFound when profile does not exist",
+			req:             &domain.UpdateProfileRequest{Bio: strPtr("new bio")},
+			expectedErrCode: "NOT_FOUND",
+			mockFunc: func(m *mockProfileRepository) {
+				m.On("GetByUserID", mock.Anything, userID).Return(nil, apperrors.ErrNotFound).Once()
 			},
-			wantErrCode: "NOT_FOUND",
+		},
+		{
+			name:        "passes through non-NotFound repo errors from GetByUserID",
+			req:         &domain.UpdateProfileRequest{Bio: strPtr("new bio")},
+			expectedErr: errGetByUserID,
+			mockFunc: func(m *mockProfileRepository) {
+				m.On("GetByUserID", mock.Anything, userID).Return(nil, errGetByUserID).Once()
+			},
+		},
+		{
+			name:        "returns error when Update fails",
+			req:         &domain.UpdateProfileRequest{Bio: strPtr("new bio")},
+			expectedErr: errUpdate,
+			mockFunc: func(m *mockProfileRepository) {
+				m.On("GetByUserID", mock.Anything, userID).Return(newProfile(), nil).Once()
+				m.On("Update", mock.Anything, mock.Anything).Return(errUpdate).Once()
+			},
+		},
+		{
+			name:        "returns error when final GetByUserID reload fails",
+			req:         &domain.UpdateProfileRequest{Bio: strPtr("new bio")},
+			expectedErr: errGetByUserID,
+			mockFunc: func(m *mockProfileRepository) {
+				m.On("GetByUserID", mock.Anything, userID).Return(newProfile(), nil).Once()
+				m.On("Update", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("GetByUserID", mock.Anything, userID).Return(nil, errGetByUserID).Once()
+			},
 		},
 		{
 			name: "updates only bio when only bio is set",
 			req:  &domain.UpdateProfileRequest{Bio: strPtr("new bio")},
-			setupMock: func(m *mockProfileRepository) {
-				m.On("GetByUserID", mock.Anything, userID).Return(existingProfile, nil)
-				m.On("Update", mock.Anything, mock.MatchedBy(func(p *domain.Profile) bool {
-					return p.Bio == "new bio" &&
-						p.Location == "old location" &&
-						p.WebsiteURL == "https://old.example.com"
-				})).Return(nil)
+			expectedReturn: &domain.Profile{
+				ID: "profile-1", UserID: userID,
+				Bio: "new bio", Location: "old location", WebsiteURL: "https://old.example.com",
 			},
-			wantProfile: &domain.Profile{
-				ID:         "profile-1",
-				UserID:     userID,
-				Bio:        "new bio",
-				Location:   "old location",
-				WebsiteURL: "https://old.example.com",
+			mockFunc: func(m *mockProfileRepository) {
+				m.On("GetByUserID", mock.Anything, userID).Return(newProfile(), nil).Once()
+				m.On("Update", mock.Anything, mock.MatchedBy(func(p *domain.Profile) bool {
+					return p.Bio == "new bio" && p.Location == "old location" && p.WebsiteURL == "https://old.example.com"
+				})).Return(nil).Once()
+				m.On("GetByUserID", mock.Anything, userID).Return(&domain.Profile{
+					ID: "profile-1", UserID: userID,
+					Bio: "new bio", Location: "old location", WebsiteURL: "https://old.example.com",
+				}, nil).Once()
 			},
 		},
 		{
@@ -109,68 +160,62 @@ func TestProfileService_UpdateProfile(t *testing.T) {
 				Location:   strPtr("new location"),
 				WebsiteURL: strPtr("https://new.example.com"),
 			},
-			setupMock: func(m *mockProfileRepository) {
-				m.On("GetByUserID", mock.Anything, userID).Return(existingProfile, nil)
+			expectedReturn: &domain.Profile{
+				ID: "profile-1", UserID: userID,
+				Bio: "new bio", Location: "new location", WebsiteURL: "https://new.example.com",
+			},
+			mockFunc: func(m *mockProfileRepository) {
+				m.On("GetByUserID", mock.Anything, userID).Return(newProfile(), nil).Once()
 				m.On("Update", mock.Anything, mock.MatchedBy(func(p *domain.Profile) bool {
-					return p.Bio == "new bio" &&
-						p.Location == "new location" &&
-						p.WebsiteURL == "https://new.example.com"
-				})).Return(nil)
-			},
-			wantProfile: &domain.Profile{
-				ID:         "profile-1",
-				UserID:     userID,
-				Bio:        "new bio",
-				Location:   "new location",
-				WebsiteURL: "https://new.example.com",
+					return p.Bio == "new bio" && p.Location == "new location" && p.WebsiteURL == "https://new.example.com"
+				})).Return(nil).Once()
+				m.On("GetByUserID", mock.Anything, userID).Return(&domain.Profile{
+					ID: "profile-1", UserID: userID,
+					Bio: "new bio", Location: "new location", WebsiteURL: "https://new.example.com",
+				}, nil).Once()
 			},
 		},
 		{
-			name: "no fields updated when request is empty",
+			name: "preserves unchanged fields when request is empty",
 			req:  &domain.UpdateProfileRequest{},
-			setupMock: func(m *mockProfileRepository) {
-				m.On("GetByUserID", mock.Anything, userID).Return(existingProfile, nil)
-				m.On("Update", mock.Anything, existingProfile).Return(nil)
+			expectedReturn: &domain.Profile{
+				ID: "profile-1", UserID: userID,
+				Bio: "old bio", Location: "old location", WebsiteURL: "https://old.example.com",
 			},
-			wantProfile: existingProfile,
-		},
-		{
-			name: "returns error when repo Update fails",
-			req:  &domain.UpdateProfileRequest{Bio: strPtr("new bio")},
-			setupMock: func(m *mockProfileRepository) {
-				m.On("GetByUserID", mock.Anything, userID).Return(existingProfile, nil)
-				m.On("Update", mock.Anything, mock.Anything).Return(errors.New("db error"))
+			mockFunc: func(m *mockProfileRepository) {
+				m.On("GetByUserID", mock.Anything, userID).Return(newProfile(), nil).Once()
+				m.On("Update", mock.Anything, mock.MatchedBy(func(p *domain.Profile) bool {
+					return p.Bio == "old bio" && p.Location == "old location" && p.WebsiteURL == "https://old.example.com"
+				})).Return(nil).Once()
+				m.On("GetByUserID", mock.Anything, userID).Return(&domain.Profile{
+					ID: "profile-1", UserID: userID,
+					Bio: "old bio", Location: "old location", WebsiteURL: "https://old.example.com",
+				}, nil).Once()
 			},
-			wantErrCode: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			existingProfile.Bio = "old bio"
-			existingProfile.Location = "old location"
-			existingProfile.WebsiteURL = "https://old.example.com"
-
 			m := new(mockProfileRepository)
-			tt.setupMock(m)
+			tt.mockFunc(m)
 
 			svc := NewProfileService(m)
 			got, err := svc.UpdateProfile(context.Background(), userID, tt.req)
 
-			if tt.wantErrCode != "" {
+			if tt.expectedErrCode != "" {
 				require.Error(t, err)
 				var appErr *apperrors.AppError
 				require.ErrorAs(t, err, &appErr)
-				require.Equal(t, tt.wantErrCode, appErr.Code)
+				require.Equal(t, tt.expectedErrCode, appErr.Code)
 				require.Nil(t, got)
-			} else if tt.wantProfile == nil {
-				require.Error(t, err)
+			} else if tt.expectedErr != nil {
+				require.ErrorIs(t, err, tt.expectedErr)
 				require.Nil(t, got)
 			} else {
 				require.NoError(t, err)
-				require.Equal(t, tt.wantProfile, got)
+				require.Equal(t, tt.expectedReturn, got)
 			}
-
 			m.AssertExpectations(t)
 		})
 	}

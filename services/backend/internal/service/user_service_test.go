@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/H3nSte1n/recipe/internal/domain"
+	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/H3nSte1n/recipe/pkg/config"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"testing"
 	"time"
@@ -114,9 +116,16 @@ func TestUserService_Register(t *testing.T) {
 			},
 		},
 		{
-			name: "continues registration when email is not found and GetByEmail returns err",
+			name:        "returns error when GetByEmail returns a non-NotFound DB error",
+			expectedErr: "GetByEmail err",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, errors.New("GetByEmail err")).Once()
+			},
+		},
+		{
+			name: "continues registration when GetByEmail returns ErrNotFound",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, apperrors.ErrNotFound).Once()
 				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("Create", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("CreateProfile", mock.Anything, mock.Anything).Return(nil).Once()
@@ -172,7 +181,7 @@ func TestUserService_Register(t *testing.T) {
 				tt.mockMethod(m)
 			}
 
-			srv := NewUserService(m, "foobarJWT", config.Config{}, nil)
+			srv := NewUserService(m, "foobarJWT", config.Config{}, nil, zap.NewNop())
 			u, err := srv.Register(context.Background(), &req)
 
 			if tt.expectedErr != "" {
@@ -225,7 +234,7 @@ func TestUserService_Login(t *testing.T) {
 			m := new(mockUserRepository)
 			tt.mockMethod(m)
 
-			srv := NewUserService(m, "foobar", config.Config{}, nil)
+			srv := NewUserService(m, "foobarJWT", config.Config{}, nil, zap.NewNop())
 			resp, err := srv.Login(context.Background(), &req)
 
 			if tt.expectedErr != "" {
@@ -323,7 +332,7 @@ func TestUserService_ForgotPassword(t *testing.T) {
 				tt.mockEmail(mEmail)
 			}
 
-			srv := NewUserService(mRepo, "foobar", config.Config{}, mEmail)
+			srv := NewUserService(mRepo, "foobar", config.Config{}, mEmail, zap.NewNop())
 			err := srv.ForgotPassword(context.Background(), &req)
 
 			if tt.expectedErr != "" {
@@ -374,8 +383,8 @@ func TestUserService_ResetPassword(t *testing.T) {
 			},
 		},
 		{
-			name:        "returns error 'user not found' when GetByID fails",
-			expectedErr: "user not found",
+			name:        "returns error from repo when GetByID fails",
+			expectedErr: "user doesnt exist with this id",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetResetTokenByToken", mock.Anything, req.Token).Return(&resetTokenValid, nil).Once()
 				m.On("GetByID", mock.Anything, resetTokenValid.UserID).Return(nil, errors.New("user doesnt exist with this id")).Once()
@@ -428,7 +437,7 @@ func TestUserService_ResetPassword(t *testing.T) {
 			m := new(mockUserRepository)
 			tt.mockMethod(m)
 
-			srv := NewUserService(m, "foobar", config.Config{}, new(mockEmailService))
+			srv := NewUserService(m, "foobar", config.Config{}, new(mockEmailService), zap.NewNop())
 			err := srv.ResetPassword(context.Background(), &req)
 
 			if tt.expectedErr != "" {
@@ -452,7 +461,7 @@ func TestUserService_Delete(t *testing.T) {
 			name:        "returns error 'user not found' when GetByID fails",
 			expectedErr: "user not found",
 			mockMethod: func(m *mockUserRepository) {
-				m.On("GetByID", mock.Anything, user.ID).Return(nil, errors.New("user can't be found")).Once()
+				m.On("GetByID", mock.Anything, user.ID).Return(nil, apperrors.ErrNotFound).Once()
 			},
 		},
 		{
@@ -487,7 +496,7 @@ func TestUserService_Delete(t *testing.T) {
 			m := new(mockUserRepository)
 			tt.mockMethod(m)
 
-			srv := NewUserService(m, "foobar", config.Config{}, new(mockEmailService))
+			srv := NewUserService(m, "foobar", config.Config{}, new(mockEmailService), zap.NewNop())
 			err := srv.Delete(context.Background(), user.ID)
 
 			if tt.expectedErr != "" {
@@ -506,7 +515,7 @@ func TestUserService_ListAll(t *testing.T) {
 		m := new(mockUserRepository)
 		m.On("ListAll", mock.Anything).Return(users, nil).Once()
 
-		srv := NewUserService(m, "foobar", config.Config{}, new(mockEmailService))
+		srv := NewUserService(m, "foobar", config.Config{}, new(mockEmailService), zap.NewNop())
 		userList, err := srv.ListAll(context.Background())
 
 		require.NoError(t, err)
@@ -519,7 +528,7 @@ func TestUserService_ListAll(t *testing.T) {
 		m := new(mockUserRepository)
 		m.On("ListAll", mock.Anything).Return(nil, expectedErr).Once()
 
-		srv := NewUserService(m, "foobar", config.Config{}, new(mockEmailService))
+		srv := NewUserService(m, "foobar", config.Config{}, new(mockEmailService), zap.NewNop())
 		_, err := srv.ListAll(context.Background())
 
 		require.ErrorIs(t, err, expectedErr)
