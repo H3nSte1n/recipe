@@ -9,11 +9,15 @@ interface HomePageProps {
   onLogout: () => void;
 }
 
-export default function HomePage({ onLogout: _onLogout }: HomePageProps) {
+export default function HomePage({ onLogout }: HomePageProps) {
+  // onLogout, selectedRecipe, serves will be wired in Phase 5 (modal)
+  void onLogout;
   const { isLoading, error, filterRecipes } = useRecipes();
   const [query, setQuery] = useState('');
-  const [_selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [_serves, setServes] = useState(2);
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  void selectedRecipe;
+  const [serves, setServes] = useState(2);
+  void serves;
 
   const filtered = filterRecipes(query);
 
