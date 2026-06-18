@@ -8,9 +8,8 @@ services:
     environment:
       - VITE_ENV=development
     volumes:
-      - ./services/frontend/src:/app/src
-      - ./services/frontend/vite.config.ts:/app/vite.config.ts
-      - ./services/frontend/index.html:/app/index.html
+      - ./services/frontend:/app
+      - /app/node_modules
     command: npm run dev
 
   app:
