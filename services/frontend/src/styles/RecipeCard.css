@@ -1,0 +1,51 @@
+.recipe-card {
+  cursor: pointer;
+  user-select: none;
+}
+
+.recipe-card__image {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #e8e6e3;
+  margin-bottom: 16px;
+}
+
+.recipe-card__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.25s;
+}
+
+.recipe-card__image-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #e8e6e3;
+}
+
+.recipe-card__title {
+  font-family: 'Newsreader', Georgia, serif;
+  font-style: italic;
+  font-size: 26px;
+  color: var(--ink);
+  margin: 0 0 6px 0;
+  line-height: 1.2;
+  transition: opacity 0.25s;
+}
+
+.recipe-card__meta {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  color: var(--meta);
+  margin: 0;
+}
+
+.recipe-card:hover .recipe-card__image img {
+  opacity: 0.9;
+}
+
+.recipe-card:hover .recipe-card__title {
+  opacity: 0.62;
+}
