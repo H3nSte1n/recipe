@@ -10,8 +10,6 @@ interface HomePageProps {
 }
 
 export default function HomePage({ onLogout }: HomePageProps) {
-  // onLogout, selectedRecipe, serves will be wired in Phase 5 (modal)
-  void onLogout;
   const { isLoading, error, filterRecipes } = useRecipes();
   const [query, setQuery] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -47,7 +45,7 @@ export default function HomePage({ onLogout }: HomePageProps) {
           </div>
         )}
       </main>
-      <button className="home-page__profile" type="button" aria-label="Profile">
+      <button className="home-page__profile" type="button" aria-label="Profile" onClick={onLogout}>
         J
       </button>
     </div>

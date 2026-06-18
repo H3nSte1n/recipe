@@ -10,6 +10,7 @@ interface RecipeCardProps {
 export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
       onClick();
     }
   };
