@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Recipe } from '../types/recipe';
 import { getMyRecipes } from '../services/recipeService';
 
@@ -43,13 +43,13 @@ export function useRecipes(): UseRecipesReturn {
     };
   }, []);
 
-  const filterRecipes = (query: string): Recipe[] => {
+  const filterRecipes = useCallback((query: string): Recipe[] => {
     if (!query.trim()) {
       return recipes;
     }
     const lowerQuery = query.toLowerCase();
     return recipes.filter((recipe) => recipe.title.toLowerCase().includes(lowerQuery));
-  };
+  }, [recipes]);
 
   return { recipes, isLoading, error, filterRecipes };
 }

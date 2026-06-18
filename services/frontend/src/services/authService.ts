@@ -35,7 +35,7 @@ export function getToken(): string | null {
 }
 
 export function isAuthenticated(): boolean {
-  return getToken() !== null;
+  return !!getToken();
 }
 
 export function getAuthHeaders(): { Authorization: string } | Record<string, never> {
