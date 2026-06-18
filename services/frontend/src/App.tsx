@@ -1,26 +1,14 @@
-import './styles/App.css'
+import { useAuth } from './hooks/useAuth';
+import LoginPage from './pages/LoginPage';
 
 function App() {
-  return (
-    <>
-      <div className="container">
-        <header className="header">
-          <h1>🍳 Recipe App</h1>
-        </header>
+  const { isAuthenticated } = useAuth();
 
-        <main className="main">
-          <div className="card">
-            <h2>Welcome to Recipe App</h2>
-          </div>
-        </main>
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={() => {}} />;
+  }
 
-        <footer className="footer">
-          <p>&copy; 2026 Recipe App. All rights reserved.</p>
-        </footer>
-      </div>
-    </>
-  )
+  return <div>Home — Phase 4</div>;
 }
 
-export default App
-
+export default App;
