@@ -1,11 +1,12 @@
-import { useAuth } from './hooks/useAuth';
+import { useState } from 'react';
+import { isAuthenticated as checkAuth } from './services/authService';
 import LoginPage from './pages/LoginPage';
 
 function App() {
-  const { isAuthenticated } = useAuth();
+  const [authed, setAuthed] = useState(checkAuth());
 
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={() => {}} />;
+  if (!authed) {
+    return <LoginPage onLogin={() => setAuthed(true)} />;
   }
 
   return <div>Home — Phase 4</div>;
