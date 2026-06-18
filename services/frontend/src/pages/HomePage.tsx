@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Recipe } from '../types/recipe';
 import { useRecipes } from '../hooks/useRecipes';
 import RecipeCard from '../components/RecipeCard';
+import RecipeModal from '../components/RecipeModal';
 import SearchBar from '../components/SearchBar';
+import { getRecipeById } from '../services/recipeService';
 import '../styles/HomePage.css';
 
 interface HomePageProps {
@@ -13,11 +15,12 @@ export default function HomePage({ onLogout }: HomePageProps) {
   const { isLoading, error, filterRecipes } = useRecipes();
   const [query, setQuery] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  void selectedRecipe;
   const [serves, setServes] = useState(2);
-  void serves;
 
   const filtered = filterRecipes(query);
+
+  const handleInc = () => setServes((s) => Math.min(20, s + 1));
+  const handleDec = () => setServes((s) => Math.max(1, s - 1));
 
   return (
     <div>
@@ -37,8 +40,16 @@ export default function HomePage({ onLogout }: HomePageProps) {
                 key={r.id}
                 recipe={r}
                 onClick={() => {
-                  setSelectedRecipe(r);
-                  setServes(2);
+                  void (async () => {
+                    try {
+                      const full = await getRecipeById(r.id);
+                      setSelectedRecipe(full);
+                      setServes(2);
+                    } catch {
+                      setSelectedRecipe(r);
+                      setServes(2);
+                    }
+                  })();
                 }}
               />
             ))}
@@ -48,6 +59,15 @@ export default function HomePage({ onLogout }: HomePageProps) {
       <button className="home-page__profile" type="button" aria-label="Profile" onClick={onLogout}>
         J
       </button>
+      {selectedRecipe && (
+        <RecipeModal
+          recipe={selectedRecipe}
+          serves={serves}
+          onInc={handleInc}
+          onDec={handleDec}
+          onClose={() => setSelectedRecipe(null)}
+        />
+      )}
     </div>
   );
 }
