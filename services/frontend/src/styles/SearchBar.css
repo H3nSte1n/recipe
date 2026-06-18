@@ -1,0 +1,43 @@
+.search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-bar__input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  text-align: center;
+  font-family: 'Newsreader', Georgia, serif;
+  font-style: italic;
+  font-size: 30px;
+  color: var(--ink);
+  caret-color: var(--ink);
+  padding: 0;
+}
+
+.search-bar__input::placeholder {
+  color: #c6c3bb;
+}
+
+.search-bar__add-btn {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #a9a69f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+
+.search-bar__add-btn:hover {
+  opacity: 0.6;
+}
