@@ -1,26 +1,15 @@
-import './styles/App.css'
+import { useState } from 'react';
+import { isAuthenticated as checkAuth } from './services/authService';
+import LoginPage from './pages/LoginPage';
 
 function App() {
-  return (
-    <>
-      <div className="container">
-        <header className="header">
-          <h1>🍳 Recipe App</h1>
-        </header>
+  const [authed, setAuthed] = useState(checkAuth());
 
-        <main className="main">
-          <div className="card">
-            <h2>Welcome to Recipe App</h2>
-          </div>
-        </main>
+  if (!authed) {
+    return <LoginPage onLogin={() => setAuthed(true)} />;
+  }
 
-        <footer className="footer">
-          <p>&copy; 2026 Recipe App. All rights reserved.</p>
-        </footer>
-      </div>
-    </>
-  )
+  return <div>Home — Phase 4</div>;
 }
 
-export default App
-
+export default App;
