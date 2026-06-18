@@ -30,9 +30,9 @@ export interface Recipe {
   description: string;
   notes: string;
   rating: number;
-  image_url: string;
+  image_url?: string;
   source_type: string;
-  source: string;
+  source?: string;
   is_private: boolean;
   servings: number;
   prep_time: number;

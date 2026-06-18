@@ -35,7 +35,7 @@ export function ingLine(
   const qty = fmtQty(scaledAmount);
   const parts: string[] = [];
   if (qty) parts.push(qty);
-  if (qty && unit) parts.push(unit);
+  if (unit) parts.push(unit);
   parts.push(name);
   return parts.join(' ');
 }
