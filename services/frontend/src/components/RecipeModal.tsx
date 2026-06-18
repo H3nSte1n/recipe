@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Recipe } from '../types/recipe';
 import { metaOf, ingLine } from '../utils/formatters';
 import '../styles/RecipeModal.css';
@@ -18,13 +18,18 @@ interface ModalSection {
 }
 
 export default function RecipeModal({ recipe, serves, onInc, onDec, onClose }: RecipeModalProps) {
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, []);
 
   const sections: ModalSection[] = [
     {
