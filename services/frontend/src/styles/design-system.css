@@ -24,7 +24,7 @@ body {
   --line: #ecebe5;
 
   /* Font-family tokens */
-  --font-serif: 'Newsreader', Georgia, serif;
+  --font-serif: 'Crimson Pro', Georgia, serif;
   --font-sans: 'Inter', system-ui, sans-serif;
 
   /* Type-scale tokens */
