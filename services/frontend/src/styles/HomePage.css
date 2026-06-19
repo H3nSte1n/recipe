@@ -22,7 +22,7 @@
 .home-page__empty {
   text-align: center;
   padding: 140px 0;
-  font-family: 'Newsreader', Georgia, serif;
+  font-family: var(--font-serif);
   font-style: italic;
   font-size: 26px;
   color: var(--label);
@@ -47,7 +47,7 @@
   cursor: pointer;
   background: var(--accent);
   color: #f7f6f3;
-  font-family: 'Newsreader', Georgia, serif;
+  font-family: var(--font-serif);
   font-style: italic;
   font-weight: 500;
   font-size: 22px;

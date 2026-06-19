@@ -17,9 +17,9 @@
 
 .login-page__heading {
   margin: 0 0 2rem 0;
-  font-family: 'Newsreader', Georgia, serif;
+  font-family: var(--font-serif);
   font-style: italic;
-  font-size: 36px;
+  font-size: var(--text-2xl);
   color: var(--ink);
   text-align: center;
   font-weight: 400;

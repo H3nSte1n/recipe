@@ -89,10 +89,10 @@
 
 .recipe-modal__title {
   text-align: center;
-  font-family: Newsreader, serif;
+  font-family: var(--font-serif);
   font-style: italic;
   font-weight: 500;
-  font-size: 36px;
+  font-size: var(--text-2xl);
   color: var(--ink);
   margin: 6px 0 0;
   letter-spacing: 0.2px;
@@ -146,10 +146,10 @@
 }
 
 .recipe-modal__section-name {
-  font-family: Newsreader, serif;
+  font-family: var(--font-serif);
   font-style: italic;
   font-weight: 500;
-  font-size: 24px;
+  font-size: var(--text-lg);
   color: var(--ink);
   margin-bottom: 24px;
 }
@@ -189,16 +189,16 @@
   background: transparent;
   padding: 0;
   text-align: left;
-  font-family: Newsreader, serif;
+  font-family: var(--font-serif);
   font-style: italic;
   font-weight: 500;
-  font-size: 24px;
+  font-size: var(--text-lg);
   color: var(--ink);
   margin-bottom: 24px;
 }
 
 .recipe-modal__section-chevron {
-  font-family: Newsreader, serif;
+  font-family: var(--font-serif);
   font-style: italic;
   font-weight: 400;
   font-size: 22px;
@@ -229,8 +229,8 @@
 }
 
 .recipe-modal__breadcrumb-item {
-  font-family: Inter, sans-serif;
-  font-size: 13px;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
   color: rgba(255, 255, 255, 0.65);
   cursor: pointer;
   border: none;
@@ -258,7 +258,7 @@
 }
 
 .recipe-modal__used-in-label {
-  font-family: Inter, sans-serif;
+  font-family: var(--font-sans);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -306,14 +306,14 @@
 .recipe-modal__used-in-card-image {
   width: 100%;
   height: 80px;
-  background: #e0ddd6;
+  background: var(--ph-dark);
   object-fit: cover;
   display: block;
 }
 
 .recipe-modal__used-in-card-title {
   padding: 8px 10px 10px;
-  font-family: Newsreader, serif;
+  font-family: var(--font-serif);
   font-style: italic;
   font-weight: 500;
   font-size: 13px;

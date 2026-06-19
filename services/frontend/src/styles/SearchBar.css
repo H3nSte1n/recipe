@@ -10,9 +10,9 @@
   border: none;
   outline: none;
   text-align: center;
-  font-family: 'Newsreader', Georgia, serif;
+  font-family: var(--font-serif);
   font-style: italic;
-  font-size: 30px;
+  font-size: var(--text-xl);
   color: var(--ink);
   caret-color: var(--ink);
   padding: 0;
