@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Recipe } from '../types/recipe';
 import { useRecipes } from '../hooks/useRecipes';
 import RecipeCard from '../components/RecipeCard';
@@ -12,12 +12,23 @@ interface HomePageProps {
 }
 
 export default function HomePage({ onLogout }: HomePageProps) {
-  const { isLoading, error, filterRecipes } = useRecipes();
+  const { isLoading, error, filterRecipes, recipes } = useRecipes();
   const [query, setQuery] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [serves, setServes] = useState(2);
 
   const filtered = filterRecipes(query);
+
+  const usedIn = useMemo(() => {
+    const map: Record<string, Recipe[]> = {};
+    for (const r of recipes) {
+      for (const sr of r.sub_recipes ?? []) {
+        if (!map[sr.child_id]) map[sr.child_id] = [];
+        map[sr.child_id].push(r);
+      }
+    }
+    return map;
+  }, [recipes]);
 
   const handleInc = () => setServes((s) => Math.min(20, s + 1));
   const handleDec = () => setServes((s) => Math.max(1, s - 1));
@@ -66,6 +77,7 @@ export default function HomePage({ onLogout }: HomePageProps) {
           onInc={handleInc}
           onDec={handleDec}
           onClose={() => setSelectedRecipe(null)}
+          usedIn={usedIn}
         />
       )}
     </div>

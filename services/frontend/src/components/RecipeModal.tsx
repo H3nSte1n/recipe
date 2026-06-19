@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Recipe } from '../types/recipe';
 import { metaOf, ingLine } from '../utils/formatters';
+import { getRecipeById } from '../services/recipeService';
 import '../styles/RecipeModal.css';
 
 interface RecipeModalProps {
@@ -9,15 +10,17 @@ interface RecipeModalProps {
   onInc: () => void;
   onDec: () => void;
   onClose: () => void;
+  usedIn?: Record<string, Recipe[]>;
 }
 
 interface ModalSection {
   name: string;
   ingredients: Recipe['ingredients'];
   instructions: Recipe['instructions'];
+  childId?: string;
 }
 
-export default function RecipeModal({ recipe, serves, onInc, onDec, onClose }: RecipeModalProps) {
+export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, usedIn }: RecipeModalProps) {
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -31,21 +34,43 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose }: R
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
+  const [navStack, setNavStack] = useState<Recipe[]>([recipe]);
+  const [navLoading, setNavLoading] = useState(false);
+
+  const currentRecipe = navStack[navStack.length - 1];
+
+  const navigateToSub = async (childId: string) => {
+    if (navLoading) return;
+    const existingIndex = navStack.findIndex((r) => r.id === childId);
+    if (existingIndex !== -1) {
+      setNavStack((prev) => prev.slice(0, existingIndex + 1));
+      return;
+    }
+    setNavLoading(true);
+    try {
+      const full = await getRecipeById(childId);
+      setNavStack((prev) => [...prev, full]);
+    } finally {
+      setNavLoading(false);
+    }
+  };
+
   const sections: ModalSection[] = [
     {
-      name: recipe.title,
-      ingredients: recipe.ingredients ?? [],
-      instructions: recipe.instructions ?? [],
+      name: currentRecipe.title,
+      ingredients: currentRecipe.ingredients ?? [],
+      instructions: currentRecipe.instructions ?? [],
     },
   ];
 
-  if (recipe.sub_recipes) {
-    for (const sub of recipe.sub_recipes) {
+  if (currentRecipe.sub_recipes) {
+    for (const sub of currentRecipe.sub_recipes) {
       if (sub.child) {
         sections.push({
           name: sub.child.title,
           ingredients: sub.child.ingredients ?? [],
           instructions: sub.child.instructions ?? [],
+          childId: sub.child.id,
         });
       }
     }
@@ -55,8 +80,8 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose }: R
     <div className="recipe-modal" onClick={onClose}>
       <div className="recipe-modal__card" onClick={(e) => e.stopPropagation()}>
         <div className="recipe-modal__hero">
-          {recipe.image_url ? (
-            <img src={recipe.image_url} alt={recipe.title} />
+          {currentRecipe.image_url ? (
+            <img src={currentRecipe.image_url} alt={currentRecipe.title} />
           ) : (
             <div className="recipe-modal__hero-placeholder" />
           )}
@@ -96,12 +121,34 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose }: R
               </svg>
             </button>
           </div>
+          {navStack.length > 1 && (
+            <div className="recipe-modal__breadcrumb">
+              {navStack.map((r, i) => (
+                <span key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {i > 0 && <span className="recipe-modal__breadcrumb-sep">›</span>}
+                  {i < navStack.length - 1 ? (
+                    <button
+                      className="recipe-modal__breadcrumb-item"
+                      type="button"
+                      onClick={() => setNavStack((prev) => prev.slice(0, i + 1))}
+                    >
+                      {r.title}
+                    </button>
+                  ) : (
+                    <span className="recipe-modal__breadcrumb-item recipe-modal__breadcrumb-item--active">
+                      {r.title}
+                    </span>
+                  )}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="recipe-modal__content">
-          <h1 className="recipe-modal__title">{recipe.title}</h1>
+          <h1 className="recipe-modal__title">{currentRecipe.title}</h1>
           <div className="recipe-modal__meta">
-            {metaOf(recipe.prep_time, recipe.cook_time, recipe.servings)}
+            {metaOf(currentRecipe.prep_time, currentRecipe.cook_time, currentRecipe.servings)}
           </div>
 
           <div className="recipe-modal__serves">
@@ -148,7 +195,19 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose }: R
 
           {sections.map((section, i) => (
             <div key={i} className="recipe-modal__section">
-              <div className="recipe-modal__section-name">{section.name}</div>
+              {section.childId ? (
+                <button
+                  className="recipe-modal__section-name recipe-modal__section-name--link"
+                  type="button"
+                  onClick={() => void navigateToSub(section.childId!)}
+                  disabled={navLoading}
+                >
+                  {section.name}
+                  <span className="recipe-modal__section-chevron">›</span>
+                </button>
+              ) : (
+                <div className="recipe-modal__section-name">{section.name}</div>
+              )}
               <div className="recipe-modal__columns">
                 <div className="recipe-modal__ingredients">
                   {(section.ingredients ?? []).map((ing) => (
@@ -170,6 +229,33 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose }: R
               </div>
             </div>
           ))}
+          {usedIn?.[currentRecipe.id]?.length ? (
+            <div className="recipe-modal__used-in">
+              <div className="recipe-modal__used-in-label">Used in</div>
+              <div className="recipe-modal__used-in-strip">
+                {usedIn[currentRecipe.id].map((parent) => (
+                  <button
+                    key={parent.id}
+                    className="recipe-modal__used-in-card"
+                    type="button"
+                    disabled={navLoading}
+                    onClick={() => void navigateToSub(parent.id)}
+                  >
+                    {parent.image_url ? (
+                      <img
+                        className="recipe-modal__used-in-card-image"
+                        src={parent.image_url}
+                        alt={parent.title}
+                      />
+                    ) : (
+                      <div className="recipe-modal__used-in-card-image" />
+                    )}
+                    <div className="recipe-modal__used-in-card-title">{parent.title}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

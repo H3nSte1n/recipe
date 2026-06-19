@@ -116,7 +116,9 @@ func (r *RecipeRepositoryImpl) GetByID(ctx context.Context, id string, nutrition
 		Preload("Ingredients").
 		Preload("Instructions").
 		Preload("SubRecipes").
-		Preload("SubRecipes.Child")
+		Preload("SubRecipes.Child").
+		Preload("SubRecipes.Child.Ingredients").
+		Preload("SubRecipes.Child.Instructions")
 
 	// Select nutrition fields based on detail level
 	switch nutritionLevel {

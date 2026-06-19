@@ -179,3 +179,144 @@
   min-width: 16px;
   flex-shrink: 0;
 }
+
+.recipe-modal__section-name--link {
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  font-family: Newsreader, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 24px;
+  color: var(--ink);
+  margin-bottom: 24px;
+}
+
+.recipe-modal__section-chevron {
+  font-family: Newsreader, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 22px;
+  color: var(--label);
+  transition: opacity 0.15s;
+}
+
+.recipe-modal__section-name--link:hover .recipe-modal__section-chevron {
+  opacity: 0.45;
+}
+
+.recipe-modal__section-name--link:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.recipe-modal__breadcrumb {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to bottom, transparent, rgba(20, 22, 28, 0.58));
+  padding: 32px 20px 14px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.recipe-modal__breadcrumb-item {
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  padding: 0;
+  line-height: 1.4;
+}
+
+.recipe-modal__breadcrumb-item--active {
+  color: #ffffff;
+  font-weight: 500;
+  cursor: default;
+}
+
+.recipe-modal__breadcrumb-sep {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.recipe-modal__used-in {
+  margin-top: 32px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+
+.recipe-modal__used-in-label {
+  font-family: Inter, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--label);
+  margin-bottom: 14px;
+}
+
+.recipe-modal__used-in-strip {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.recipe-modal__used-in-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.recipe-modal__used-in-card {
+  flex: 0 0 140px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: opacity 0.15s;
+  padding: 0;
+}
+
+.recipe-modal__used-in-card:hover {
+  opacity: 0.75;
+}
+
+.recipe-modal__used-in-card:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.recipe-modal__used-in-card-image {
+  width: 100%;
+  height: 80px;
+  background: #e0ddd6;
+  object-fit: cover;
+  display: block;
+}
+
+.recipe-modal__used-in-card-title {
+  padding: 8px 10px 10px;
+  font-family: Newsreader, serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 17px;
+}
