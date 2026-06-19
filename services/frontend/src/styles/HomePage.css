@@ -2,21 +2,21 @@
   position: relative;
   max-width: 1520px;
   margin: 0 auto;
-  padding: 36px 40px 24px;
+  padding: 22px 40px 14px;
 }
 
 .home-page__main {
   max-width: 1520px;
   margin: 0 auto;
-  padding: 14px 40px 140px;
+  padding: 6px 40px 100px;
   min-height: calc(100vh - 120px);
 }
 
 .home-page__grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  column-gap: 56px;
-  row-gap: 60px;
+  column-gap: 36px;
+  row-gap: 48px;
 }
 
 .home-page__empty {

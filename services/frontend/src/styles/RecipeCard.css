@@ -8,7 +8,7 @@
   aspect-ratio: 1 / 1;
   overflow: hidden;
   background: var(--ph);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .recipe-card__image img {
@@ -28,7 +28,7 @@
 .recipe-card__title {
   font-family: var(--font-serif);
   font-style: italic;
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   color: var(--ink);
   margin: 0 0 6px 0;
   line-height: 1.2;
@@ -37,7 +37,7 @@
 
 .recipe-card__meta {
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: var(--text-sm);
   color: var(--meta);
   margin: 0;
 }
