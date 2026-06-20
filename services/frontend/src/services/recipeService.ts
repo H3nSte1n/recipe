@@ -1,9 +1,10 @@
 import { Recipe } from '../types/recipe';
 import { getAuthHeaders } from './authService';
+import { apiFetch } from '../api/apiClient';
 
 export async function getMyRecipes(): Promise<Recipe[]> {
   try {
-    const response = await fetch('/api/v1/recipes', {
+    const response = await apiFetch('/api/v1/recipes', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -27,7 +28,7 @@ export async function getMyRecipes(): Promise<Recipe[]> {
 
 export async function getRecipeById(id: string): Promise<Recipe> {
   try {
-    const response = await fetch(`/api/v1/recipes/${id}`, {
+    const response = await apiFetch(`/api/v1/recipes/${id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

@@ -34,8 +34,23 @@ export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+export function isTokenExpired(): boolean {
+  const token = getToken();
+  if (!token) {
+    return true;
+  }
+  try {
+    const payload = token.split('.')[1];
+    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    const { exp } = JSON.parse(decoded) as { exp: number };
+    return Date.now() / 1000 >= exp;
+  } catch {
+    return true;
+  }
+}
+
 export function isAuthenticated(): boolean {
-  return !!getToken();
+  return !!getToken() && !isTokenExpired();
 }
 
 export function getAuthHeaders(): { Authorization: string } | Record<string, never> {
