@@ -22,9 +22,6 @@
 .home-page__empty {
   text-align: center;
   padding: 140px 0;
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 26px;
   color: var(--label);
 }
 

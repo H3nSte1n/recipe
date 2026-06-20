@@ -30,7 +30,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   return (
     <div className="login-page">
       <div className="login-page__card">
-        <h1 className="login-page__heading">Recipe App</h1>
+        <h1 className="login-page__heading type-h1">Recipe App</h1>
         <form className="login-page__form" onSubmit={handleSubmit}>
           <div className="login-page__field">
             <label htmlFor="email" className="login-page__label">Email</label>

@@ -39,10 +39,10 @@ export default function HomePage({ onLogout }: HomePageProps) {
         <SearchBar value={query} onSearch={setQuery} />
       </header>
       <main className="home-page__main">
-        {isLoading && <div className="home-page__loading">Loading…</div>}
-        {error && !isLoading && <div className="home-page__error">Failed to load recipes.</div>}
+        {isLoading && <div className="home-page__loading type-body">Loading…</div>}
+        {error && !isLoading && <div className="home-page__error type-body">Failed to load recipes.</div>}
         {!isLoading && !error && filtered.length === 0 && (
-          <div className="home-page__empty">Nothing here.</div>
+          <div className="home-page__empty type-h2">Nothing here.</div>
         )}
         {!isLoading && !error && filtered.length > 0 && (
           <div className="home-page__grid">
