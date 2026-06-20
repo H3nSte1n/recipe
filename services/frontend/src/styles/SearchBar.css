@@ -10,10 +10,6 @@
   border: none;
   outline: none;
   text-align: center;
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: var(--text-xl);
-  color: var(--ink);
   caret-color: var(--ink);
   padding: 0;
 }
