@@ -125,17 +125,17 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
             <div className="recipe-modal__breadcrumb">
               {navStack.map((r, i) => (
                 <span key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {i > 0 && <span className="recipe-modal__breadcrumb-sep">›</span>}
+                  {i > 0 && <span className="recipe-modal__breadcrumb-sep type-caption">›</span>}
                   {i < navStack.length - 1 ? (
                     <button
-                      className="recipe-modal__breadcrumb-item"
+                      className="recipe-modal__breadcrumb-item type-body-sm"
                       type="button"
                       onClick={() => setNavStack((prev) => prev.slice(0, i + 1))}
                     >
                       {r.title}
                     </button>
                   ) : (
-                    <span className="recipe-modal__breadcrumb-item recipe-modal__breadcrumb-item--active">
+                    <span className="recipe-modal__breadcrumb-item type-body-sm recipe-modal__breadcrumb-item--active">
                       {r.title}
                     </span>
                   )}
@@ -146,13 +146,13 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
         </div>
 
         <div className="recipe-modal__content">
-          <h1 className="recipe-modal__title">{currentRecipe.title}</h1>
-          <div className="recipe-modal__meta">
+          <h1 className="recipe-modal__title type-h1">{currentRecipe.title}</h1>
+          <div className="recipe-modal__meta type-body">
             {metaOf(currentRecipe.prep_time, currentRecipe.cook_time, currentRecipe.servings)}
           </div>
 
           <div className="recipe-modal__serves">
-            <span className="recipe-modal__serves-label">Serves</span>
+            <span className="recipe-modal__serves-label type-label">Serves</span>
             <button
               className="recipe-modal__serves-btn"
               type="button"
@@ -197,7 +197,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
             <div key={i} className="recipe-modal__section">
               {section.childId ? (
                 <button
-                  className="recipe-modal__section-name recipe-modal__section-name--link"
+                  className="recipe-modal__section-name type-h3 recipe-modal__section-name--link"
                   type="button"
                   onClick={() => void navigateToSub(section.childId!)}
                   disabled={navLoading}
@@ -206,12 +206,12 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
                   <span className="recipe-modal__section-chevron">›</span>
                 </button>
               ) : (
-                <div className="recipe-modal__section-name">{section.name}</div>
+                <div className="recipe-modal__section-name type-h3">{section.name}</div>
               )}
               <div className="recipe-modal__columns">
                 <div className="recipe-modal__ingredients">
                   {(section.ingredients ?? []).map((ing) => (
-                    <div key={ing.id} className="recipe-modal__ingredient">
+                    <div key={ing.id} className="recipe-modal__ingredient type-body">
                       {ingLine(ing.amount, ing.unit, ing.name, serves / 2)}
                     </div>
                   ))}
@@ -220,7 +220,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
                   {[...(section.instructions ?? [])]
                     .sort((a, b) => a.step_number - b.step_number)
                     .map((inst) => (
-                      <div key={inst.id} className="recipe-modal__step">
+                      <div key={inst.id} className="recipe-modal__step type-body">
                         <span className="recipe-modal__step-num">{inst.step_number}.</span>
                         <span>{inst.instruction}</span>
                       </div>
@@ -231,7 +231,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
           ))}
           {usedIn?.[currentRecipe.id]?.length ? (
             <div className="recipe-modal__used-in">
-              <div className="recipe-modal__used-in-label">Used in</div>
+              <div className="recipe-modal__used-in-label type-label">Used in</div>
               <div className="recipe-modal__used-in-strip">
                 {usedIn[currentRecipe.id].map((parent) => (
                   <button

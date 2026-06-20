@@ -89,18 +89,12 @@
 
 .recipe-modal__title {
   text-align: center;
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 500;
-  font-size: var(--text-2xl);
-  color: var(--ink);
   margin: 6px 0 0;
   letter-spacing: 0.2px;
 }
 
 .recipe-modal__meta {
   text-align: center;
-  font-size: 15px;
   color: var(--meta);
   margin-top: 11px;
 }
@@ -112,12 +106,6 @@
   margin-top: 42px;
 }
 
-.recipe-modal__serves-label {
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  color: var(--label);
-  text-transform: uppercase;
-}
 
 .recipe-modal__serves-count {
   min-width: 22px;
@@ -146,11 +134,6 @@
 }
 
 .recipe-modal__section-name {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 500;
-  font-size: var(--text-lg);
-  color: var(--ink);
   margin-bottom: 24px;
 }
 
@@ -163,9 +146,6 @@
 
 .recipe-modal__ingredient,
 .recipe-modal__step {
-  font-size: 15.5px;
-  line-height: 1.55;
-  color: var(--ink);
   padding: 6px 0;
 }
 
@@ -189,11 +169,6 @@
   background: transparent;
   padding: 0;
   text-align: left;
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 500;
-  font-size: var(--text-lg);
-  color: var(--ink);
   margin-bottom: 24px;
 }
 
@@ -229,8 +204,6 @@
 }
 
 .recipe-modal__breadcrumb-item {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
   color: rgba(255, 255, 255, 0.65);
   cursor: pointer;
   border: none;
@@ -247,7 +220,6 @@
 
 .recipe-modal__breadcrumb-sep {
   color: rgba(255, 255, 255, 0.38);
-  font-size: 11px;
   line-height: 1;
 }
 
@@ -258,12 +230,6 @@
 }
 
 .recipe-modal__used-in-label {
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--label);
   margin-bottom: 14px;
 }
 
