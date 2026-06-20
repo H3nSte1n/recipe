@@ -14,7 +14,7 @@ export default function SearchBar({ value, onSearch }: SearchBarProps) {
         onChange={(e) => onSearch(e.target.value)}
         placeholder="Search..."
         aria-label="Search recipes"
-        className="search-bar__input"
+        className="search-bar__input type-h2"
       />
       <button
         className="search-bar__add-btn"

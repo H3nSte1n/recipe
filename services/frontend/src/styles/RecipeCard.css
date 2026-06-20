@@ -26,19 +26,11 @@
 }
 
 .recipe-card__title {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: var(--text-lg);
-  color: var(--ink);
   margin: 0 0 6px 0;
-  line-height: 1.2;
   transition: opacity 0.25s;
 }
 
 .recipe-card__meta {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  color: var(--meta);
   margin: 0;
 }
 
