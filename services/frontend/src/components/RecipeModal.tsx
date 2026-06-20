@@ -221,8 +221,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
                     .sort((a, b) => a.step_number - b.step_number)
                     .map((inst) => (
                       <div key={inst.id} className="recipe-modal__step type-body">
-                        <span className="recipe-modal__step-num">{inst.step_number}.</span>
-                        <span>{inst.instruction}</span>
+                        {inst.instruction}
                       </div>
                     ))}
                 </div>

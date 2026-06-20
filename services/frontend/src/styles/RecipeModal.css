@@ -149,16 +149,6 @@
   padding: 6px 0;
 }
 
-.recipe-modal__step {
-  display: flex;
-  gap: 14px;
-}
-
-.recipe-modal__step-num {
-  color: var(--label);
-  min-width: 16px;
-  flex-shrink: 0;
-}
 
 .recipe-modal__section-name--link {
   cursor: pointer;
