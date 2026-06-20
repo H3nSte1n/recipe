@@ -5,7 +5,7 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
   if (response.status === 401) {
     logout();
     window.location.href = '/';
-    return response;
+    return new Promise<Response>(() => {});
   }
   return response;
 }

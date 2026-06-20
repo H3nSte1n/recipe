@@ -41,7 +41,8 @@ export function isTokenExpired(): boolean {
   }
   try {
     const payload = token.split('.')[1];
-    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    const padded = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = atob(padded + '=='.slice(0, (4 - padded.length % 4) % 4));
     const { exp } = JSON.parse(decoded) as { exp: number };
     return Date.now() / 1000 >= exp;
   } catch {
@@ -50,7 +51,7 @@ export function isTokenExpired(): boolean {
 }
 
 export function isAuthenticated(): boolean {
-  return !!getToken() && !isTokenExpired();
+  return !isTokenExpired();
 }
 
 export function getAuthHeaders(): { Authorization: string } | Record<string, never> {
