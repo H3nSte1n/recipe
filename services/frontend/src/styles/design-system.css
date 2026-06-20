@@ -48,7 +48,7 @@ body {
 .type-display {
   font-family: var(--font-serif);
   font-style: italic;
-  font-weight: 500;
+  font-weight: 400;
   font-size: var(--text-display);
   line-height: 1.1;
   color: var(--ink);
@@ -57,7 +57,7 @@ body {
 .type-h1 {
   font-family: var(--font-serif);
   font-style: italic;
-  font-weight: 500;
+  font-weight: 400;
   font-size: var(--text-2xl);
   line-height: 1.15;
   color: var(--ink);
@@ -66,7 +66,7 @@ body {
 .type-h2 {
   font-family: var(--font-serif);
   font-style: italic;
-  font-weight: 500;
+  font-weight: 400;
   font-size: var(--text-xl);
   line-height: 1.2;
   color: var(--ink);
@@ -75,7 +75,7 @@ body {
 .type-h3 {
   font-family: var(--font-serif);
   font-style: italic;
-  font-weight: 500;
+  font-weight: 400;
   font-size: var(--text-lg);
   line-height: 1.25;
   color: var(--ink);
@@ -105,7 +105,7 @@ body {
 .type-label {
   font-family: var(--font-sans);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--label);
