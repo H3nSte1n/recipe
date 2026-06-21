@@ -3,9 +3,10 @@ import '../styles/SearchBar.css'
 interface SearchBarProps {
   value: string
   onSearch: (q: string) => void
+  onAdd: () => void
 }
 
-export default function SearchBar({ value, onSearch }: SearchBarProps) {
+export default function SearchBar({ value, onSearch, onAdd }: SearchBarProps) {
   return (
     <div className="search-bar">
       <input
@@ -20,6 +21,7 @@ export default function SearchBar({ value, onSearch }: SearchBarProps) {
         className="search-bar__add-btn"
         type="button"
         aria-label="Add recipe"
+        onClick={onAdd}
       >
         <svg
           width={24}

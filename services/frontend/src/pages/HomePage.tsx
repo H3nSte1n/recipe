@@ -38,7 +38,7 @@ export default function HomePage({ onLogout }: HomePageProps) {
   return (
     <div>
       <header className="home-page__header">
-        <SearchBar value={query} onSearch={setQuery} />
+        <SearchBar value={query} onSearch={setQuery} onAdd={() => setShowAddModal(true)} />
       </header>
       <main className="home-page__main">
         {isLoading && <div className="home-page__loading type-body">Loading…</div>}
@@ -71,14 +71,6 @@ export default function HomePage({ onLogout }: HomePageProps) {
       </main>
       <button className="home-page__profile" type="button" aria-label="Profile" onClick={onLogout}>
         J
-      </button>
-      <button
-        className="home-page__add"
-        type="button"
-        aria-label="Add recipe"
-        onClick={() => setShowAddModal(true)}
-      >
-        +
       </button>
       {selectedRecipe && (
         <RecipeModal
