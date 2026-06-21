@@ -55,10 +55,10 @@ export default function HomePage({ onLogout }: HomePageProps) {
                     try {
                       const full = await getRecipeById(r.id);
                       setSelectedRecipe(full);
-                      setServes(2);
+                      setServes(full.servings ?? 2);
                     } catch {
                       setSelectedRecipe(r);
-                      setServes(2);
+                      setServes(r.servings ?? 2);
                     }
                   })();
                 }}

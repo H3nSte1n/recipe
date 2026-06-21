@@ -212,7 +212,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
                 <div className="recipe-modal__ingredients">
                   {(section.ingredients ?? []).map((ing) => (
                     <div key={ing.id} className="recipe-modal__ingredient type-body">
-                      {ingLine(ing.amount, ing.unit, ing.name, serves / 2)}
+                      {ingLine(ing.amount, ing.unit, ing.name, serves / (recipe.servings || 1))}
                     </div>
                   ))}
                 </div>
