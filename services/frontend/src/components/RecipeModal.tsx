@@ -148,7 +148,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
         <div className="recipe-modal__content">
           <h1 className="recipe-modal__title type-h1">{currentRecipe.title}</h1>
           <div className="recipe-modal__meta type-body">
-            {metaOf(currentRecipe.prep_time, currentRecipe.cook_time, currentRecipe.servings)}
+            {metaOf(currentRecipe.prep_time, currentRecipe.cook_time, 0)}
           </div>
 
           <div className="recipe-modal__serves">
