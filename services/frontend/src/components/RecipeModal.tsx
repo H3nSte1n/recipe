@@ -121,29 +121,30 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
               </svg>
             </button>
           </div>
-          {navStack.length > 1 && (
-            <div className="recipe-modal__breadcrumb">
-              {navStack.map((r, i) => (
-                <span key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {i > 0 && <span className="recipe-modal__breadcrumb-sep type-caption">›</span>}
-                  {i < navStack.length - 1 ? (
-                    <button
-                      className="recipe-modal__breadcrumb-item type-body-sm"
-                      type="button"
-                      onClick={() => setNavStack((prev) => prev.slice(0, i + 1))}
-                    >
-                      {r.title}
-                    </button>
-                  ) : (
-                    <span className="recipe-modal__breadcrumb-item type-body-sm recipe-modal__breadcrumb-item--active">
-                      {r.title}
-                    </span>
-                  )}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
+
+        {navStack.length > 1 && (
+          <div className="recipe-modal__breadcrumb">
+            {navStack.map((r, i) => (
+              <span key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {i > 0 && <span className="recipe-modal__breadcrumb-sep type-caption">›</span>}
+                {i < navStack.length - 1 ? (
+                  <button
+                    className="recipe-modal__breadcrumb-item type-body-sm"
+                    type="button"
+                    onClick={() => setNavStack((prev) => prev.slice(0, i + 1))}
+                  >
+                    {r.title}
+                  </button>
+                ) : (
+                  <span className="recipe-modal__breadcrumb-item type-body-sm recipe-modal__breadcrumb-item--active">
+                    {r.title}
+                  </span>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="recipe-modal__content">
           <h1 className="recipe-modal__title type-h1">{currentRecipe.title}</h1>

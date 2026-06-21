@@ -181,20 +181,16 @@
 }
 
 .recipe-modal__breadcrumb {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(to bottom, transparent, rgba(20, 22, 28, 0.58));
-  padding: 32px 20px 14px;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 2px;
+  padding: 12px 52px;
+  border-bottom: 1px solid var(--line);
 }
 
 .recipe-modal__breadcrumb-item {
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--meta);
   cursor: pointer;
   border: none;
   background: transparent;
@@ -203,13 +199,12 @@
 }
 
 .recipe-modal__breadcrumb-item--active {
-  color: #ffffff;
-  font-weight: 500;
+  color: var(--ink);
   cursor: default;
 }
 
 .recipe-modal__breadcrumb-sep {
-  color: rgba(255, 255, 255, 0.38);
+  color: var(--label);
   line-height: 1;
 }
 
