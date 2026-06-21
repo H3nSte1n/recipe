@@ -3,6 +3,7 @@ import { Recipe } from '../types/recipe';
 import { useRecipes } from '../hooks/useRecipes';
 import RecipeCard from '../components/RecipeCard';
 import RecipeModal from '../components/RecipeModal';
+import AddRecipeModal from '../components/AddRecipeModal';
 import SearchBar from '../components/SearchBar';
 import { getRecipeById } from '../services/recipeService';
 import '../styles/HomePage.css';
@@ -12,10 +13,11 @@ interface HomePageProps {
 }
 
 export default function HomePage({ onLogout }: HomePageProps) {
-  const { isLoading, error, filterRecipes, recipes } = useRecipes();
+  const { isLoading, error, filterRecipes, recipes, refresh } = useRecipes();
   const [query, setQuery] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [serves, setServes] = useState(2);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const filtered = filterRecipes(query);
 
@@ -70,6 +72,14 @@ export default function HomePage({ onLogout }: HomePageProps) {
       <button className="home-page__profile" type="button" aria-label="Profile" onClick={onLogout}>
         J
       </button>
+      <button
+        className="home-page__add"
+        type="button"
+        aria-label="Add recipe"
+        onClick={() => setShowAddModal(true)}
+      >
+        +
+      </button>
       {selectedRecipe && (
         <RecipeModal
           recipe={selectedRecipe}
@@ -78,6 +88,12 @@ export default function HomePage({ onLogout }: HomePageProps) {
           onDec={handleDec}
           onClose={() => setSelectedRecipe(null)}
           usedIn={usedIn}
+        />
+      )}
+      {showAddModal && (
+        <AddRecipeModal
+          onClose={() => setShowAddModal(false)}
+          onSaved={refresh}
         />
       )}
     </div>
