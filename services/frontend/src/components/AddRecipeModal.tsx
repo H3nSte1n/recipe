@@ -1,4 +1,11 @@
 import { useRef, useState } from 'react';
+import { createRecipe } from '../services/recipeService';
+import {
+  CreateRecipeIngredientPayload,
+  CreateRecipeInstructionPayload,
+  CreateRecipeNutritionPayload,
+  Recipe,
+} from '../types/recipe';
 import '../styles/AddRecipeModal.css';
 
 interface AddRecipeModalProps {
@@ -13,6 +20,20 @@ interface Section {
   ingredients: string;
   instructions: string;
   notes: string;
+}
+
+function parseIngredients(text: string): CreateRecipeIngredientPayload[] {
+  return text
+    .split('\n')
+    .filter((l) => l.trim())
+    .map((line) => ({ name: line.trim(), description: line.trim(), amount: 0, unit: '', notes: '' }));
+}
+
+function parseInstructions(text: string): CreateRecipeInstructionPayload[] {
+  return text
+    .split('\n')
+    .filter((l) => l.trim())
+    .map((line, idx) => ({ step_number: idx + 1, instruction: line.trim() }));
 }
 
 function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
@@ -31,11 +52,6 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
   const [saveError, setSaveError] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // suppress unused warnings — imageFile used when save is implemented in Phase 3
-  void imageFile;
-  void setIsSaving;
-  void setSaveError;
 
   function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -74,8 +90,75 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
     );
   }
 
-  const handleSave = () => {
-    void onSaved;
+  const handleSave = async () => {
+    if (!title.trim() || isSaving) return;
+    setIsSaving(true);
+    setSaveError('');
+
+    const nutritionPayload: CreateRecipeNutritionPayload | undefined =
+      calories || protein || fat
+        ? { calories: parseFloat(calories) || 0, protein: parseFloat(protein) || 0, fat: parseFloat(fat) || 0 }
+        : undefined;
+
+    try {
+      if (sections.length === 1) {
+        await createRecipe(
+          {
+            title: title.trim(),
+            description,
+            source_type: 'MANUAL',
+            servings: 1,
+            prep_time: parseInt(prepTime) || 0,
+            notes: '',
+            is_private: false,
+            status: 'published',
+            ingredients: parseIngredients(sections[0].ingredients),
+            instructions: parseInstructions(sections[0].instructions),
+            nutrition: nutritionPayload,
+          },
+          imageFile,
+        );
+      } else {
+        const subRecipes: Recipe[] = [];
+        for (const section of sections) {
+          const created = await createRecipe({
+            title: section.name.trim() || 'Untitled',
+            description: '',
+            source_type: 'MANUAL',
+            servings: section.servings,
+            prep_time: 0,
+            notes: section.notes,
+            is_private: false,
+            status: 'published',
+            ingredients: parseIngredients(section.ingredients),
+            instructions: parseInstructions(section.instructions),
+          });
+          subRecipes.push(created);
+        }
+        await createRecipe(
+          {
+            title: title.trim(),
+            description,
+            source_type: 'MANUAL',
+            servings: 1,
+            prep_time: parseInt(prepTime) || 0,
+            notes: '',
+            is_private: false,
+            status: 'published',
+            ingredients: [],
+            instructions: [],
+            nutrition: nutritionPayload,
+            sub_recipes: subRecipes.map((r) => ({ recipe_id: r.id, serving_factor: 1 })),
+          },
+          imageFile,
+        );
+      }
+      onSaved();
+      onClose();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save recipe');
+      setIsSaving(false);
+    }
   };
 
   return (
