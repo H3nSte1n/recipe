@@ -1,3 +1,42 @@
+export interface CreateRecipeIngredientPayload {
+  name: string;
+  description: string;
+  amount: number;
+  unit: string;
+  notes: string;
+}
+
+export interface CreateRecipeInstructionPayload {
+  step_number: number;
+  instruction: string;
+}
+
+export interface CreateRecipeNutritionPayload {
+  calories: number;
+  protein: number;
+  fat: number;
+}
+
+export interface SubRecipePayload {
+  recipe_id: string;
+  serving_factor: number;
+}
+
+export interface CreateRecipePayload {
+  title: string;
+  description: string;
+  source_type: string;
+  servings: number;
+  prep_time: number;
+  notes: string;
+  is_private: boolean;
+  status: string;
+  ingredients: CreateRecipeIngredientPayload[];
+  instructions: CreateRecipeInstructionPayload[];
+  nutrition?: CreateRecipeNutritionPayload;
+  sub_recipes?: SubRecipePayload[];
+}
+
 export interface RecipeIngredient {
   id: string;
   recipe_id: string;

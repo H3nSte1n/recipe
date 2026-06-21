@@ -7,12 +7,14 @@ interface UseRecipesReturn {
   isLoading: boolean;
   error: string | null;
   filterRecipes: (query: string) => Recipe[];
+  refresh: () => void;
 }
 
 export function useRecipes(): UseRecipesReturn {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,7 +43,7 @@ export function useRecipes(): UseRecipesReturn {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   const filterRecipes = useCallback((query: string): Recipe[] => {
     if (!query.trim()) {
@@ -51,5 +53,7 @@ export function useRecipes(): UseRecipesReturn {
     return recipes.filter((recipe) => recipe.title.toLowerCase().includes(lowerQuery));
   }, [recipes]);
 
-  return { recipes, isLoading, error, filterRecipes };
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  return { recipes, isLoading, error, filterRecipes, refresh };
 }
