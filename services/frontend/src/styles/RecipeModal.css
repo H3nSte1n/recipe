@@ -116,7 +116,6 @@
 
 .recipe-modal__content {
   padding: 42px 52px 60px;
-  border-top: 1px solid var(--line);
 }
 
 .recipe-modal__title {
