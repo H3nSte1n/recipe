@@ -26,6 +26,7 @@
 }
 
 .recipe-modal__card {
+  position: relative;
   width: min(720px, 92vw);
   margin: 5vh auto 9vh;
   background: var(--bg);
@@ -92,12 +93,11 @@
   position: absolute;
   top: 14px;
   right: 14px;
+  z-index: 1;
   display: flex;
   gap: 2px;
   padding: 4px;
-  background: rgba(22, 24, 30, 0.34);
   border-radius: 9px;
-  backdrop-filter: blur(6px);
 }
 
 .recipe-modal__control-btn {
@@ -105,7 +105,7 @@
   background: transparent;
   cursor: pointer;
   padding: 7px;
-  color: #f4f3ef;
+  color: var(--meta);
   line-height: 0;
   transition: opacity 0.15s;
 }
