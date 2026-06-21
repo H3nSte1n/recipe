@@ -233,72 +233,80 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
         <div className="add-recipe-modal__stats">
           <div className="add-recipe-modal__stats-grid">
             {/* Time */}
-            <div className="add-recipe-modal__stats-cell">
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-              <span className="add-recipe-modal__stats-label">Time</span>
+            <div className="add-recipe-modal__stat-cell">
+              <span className="add-recipe-modal__stat-icon">
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </span>
+              <span className="add-recipe-modal__stat-label">Time</span>
               <input
-                className="add-recipe-modal__stats-input"
+                className="add-recipe-modal__stat-input"
                 type="number"
                 min={0}
-                placeholder="0"
+                placeholder="Add"
                 value={prepTime}
                 onChange={(e) => setPrepTime(e.target.value)}
               />
-              <span className="add-recipe-modal__stats-unit">min</span>
+              <span className="add-recipe-modal__stat-unit">min</span>
             </div>
 
             {/* Calories */}
-            <div className="add-recipe-modal__stats-cell">
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z" />
-              </svg>
-              <span className="add-recipe-modal__stats-label">Calories</span>
+            <div className="add-recipe-modal__stat-cell">
+              <span className="add-recipe-modal__stat-icon">
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z" />
+                </svg>
+              </span>
+              <span className="add-recipe-modal__stat-label">Calories</span>
               <input
-                className="add-recipe-modal__stats-input"
+                className="add-recipe-modal__stat-input"
                 type="number"
                 min={0}
-                placeholder="0"
+                placeholder="Add"
                 value={calories}
                 onChange={(e) => setCalories(e.target.value)}
               />
-              <span className="add-recipe-modal__stats-unit">kcal</span>
+              <span className="add-recipe-modal__stat-unit">kcal</span>
             </div>
 
             {/* Protein */}
-            <div className="add-recipe-modal__stats-cell">
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="5" />
-              </svg>
-              <span className="add-recipe-modal__stats-label">Protein</span>
+            <div className="add-recipe-modal__stat-cell">
+              <span className="add-recipe-modal__stat-icon">
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5" />
+                </svg>
+              </span>
+              <span className="add-recipe-modal__stat-label">Protein</span>
               <input
-                className="add-recipe-modal__stats-input"
+                className="add-recipe-modal__stat-input"
                 type="number"
                 min={0}
-                placeholder="0"
+                placeholder="Add"
                 value={protein}
                 onChange={(e) => setProtein(e.target.value)}
               />
-              <span className="add-recipe-modal__stats-unit">g</span>
+              <span className="add-recipe-modal__stat-unit">g</span>
             </div>
 
             {/* Fat */}
-            <div className="add-recipe-modal__stats-cell">
-              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2L6 12a6 6 0 1 0 12 0L12 2z" />
-              </svg>
-              <span className="add-recipe-modal__stats-label">Fat</span>
+            <div className="add-recipe-modal__stat-cell">
+              <span className="add-recipe-modal__stat-icon">
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L6 12a6 6 0 1 0 12 0L12 2z" />
+                </svg>
+              </span>
+              <span className="add-recipe-modal__stat-label">Fat</span>
               <input
-                className="add-recipe-modal__stats-input"
+                className="add-recipe-modal__stat-input"
                 type="number"
                 min={0}
-                placeholder="0"
+                placeholder="Add"
                 value={fat}
                 onChange={(e) => setFat(e.target.value)}
               />
-              <span className="add-recipe-modal__stats-unit">g</span>
+              <span className="add-recipe-modal__stat-unit">g</span>
             </div>
           </div>
         </div>
