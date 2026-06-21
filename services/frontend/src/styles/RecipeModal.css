@@ -37,6 +37,37 @@
   animation: cardIn 0.3s cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
+.recipe-modal__header {
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-modal__header-info {
+  padding: 24px 28px 20px;
+}
+
+@media (min-width: 560px) {
+  .recipe-modal__header {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .recipe-modal__hero {
+    flex: 0 0 auto;
+    width: 260px !important;
+    height: 260px;
+    aspect-ratio: auto !important;
+    margin: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .recipe-modal__header-info {
+    flex: 1;
+    padding: 20px 40px 20px 0;
+  }
+}
+
 .recipe-modal__hero {
   position: relative;
   width: 100%;
@@ -85,25 +116,24 @@
 
 .recipe-modal__content {
   padding: 42px 52px 60px;
+  border-top: 1px solid var(--line);
 }
 
 .recipe-modal__title {
-  text-align: center;
-  margin: 6px 0 0;
+  margin: 0;
   letter-spacing: 0.2px;
 }
 
 .recipe-modal__meta {
-  text-align: center;
   color: var(--meta);
-  margin-top: 11px;
+  margin-top: 8px;
 }
 
 .recipe-modal__serves {
   display: flex;
   align-items: center;
   gap: 20px;
-  margin-top: 42px;
+  margin-top: 0;
 }
 
 

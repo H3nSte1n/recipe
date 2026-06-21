@@ -79,47 +79,55 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
   return (
     <div className="recipe-modal" onClick={onClose}>
       <div className="recipe-modal__card" onClick={(e) => e.stopPropagation()}>
-        <div className="recipe-modal__hero">
-          {currentRecipe.image_url ? (
-            <img src={currentRecipe.image_url} alt={currentRecipe.title} />
-          ) : (
-            <div className="recipe-modal__hero-placeholder" />
-          )}
-          <div className="recipe-modal__controls">
-            <button className="recipe-modal__control-btn" type="button" aria-label="Edit recipe">
-              <svg
-                width={18}
-                height={18}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
+        <div className="recipe-modal__header">
+          <div className="recipe-modal__hero">
+            {currentRecipe.image_url ? (
+              <img src={currentRecipe.image_url} alt={currentRecipe.title} />
+            ) : (
+              <div className="recipe-modal__hero-placeholder" />
+            )}
+            <div className="recipe-modal__controls">
+              <button className="recipe-modal__control-btn" type="button" aria-label="Edit recipe">
+                <svg
+                  width={18}
+                  height={18}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                </svg>
+              </button>
+              <button
+                className="recipe-modal__control-btn"
+                type="button"
+                aria-label="Close"
+                onClick={onClose}
               >
-                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-              </svg>
-            </button>
-            <button
-              className="recipe-modal__control-btn"
-              type="button"
-              aria-label="Close"
-              onClick={onClose}
-            >
-              <svg
-                width={18}
-                height={18}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1={6} y1={6} x2={18} y2={18} />
-                <line x1={18} y1={6} x2={6} y2={18} />
-              </svg>
-            </button>
+                <svg
+                  width={18}
+                  height={18}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1={6} y1={6} x2={18} y2={18} />
+                  <line x1={18} y1={6} x2={6} y2={18} />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div className="recipe-modal__header-info">
+            <h1 className="recipe-modal__title type-h1">{currentRecipe.title}</h1>
+            <div className="recipe-modal__meta type-body">
+              {metaOf(currentRecipe.prep_time, currentRecipe.cook_time, 0)}
+            </div>
           </div>
         </div>
 
@@ -147,11 +155,6 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
         )}
 
         <div className="recipe-modal__content">
-          <h1 className="recipe-modal__title type-h1">{currentRecipe.title}</h1>
-          <div className="recipe-modal__meta type-body">
-            {metaOf(currentRecipe.prep_time, currentRecipe.cook_time, 0)}
-          </div>
-
           <div className="recipe-modal__serves">
             <span className="recipe-modal__serves-label type-label">Serves</span>
             <button
