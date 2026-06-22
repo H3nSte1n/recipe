@@ -45,6 +45,11 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
   const [fat, setFat] = useState('');
+  const [cookTime, setCookTime] = useState('');
+  const [shelfLife, setShelfLife] = useState('');
+  const [servings, setServings] = useState('1');
+  const [status, setStatus] = useState('published');
+  const [carbs, setCarbs] = useState('');
   const [sections, setSections] = useState<Section[]>([
     { id: String(Date.now()), name: '', servings: 1, ingredients: '', instructions: '', notes: '' },
   ]);
@@ -96,8 +101,13 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
     setSaveError('');
 
     const nutritionPayload: CreateRecipeNutritionPayload | undefined =
-      calories || protein || fat
-        ? { calories: parseFloat(calories) || 0, protein: parseFloat(protein) || 0, fat: parseFloat(fat) || 0, carbs: 0 }
+      calories || protein || fat || carbs
+        ? {
+            calories: parseFloat(calories) || 0,
+            protein: parseFloat(protein) || 0,
+            fat: parseFloat(fat) || 0,
+            carbs: parseFloat(carbs) || 0,
+          }
         : undefined;
 
     try {
@@ -107,11 +117,13 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
             title: title.trim(),
             description,
             source_type: 'MANUAL',
-            servings: 1,
+            servings: parseInt(servings) || 1,
             prep_time: parseInt(prepTime) || 0,
+            cook_time: parseInt(cookTime) || 0,
+            shelf_life: parseInt(shelfLife) || 0,
             notes: '',
             is_private: false,
-            status: 'published',
+            status,
             ingredients: parseIngredients(sections[0].ingredients),
             instructions: parseInstructions(sections[0].instructions),
             nutrition: nutritionPayload,
@@ -140,11 +152,13 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
             title: title.trim(),
             description,
             source_type: 'MANUAL',
-            servings: 1,
+            servings: parseInt(servings) || 1,
             prep_time: parseInt(prepTime) || 0,
+            cook_time: parseInt(cookTime) || 0,
+            shelf_life: parseInt(shelfLife) || 0,
             notes: '',
             is_private: false,
-            status: 'published',
+            status,
             ingredients: [],
             instructions: [],
             nutrition: nutritionPayload,
@@ -232,7 +246,7 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
         {/* D: Stats card */}
         <div className="add-recipe-modal__stats">
           <div className="add-recipe-modal__stats-grid">
-            {/* Time */}
+            {/* Prep time */}
             <div className="add-recipe-modal__stat-cell">
               <span className="add-recipe-modal__stat-icon">
                 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -240,7 +254,7 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
               </span>
-              <span className="add-recipe-modal__stat-label">Time</span>
+              <span className="add-recipe-modal__stat-label">Prep</span>
               <input
                 className="add-recipe-modal__stat-input"
                 type="number"
@@ -250,6 +264,65 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
                 onChange={(e) => setPrepTime(e.target.value)}
               />
               <span className="add-recipe-modal__stat-unit">min</span>
+            </div>
+
+            {/* Cook time */}
+            <div className="add-recipe-modal__stat-cell">
+              <span className="add-recipe-modal__stat-icon">
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z" />
+                </svg>
+              </span>
+              <span className="add-recipe-modal__stat-label">Cook</span>
+              <input
+                className="add-recipe-modal__stat-input"
+                type="number"
+                min={0}
+                placeholder="Add"
+                value={cookTime}
+                onChange={(e) => setCookTime(e.target.value)}
+              />
+              <span className="add-recipe-modal__stat-unit">min</span>
+            </div>
+
+            {/* Servings */}
+            <div className="add-recipe-modal__stat-cell">
+              <span className="add-recipe-modal__stat-icon">
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5" />
+                </svg>
+              </span>
+              <span className="add-recipe-modal__stat-label">Servings</span>
+              <input
+                className="add-recipe-modal__stat-input"
+                type="number"
+                min={1}
+                placeholder="1"
+                value={servings}
+                onChange={(e) => setServings(e.target.value)}
+              />
+            </div>
+
+            {/* Shelf life */}
+            <div className="add-recipe-modal__stat-cell">
+              <span className="add-recipe-modal__stat-icon">
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </span>
+              <span className="add-recipe-modal__stat-label">Shelf life</span>
+              <input
+                className="add-recipe-modal__stat-input"
+                type="number"
+                min={0}
+                placeholder="Add"
+                value={shelfLife}
+                onChange={(e) => setShelfLife(e.target.value)}
+              />
+              <span className="add-recipe-modal__stat-unit">days</span>
             </div>
 
             {/* Calories */}
@@ -269,6 +342,25 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
                 onChange={(e) => setCalories(e.target.value)}
               />
               <span className="add-recipe-modal__stat-unit">kcal</span>
+            </div>
+
+            {/* Carbs */}
+            <div className="add-recipe-modal__stat-cell">
+              <span className="add-recipe-modal__stat-icon">
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L6 12a6 6 0 1 0 12 0L12 2z" />
+                </svg>
+              </span>
+              <span className="add-recipe-modal__stat-label">Carbs</span>
+              <input
+                className="add-recipe-modal__stat-input"
+                type="number"
+                min={0}
+                placeholder="Add"
+                value={carbs}
+                onChange={(e) => setCarbs(e.target.value)}
+              />
+              <span className="add-recipe-modal__stat-unit">g</span>
             </div>
 
             {/* Protein */}
@@ -308,6 +400,20 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
               />
               <span className="add-recipe-modal__stat-unit">g</span>
             </div>
+          </div>
+
+          {/* Status selector */}
+          <div className="add-recipe-modal__status-row">
+            <span className="add-recipe-modal__stat-label">Status</span>
+            <select
+              className="add-recipe-modal__status-select"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+            </select>
           </div>
         </div>
 
