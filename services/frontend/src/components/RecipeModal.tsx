@@ -126,8 +126,13 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
           <div className="recipe-modal__header-info">
             <h1 className="recipe-modal__title type-h1">{currentRecipe.title}</h1>
             <div className="recipe-modal__meta type-body">
-              {metaOf(currentRecipe.prep_time, currentRecipe.cook_time, 0)}
+              {metaOf(currentRecipe.prep_time, currentRecipe.cook_time, currentRecipe.servings, currentRecipe.shelf_life)}
             </div>
+            {currentRecipe.status && currentRecipe.status !== 'published' && (
+              <span className={`recipe-modal__status-badge recipe-modal__status-badge--${currentRecipe.status}`}>
+                {currentRecipe.status}
+              </span>
+            )}
           </div>
         </div>
 
@@ -196,6 +201,30 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
               </svg>
             </button>
           </div>
+
+          {currentRecipe.nutrition && (
+            <div className="recipe-modal__nutrition">
+              <span className="recipe-modal__nutrition-item type-body">
+                <span className="recipe-modal__nutrition-value">{currentRecipe.nutrition.calories}</span>
+                <span className="recipe-modal__nutrition-label type-label">kcal</span>
+              </span>
+              <span className="recipe-modal__nutrition-sep">·</span>
+              <span className="recipe-modal__nutrition-item type-body">
+                <span className="recipe-modal__nutrition-value">{currentRecipe.nutrition.carbs}g</span>
+                <span className="recipe-modal__nutrition-label type-label">carbs</span>
+              </span>
+              <span className="recipe-modal__nutrition-sep">·</span>
+              <span className="recipe-modal__nutrition-item type-body">
+                <span className="recipe-modal__nutrition-value">{currentRecipe.nutrition.protein}g</span>
+                <span className="recipe-modal__nutrition-label type-label">protein</span>
+              </span>
+              <span className="recipe-modal__nutrition-sep">·</span>
+              <span className="recipe-modal__nutrition-item type-body">
+                <span className="recipe-modal__nutrition-value">{currentRecipe.nutrition.fat}g</span>
+                <span className="recipe-modal__nutrition-label type-label">fat</span>
+              </span>
+            </div>
+          )}
 
           {sections.map((section, i) => (
             <div key={i} className="recipe-modal__section">
