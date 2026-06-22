@@ -15,6 +15,7 @@ export interface CreateRecipeNutritionPayload {
   calories: number;
   protein: number;
   fat: number;
+  carbs: number;
 }
 
 export interface SubRecipePayload {
@@ -28,6 +29,8 @@ export interface CreateRecipePayload {
   source_type: string;
   servings: number;
   prep_time: number;
+  cook_time?: number;
+  shelf_life?: number;
   notes: string;
   is_private: boolean;
   status: string;
@@ -62,6 +65,16 @@ export interface SubRecipe {
   child?: Recipe;
 }
 
+export interface RecipeNutrition {
+  id: string;
+  recipe_id: string;
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+  per_serving: boolean;
+}
+
 export interface Recipe {
   id: string;
   user_id: string;
@@ -83,4 +96,5 @@ export interface Recipe {
   ingredients?: RecipeIngredient[];
   instructions?: RecipeInstruction[];
   sub_recipes?: SubRecipe[];
+  nutrition?: RecipeNutrition;
 }

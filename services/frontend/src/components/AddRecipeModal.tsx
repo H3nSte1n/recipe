@@ -97,7 +97,7 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
 
     const nutritionPayload: CreateRecipeNutritionPayload | undefined =
       calories || protein || fat
-        ? { calories: parseFloat(calories) || 0, protein: parseFloat(protein) || 0, fat: parseFloat(fat) || 0 }
+        ? { calories: parseFloat(calories) || 0, protein: parseFloat(protein) || 0, fat: parseFloat(fat) || 0, carbs: 0 }
         : undefined;
 
     try {
