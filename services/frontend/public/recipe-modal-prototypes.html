@@ -1606,24 +1606,37 @@ document.querySelectorAll('.tab-pill').forEach(function(tab) {
     var targetTab = this.getAttribute('data-tab');
     document.querySelectorAll('.tab-pill').forEach(function(t) { t.classList.remove('active'); });
     this.classList.add('active');
-    document.querySelectorAll('.panel').forEach(function(p) {
-      p.classList.remove('active');
-      p.style.display = 'none';
-    });
     var target = document.getElementById('panel-' + targetTab);
-    if (target) {
-      target.style.display = 'block';
-      // Trigger fade-in
-      target.style.opacity = '0';
-      target.style.transform = 'translateY(6px)';
-      requestAnimationFrame(function() {
-        requestAnimationFrame(function() {
-          target.style.transition = 'opacity 150ms ease, transform 150ms ease';
-          target.style.opacity = '1';
-          target.style.transform = 'translateY(0)';
-          target.classList.add('active');
-        });
+    // Fade out current, then fade in target
+    var outgoing = document.querySelector('.panel.active');
+    function showTarget() {
+      document.querySelectorAll('.panel').forEach(function(p) {
+        p.classList.remove('active');
+        p.style.display = 'none';
+        p.style.opacity = '';
+        p.style.transform = '';
+        p.style.transition = '';
       });
+      if (target) {
+        target.style.display = 'block';
+        target.style.opacity = '0';
+        target.style.transform = 'translateY(6px)';
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            target.style.transition = 'opacity 150ms ease, transform 150ms ease';
+            target.style.opacity = '1';
+            target.style.transform = 'translateY(0)';
+            target.classList.add('active');
+          });
+        });
+      }
+    }
+    if (outgoing && outgoing !== target) {
+      outgoing.style.transition = 'opacity 100ms ease';
+      outgoing.style.opacity = '0';
+      setTimeout(showTarget, 100);
+    } else {
+      showTarget();
     }
   });
 });
@@ -1676,9 +1689,9 @@ function wizardUpdate() {
     else if (s < wizardStep) dot.classList.add('done');
   });
   // Update dot lines
-  for (var i = 1; i < wizardTotal; i++) {
-    var line = document.getElementById('dl-' + i + '-' + (i+1));
-    if (line) line.classList.toggle('done', i < wizardStep);
+  for (var j = 1; j < wizardTotal; j++) {
+    var line = document.getElementById('dl-' + j + '-' + (j+1));
+    if (line) line.classList.toggle('done', j < wizardStep);
   }
   // Update label
   var label = document.getElementById('wiz-step-label');
