@@ -137,7 +137,7 @@
   padding: 11px 14px;
 }
 
-.add-recipe-modal__stat-cell:nth-child(-n+2) {
+.add-recipe-modal__stat-cell:nth-child(-n+6) {
   border-bottom: 1px solid var(--line);
 }
 
@@ -184,6 +184,29 @@
   color: var(--meta);
   font-size: 13px;
   white-space: nowrap;
+}
+
+.add-recipe-modal__status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+}
+
+.add-recipe-modal__status-select {
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+  outline: none;
+  padding: 0;
+}
+
+.add-recipe-modal__status-select:focus {
+  outline: none;
 }
 
 .add-recipe-modal__sections {

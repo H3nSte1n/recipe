@@ -300,3 +300,55 @@
   color: var(--ink);
   line-height: 17px;
 }
+
+.recipe-modal__status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.recipe-modal__status-badge--draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.recipe-modal__status-badge--archived {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.recipe-modal__nutrition {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border, #e8e4de);
+  flex-wrap: wrap;
+}
+
+.recipe-modal__nutrition-item {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.recipe-modal__nutrition-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.recipe-modal__nutrition-label {
+  font-size: 11px;
+  color: var(--meta);
+}
+
+.recipe-modal__nutrition-sep {
+  color: var(--meta);
+  font-size: 12px;
+}
