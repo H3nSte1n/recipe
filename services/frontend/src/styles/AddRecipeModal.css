@@ -170,7 +170,7 @@
 }
 
 .add-recipe-modal__meta-grid {
-  width: 100%;
+  align-self: stretch;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
@@ -237,7 +237,7 @@
 }
 
 .add-recipe-modal__nutrition-grid {
-  width: 100%;
+  align-self: stretch;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
