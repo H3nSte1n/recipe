@@ -100,8 +100,15 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
     setIsSaving(true);
     setSaveError('');
 
+    const parsedServings = parseInt(servings);
+    if (isNaN(parsedServings) || parsedServings < 1) {
+      setSaveError('Servings must be at least 1');
+      setIsSaving(false);
+      return;
+    }
+
     const nutritionPayload: CreateRecipeNutritionPayload | undefined =
-      calories || protein || fat || carbs
+      calories !== '' || protein !== '' || fat !== '' || carbs !== ''
         ? {
             calories: parseFloat(calories) || 0,
             protein: parseFloat(protein) || 0,
@@ -117,7 +124,7 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
             title: title.trim(),
             description,
             source_type: 'MANUAL',
-            servings: parseInt(servings) || 1,
+            servings: parsedServings,
             prep_time: parseInt(prepTime) || 0,
             cook_time: parseInt(cookTime) || 0,
             shelf_life: parseInt(shelfLife) || 0,
@@ -139,9 +146,11 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
             source_type: 'MANUAL',
             servings: section.servings,
             prep_time: 0,
+            cook_time: parseInt(cookTime) || 0,
+            shelf_life: parseInt(shelfLife) || 0,
             notes: section.notes,
             is_private: false,
-            status: 'published',
+            status,
             ingredients: parseIngredients(section.ingredients),
             instructions: parseInstructions(section.instructions),
           });
@@ -152,7 +161,7 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
             title: title.trim(),
             description,
             source_type: 'MANUAL',
-            servings: parseInt(servings) || 1,
+            servings: parsedServings,
             prep_time: parseInt(prepTime) || 0,
             cook_time: parseInt(cookTime) || 0,
             shelf_life: parseInt(shelfLife) || 0,
