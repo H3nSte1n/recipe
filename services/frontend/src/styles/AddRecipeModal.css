@@ -151,7 +151,7 @@
   border: none;
   background: transparent;
   font-family: var(--font-sans);
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--ink);
   cursor: pointer;
@@ -174,17 +174,17 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .add-recipe-modal__meta-card {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .add-recipe-modal__meta-card-label {
@@ -241,18 +241,19 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .add-recipe-modal__nutrition-card {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 18px 16px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  min-height: 96px;
 }
 
 .add-recipe-modal__nutrition-card-label {
@@ -261,13 +262,6 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--meta);
-}
-
-.add-recipe-modal__nutrition-card-divider {
-  width: 28px;
-  height: 1px;
-  background: var(--line);
-  display: block;
 }
 
 .add-recipe-modal__nutrition-card-input {
@@ -295,13 +289,6 @@
 .add-recipe-modal__nutrition-card-unit {
   font-size: 13px;
   color: var(--meta);
-}
-
-.add-recipe-modal__nutrition-hint {
-  font-size: 13px;
-  color: var(--meta);
-  text-align: center;
-  margin-bottom: 12px;
 }
 
 .add-recipe-modal__sections {

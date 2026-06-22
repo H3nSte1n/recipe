@@ -331,30 +331,25 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
         <div className="add-recipe-modal__nutrition-grid">
           <div className="add-recipe-modal__nutrition-card">
             <span className="add-recipe-modal__nutrition-card-label">Calories</span>
-            <span className="add-recipe-modal__nutrition-card-divider" />
             <input className="add-recipe-modal__nutrition-card-input" type="number" min={0} placeholder="—" value={calories} onChange={(e) => setCalories(e.target.value)} />
             <span className="add-recipe-modal__nutrition-card-unit">kcal</span>
           </div>
           <div className="add-recipe-modal__nutrition-card">
             <span className="add-recipe-modal__nutrition-card-label">Carbs</span>
-            <span className="add-recipe-modal__nutrition-card-divider" />
             <input className="add-recipe-modal__nutrition-card-input" type="number" min={0} placeholder="—" value={carbs} onChange={(e) => setCarbs(e.target.value)} />
             <span className="add-recipe-modal__nutrition-card-unit">g</span>
           </div>
           <div className="add-recipe-modal__nutrition-card">
             <span className="add-recipe-modal__nutrition-card-label">Protein</span>
-            <span className="add-recipe-modal__nutrition-card-divider" />
             <input className="add-recipe-modal__nutrition-card-input" type="number" min={0} placeholder="—" value={protein} onChange={(e) => setProtein(e.target.value)} />
             <span className="add-recipe-modal__nutrition-card-unit">g</span>
           </div>
           <div className="add-recipe-modal__nutrition-card">
             <span className="add-recipe-modal__nutrition-card-label">Fat</span>
-            <span className="add-recipe-modal__nutrition-card-divider" />
             <input className="add-recipe-modal__nutrition-card-input" type="number" min={0} placeholder="—" value={fat} onChange={(e) => setFat(e.target.value)} />
             <span className="add-recipe-modal__nutrition-card-unit">g</span>
           </div>
         </div>
-        <p className="add-recipe-modal__nutrition-hint">Leave empty to skip nutrition</p>
 
         {/* E: Sections */}
         <div className="add-recipe-modal__sections">
