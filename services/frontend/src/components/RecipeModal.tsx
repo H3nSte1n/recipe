@@ -203,7 +203,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
           </div>
 
           {currentRecipe.nutrition && (() => {
-            const nutritionScale = currentRecipe.nutrition.per_serving ? serves / (currentRecipe.servings || 1) : 1;
+            const nutritionScale = currentRecipe.nutrition.per_serving ? serves / (recipe.servings || 1) : 1;
             return (
               <div className="recipe-modal__nutrition">
                 <span className="recipe-modal__nutrition-item type-body">
