@@ -257,171 +257,12 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
           onChange={(e) => setDescription(e.target.value)}
         />
 
-        {/* D: Stats card */}
-        <div className="add-recipe-modal__stats">
-          <div className="add-recipe-modal__stats-grid">
-            {/* Prep time */}
-            <div className="add-recipe-modal__stat-cell">
-              <span className="add-recipe-modal__stat-icon">
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-              </span>
-              <span className="add-recipe-modal__stat-label">Prep</span>
-              <input
-                className="add-recipe-modal__stat-input"
-                type="number"
-                min={0}
-                placeholder="Add"
-                value={prepTime}
-                onChange={(e) => setPrepTime(e.target.value)}
-              />
-              <span className="add-recipe-modal__stat-unit">min</span>
-            </div>
-
-            {/* Cook time */}
-            <div className="add-recipe-modal__stat-cell">
-              <span className="add-recipe-modal__stat-icon">
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z" />
-                </svg>
-              </span>
-              <span className="add-recipe-modal__stat-label">Cook</span>
-              <input
-                className="add-recipe-modal__stat-input"
-                type="number"
-                min={0}
-                placeholder="Add"
-                value={cookTime}
-                onChange={(e) => setCookTime(e.target.value)}
-              />
-              <span className="add-recipe-modal__stat-unit">min</span>
-            </div>
-
-            {/* Servings */}
-            <div className="add-recipe-modal__stat-cell">
-              <span className="add-recipe-modal__stat-icon">
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="5" />
-                </svg>
-              </span>
-              <span className="add-recipe-modal__stat-label">Servings</span>
-              <input
-                className="add-recipe-modal__stat-input"
-                type="number"
-                min={1}
-                step={1}
-                placeholder="1"
-                value={servings}
-                onChange={(e) => setServings(e.target.value)}
-              />
-            </div>
-
-            {/* Shelf life */}
-            <div className="add-recipe-modal__stat-cell">
-              <span className="add-recipe-modal__stat-icon">
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-              </span>
-              <span className="add-recipe-modal__stat-label">Shelf life</span>
-              <input
-                className="add-recipe-modal__stat-input"
-                type="number"
-                min={0}
-                placeholder="Add"
-                value={shelfLife}
-                onChange={(e) => setShelfLife(e.target.value)}
-              />
-              <span className="add-recipe-modal__stat-unit">days</span>
-            </div>
-
-            {/* Calories */}
-            <div className="add-recipe-modal__stat-cell">
-              <span className="add-recipe-modal__stat-icon">
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z" />
-                </svg>
-              </span>
-              <span className="add-recipe-modal__stat-label">Calories</span>
-              <input
-                className="add-recipe-modal__stat-input"
-                type="number"
-                min={0}
-                placeholder="Add"
-                value={calories}
-                onChange={(e) => setCalories(e.target.value)}
-              />
-              <span className="add-recipe-modal__stat-unit">kcal</span>
-            </div>
-
-            {/* Carbs */}
-            <div className="add-recipe-modal__stat-cell">
-              <span className="add-recipe-modal__stat-icon">
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L6 12a6 6 0 1 0 12 0L12 2z" />
-                </svg>
-              </span>
-              <span className="add-recipe-modal__stat-label">Carbs</span>
-              <input
-                className="add-recipe-modal__stat-input"
-                type="number"
-                min={0}
-                placeholder="Add"
-                value={carbs}
-                onChange={(e) => setCarbs(e.target.value)}
-              />
-              <span className="add-recipe-modal__stat-unit">g</span>
-            </div>
-
-            {/* Protein */}
-            <div className="add-recipe-modal__stat-cell">
-              <span className="add-recipe-modal__stat-icon">
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="5" />
-                </svg>
-              </span>
-              <span className="add-recipe-modal__stat-label">Protein</span>
-              <input
-                className="add-recipe-modal__stat-input"
-                type="number"
-                min={0}
-                placeholder="Add"
-                value={protein}
-                onChange={(e) => setProtein(e.target.value)}
-              />
-              <span className="add-recipe-modal__stat-unit">g</span>
-            </div>
-
-            {/* Fat */}
-            <div className="add-recipe-modal__stat-cell">
-              <span className="add-recipe-modal__stat-icon">
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2L6 12a6 6 0 1 0 12 0L12 2z" />
-                </svg>
-              </span>
-              <span className="add-recipe-modal__stat-label">Fat</span>
-              <input
-                className="add-recipe-modal__stat-input"
-                type="number"
-                min={0}
-                placeholder="Add"
-                value={fat}
-                onChange={(e) => setFat(e.target.value)}
-              />
-              <span className="add-recipe-modal__stat-unit">g</span>
-            </div>
-          </div>
-
-          {/* Status selector */}
-          <div className="add-recipe-modal__status-row">
-            <span className="add-recipe-modal__stat-label">Status</span>
+        {/* D: Status card */}
+        <div className="add-recipe-modal__status-card">
+          <span className="add-recipe-modal__status-card-label">Status</span>
+          <div className="add-recipe-modal__status-card-control">
             <select
-              className="add-recipe-modal__status-select"
+              className="add-recipe-modal__status-card-select"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
             >
@@ -429,8 +270,91 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
               <option value="draft">Draft</option>
               <option value="archived">Archived</option>
             </select>
+            <svg className="add-recipe-modal__status-card-chevron" width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
           </div>
         </div>
+
+        {/* D2: Meta grid */}
+        <div className="add-recipe-modal__meta-grid">
+          <div className="add-recipe-modal__meta-card">
+            <span className="add-recipe-modal__meta-card-label">Prep Time</span>
+            <div className="add-recipe-modal__meta-card-row">
+              <span className="add-recipe-modal__meta-card-icon">
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                </svg>
+              </span>
+              <input className="add-recipe-modal__meta-card-input" type="number" min={0} placeholder="0" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} />
+              <span className="add-recipe-modal__meta-card-unit">min</span>
+            </div>
+          </div>
+          <div className="add-recipe-modal__meta-card">
+            <span className="add-recipe-modal__meta-card-label">Cook Time</span>
+            <div className="add-recipe-modal__meta-card-row">
+              <span className="add-recipe-modal__meta-card-icon">
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z" />
+                </svg>
+              </span>
+              <input className="add-recipe-modal__meta-card-input" type="number" min={0} placeholder="0" value={cookTime} onChange={(e) => setCookTime(e.target.value)} />
+              <span className="add-recipe-modal__meta-card-unit">min</span>
+            </div>
+          </div>
+          <div className="add-recipe-modal__meta-card">
+            <span className="add-recipe-modal__meta-card-label">Servings</span>
+            <div className="add-recipe-modal__meta-card-row">
+              <span className="add-recipe-modal__meta-card-icon">
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="9" cy="7" r="4" /><path d="M3 21v-2a4 4 0 0 1 4-4h4" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /><path d="M21 21v-2a4 4 0 0 0-3-3.85" />
+                </svg>
+              </span>
+              <input className="add-recipe-modal__meta-card-input" type="number" min={1} step={1} placeholder="1" value={servings} onChange={(e) => setServings(e.target.value)} />
+            </div>
+          </div>
+          <div className="add-recipe-modal__meta-card">
+            <span className="add-recipe-modal__meta-card-label">Shelf Life</span>
+            <div className="add-recipe-modal__meta-card-row">
+              <span className="add-recipe-modal__meta-card-icon">
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </span>
+              <input className="add-recipe-modal__meta-card-input" type="number" min={0} placeholder="0" value={shelfLife} onChange={(e) => setShelfLife(e.target.value)} />
+              <span className="add-recipe-modal__meta-card-unit">days</span>
+            </div>
+          </div>
+        </div>
+
+        {/* D3: Nutrition grid */}
+        <div className="add-recipe-modal__nutrition-grid">
+          <div className="add-recipe-modal__nutrition-card">
+            <span className="add-recipe-modal__nutrition-card-label">Calories</span>
+            <span className="add-recipe-modal__nutrition-card-divider" />
+            <input className="add-recipe-modal__nutrition-card-input" type="number" min={0} placeholder="—" value={calories} onChange={(e) => setCalories(e.target.value)} />
+            <span className="add-recipe-modal__nutrition-card-unit">kcal</span>
+          </div>
+          <div className="add-recipe-modal__nutrition-card">
+            <span className="add-recipe-modal__nutrition-card-label">Carbs</span>
+            <span className="add-recipe-modal__nutrition-card-divider" />
+            <input className="add-recipe-modal__nutrition-card-input" type="number" min={0} placeholder="—" value={carbs} onChange={(e) => setCarbs(e.target.value)} />
+            <span className="add-recipe-modal__nutrition-card-unit">g</span>
+          </div>
+          <div className="add-recipe-modal__nutrition-card">
+            <span className="add-recipe-modal__nutrition-card-label">Protein</span>
+            <span className="add-recipe-modal__nutrition-card-divider" />
+            <input className="add-recipe-modal__nutrition-card-input" type="number" min={0} placeholder="—" value={protein} onChange={(e) => setProtein(e.target.value)} />
+            <span className="add-recipe-modal__nutrition-card-unit">g</span>
+          </div>
+          <div className="add-recipe-modal__nutrition-card">
+            <span className="add-recipe-modal__nutrition-card-label">Fat</span>
+            <span className="add-recipe-modal__nutrition-card-divider" />
+            <input className="add-recipe-modal__nutrition-card-input" type="number" min={0} placeholder="—" value={fat} onChange={(e) => setFat(e.target.value)} />
+            <span className="add-recipe-modal__nutrition-card-unit">g</span>
+          </div>
+        </div>
+        <p className="add-recipe-modal__nutrition-hint">Leave empty to skip nutrition</p>
 
         {/* E: Sections */}
         <div className="add-recipe-modal__sections">
