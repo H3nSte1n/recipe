@@ -106,6 +106,11 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
       setIsSaving(false);
       return;
     }
+    if (parseFloat(servings) !== parsedServings) {
+      setSaveError('Servings must be a whole number');
+      setIsSaving(false);
+      return;
+    }
 
     const nutritionPayload: CreateRecipeNutritionPayload | undefined =
       calories !== '' || protein !== '' || fat !== '' || carbs !== ''
@@ -306,6 +311,7 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
                 className="add-recipe-modal__stat-input"
                 type="number"
                 min={1}
+                step={1}
                 placeholder="1"
                 value={servings}
                 onChange={(e) => setServings(e.target.value)}

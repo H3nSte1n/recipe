@@ -202,29 +202,32 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
             </button>
           </div>
 
-          {currentRecipe.nutrition && (
-            <div className="recipe-modal__nutrition">
-              <span className="recipe-modal__nutrition-item type-body">
-                <span className="recipe-modal__nutrition-value">{Math.round(currentRecipe.nutrition.calories)}</span>
-                <span className="recipe-modal__nutrition-label type-label">kcal</span>
-              </span>
-              <span className="recipe-modal__nutrition-sep">·</span>
-              <span className="recipe-modal__nutrition-item type-body">
-                <span className="recipe-modal__nutrition-value">{Math.round(currentRecipe.nutrition.carbs)}g</span>
-                <span className="recipe-modal__nutrition-label type-label">carbs</span>
-              </span>
-              <span className="recipe-modal__nutrition-sep">·</span>
-              <span className="recipe-modal__nutrition-item type-body">
-                <span className="recipe-modal__nutrition-value">{Math.round(currentRecipe.nutrition.protein)}g</span>
-                <span className="recipe-modal__nutrition-label type-label">protein</span>
-              </span>
-              <span className="recipe-modal__nutrition-sep">·</span>
-              <span className="recipe-modal__nutrition-item type-body">
-                <span className="recipe-modal__nutrition-value">{Math.round(currentRecipe.nutrition.fat)}g</span>
-                <span className="recipe-modal__nutrition-label type-label">fat</span>
-              </span>
-            </div>
-          )}
+          {currentRecipe.nutrition && (() => {
+            const nutritionScale = currentRecipe.nutrition.per_serving ? serves / (currentRecipe.servings || 1) : 1;
+            return (
+              <div className="recipe-modal__nutrition">
+                <span className="recipe-modal__nutrition-item type-body">
+                  <span className="recipe-modal__nutrition-value">{Math.round(currentRecipe.nutrition.calories * nutritionScale)}</span>
+                  <span className="recipe-modal__nutrition-label type-label">kcal</span>
+                </span>
+                <span className="recipe-modal__nutrition-sep">·</span>
+                <span className="recipe-modal__nutrition-item type-body">
+                  <span className="recipe-modal__nutrition-value">{Math.round(currentRecipe.nutrition.carbs * nutritionScale)}g</span>
+                  <span className="recipe-modal__nutrition-label type-label">carbs</span>
+                </span>
+                <span className="recipe-modal__nutrition-sep">·</span>
+                <span className="recipe-modal__nutrition-item type-body">
+                  <span className="recipe-modal__nutrition-value">{Math.round(currentRecipe.nutrition.protein * nutritionScale)}g</span>
+                  <span className="recipe-modal__nutrition-label type-label">protein</span>
+                </span>
+                <span className="recipe-modal__nutrition-sep">·</span>
+                <span className="recipe-modal__nutrition-item type-body">
+                  <span className="recipe-modal__nutrition-value">{Math.round(currentRecipe.nutrition.fat * nutritionScale)}g</span>
+                  <span className="recipe-modal__nutrition-label type-label">fat</span>
+                </span>
+              </div>
+            );
+          })()}
 
           {sections.map((section, i) => (
             <div key={i} className="recipe-modal__section">
