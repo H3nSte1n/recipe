@@ -74,6 +74,9 @@ func (r *RecipeRepositoryImpl) Update(ctx context.Context, recipe *domain.Recipe
 
 		// Create new ingredients
 		if len(recipe.Ingredients) > 0 {
+			for i := range recipe.Ingredients {
+				recipe.Ingredients[i].RecipeID = recipe.ID
+			}
 			if err := tx.Create(&recipe.Ingredients).Error; err != nil {
 				return err
 			}
@@ -81,6 +84,9 @@ func (r *RecipeRepositoryImpl) Update(ctx context.Context, recipe *domain.Recipe
 
 		// Create new instructions
 		if len(recipe.Instructions) > 0 {
+			for i := range recipe.Instructions {
+				recipe.Instructions[i].RecipeID = recipe.ID
+			}
 			if err := tx.Create(&recipe.Instructions).Error; err != nil {
 				return err
 			}
@@ -88,6 +94,7 @@ func (r *RecipeRepositoryImpl) Update(ctx context.Context, recipe *domain.Recipe
 
 		// Create new nutrition
 		if recipe.Nutrition != nil {
+			recipe.Nutrition.RecipeID = recipe.ID
 			if err := tx.Create(recipe.Nutrition).Error; err != nil {
 				return err
 			}
