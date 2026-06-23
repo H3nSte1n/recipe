@@ -43,11 +43,11 @@
   border: none;
   cursor: pointer;
   background: var(--accent);
-  color: #f7f6f3;
+  color: var(--bg);
   font-family: var(--font-serif);
   font-style: italic;
   font-weight: 500;
-  font-size: 22px;
+  font-size: var(--text-lg);
   box-shadow: 0 6px 20px -6px rgba(20, 22, 28, 0.5);
   transition: opacity 0.15s;
   display: flex;

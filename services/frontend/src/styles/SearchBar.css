@@ -15,7 +15,7 @@
 }
 
 .search-bar__input::placeholder {
-  color: #c6c3bb;
+  color: var(--label);
 }
 
 .search-bar__add-btn {
@@ -26,7 +26,7 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  color: #a9a69f;
+  color: var(--meta);
   display: flex;
   align-items: center;
   justify-content: center;
