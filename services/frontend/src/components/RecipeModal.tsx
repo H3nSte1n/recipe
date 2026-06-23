@@ -232,18 +232,20 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onE
 
           {sections.map((section, i) => (
             <div key={i} className="recipe-modal__section">
-              {section.childId ? (
-                <button
-                  className="recipe-modal__section-name type-h3 recipe-modal__section-name--link"
-                  type="button"
-                  onClick={() => void navigateToSub(section.childId!)}
-                  disabled={navLoading}
-                >
-                  {section.name}
-                  <span className="recipe-modal__section-chevron">›</span>
-                </button>
-              ) : (
-                <div className="recipe-modal__section-name type-h3">{section.name}</div>
+              {sections.length > 1 && (
+                section.childId ? (
+                  <button
+                    className="recipe-modal__section-name type-h3 recipe-modal__section-name--link"
+                    type="button"
+                    onClick={() => void navigateToSub(section.childId!)}
+                    disabled={navLoading}
+                  >
+                    {section.name}
+                    <span className="recipe-modal__section-chevron">›</span>
+                  </button>
+                ) : (
+                  <div className="recipe-modal__section-name type-h3">{section.name}</div>
+                )
               )}
               <div className="recipe-modal__columns">
                 <div className="recipe-modal__ingredients">
