@@ -127,7 +127,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onE
           <div className="recipe-modal__header-info">
             <h1 className="recipe-modal__title type-h1">{currentRecipe.title}</h1>
             <div className="recipe-modal__meta type-body">
-              {metaOf(currentRecipe.prep_time, currentRecipe.cook_time, currentRecipe.servings, currentRecipe.shelf_life)}
+              {metaOf(currentRecipe.prep_time, currentRecipe.cook_time, currentRecipe.shelf_life)}
             </div>
             {currentRecipe.status && currentRecipe.status !== 'published' && (
               <span className={`recipe-modal__status-badge recipe-modal__status-badge--${currentRecipe.status}`}>

@@ -32,7 +32,7 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
       </div>
       <div className="recipe-card__title type-h3">{recipe.title}</div>
       <div className="recipe-card__meta type-body-sm">
-        {metaOf(recipe.prep_time, recipe.cook_time, recipe.servings, recipe.shelf_life)}
+        {metaOf(recipe.prep_time, recipe.cook_time, recipe.shelf_life)}
       </div>
     </div>
   );

@@ -116,13 +116,11 @@ export function ingLine(
 export function metaOf(
   prepTime: number,
   cookTime: number,
-  servings: number,
   shelfLife?: number
 ): string {
   const parts: string[] = [];
   const totalTime = prepTime + cookTime;
   if (totalTime > 0) parts.push(`${totalTime}min`);
-  if (servings > 0) parts.push(`${servings} servings`);
   if (shelfLife && shelfLife > 0) parts.push(`${shelfLife}d shelf life`);
   return parts.join(' · ');
 }
