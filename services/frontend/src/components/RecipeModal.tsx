@@ -232,7 +232,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onE
 
           {sections.map((section, i) => (
             <div key={i} className="recipe-modal__section">
-              {sections.length > 1 && (
+              {sections.length > 1 && i > 0 && (
                 section.childId ? (
                   <button
                     className="recipe-modal__section-name type-h3 recipe-modal__section-name--link"
