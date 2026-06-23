@@ -22,6 +22,12 @@ body {
   --meta: #9a9791;
   --label: #bdbab2;
   --line: #ecebe5;
+  --surface: #ffffff;
+  --error: #c0392b;
+  --status-draft-bg: #fef3c7;
+  --status-draft-text: #92400e;
+  --status-archived-bg: #f3f4f6;
+  --status-archived-text: #6b7280;
 
   /* Font-family tokens */
   --font-serif: 'Crimson Pro', Georgia, serif;
