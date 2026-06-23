@@ -14,33 +14,33 @@ body {
 /* ─── Design Tokens ──────────────────────────────────────────────────────── */
 :root {
   /* Color tokens */
-  --bg: #f7f6f3;
-  --ink: #1f1f1e;
-  --accent: #1f1f1e;
-  --ph: #e8e6e3;
-  --ph-dark: #dedad2;
-  --meta: #9a9791;
-  --label: #bdbab2;
-  --line: #ecebe5;
-  --surface: #ffffff;
-  --error: #c0392b;
-  --status-draft-bg: #fef3c7;
-  --status-draft-text: #92400e;
-  --status-archived-bg: #f3f4f6;
-  --status-archived-text: #6b7280;
+  --bg: #f7f6f3;               /* page bg, modal overlay bg, field card bg (AddRecipe), input bg (Login) */
+  --ink: #1f1f1e;              /* body text, headings, input text; also used as button bg (Login, add-btn) */
+  --accent: #1f1f1e;           /* profile button bg (HomePage) */
+  --ph: #e8e6e3;               /* image/hero placeholder bg (AddRecipe image area, RecipeCard, RecipeModal) */
+  --ph-dark: #dedad2;          /* used-in card image placeholder bg (RecipeModal) */
+  --meta: #9a9791;             /* secondary/helper text, icons (back btn, delete, chevrons, SearchBar add-btn) */
+  --label: #bdbab2;            /* placeholder text, form labels (Login), serves label, empty state (HomePage) */
+  --line: #ecebe5;             /* borders on cards, inputs, dividers (AddRecipe, Login, RecipeModal) */
+  --surface: #ffffff;          /* card/modal backgrounds (status card, nutrition cards, section cards, dropdown, Login card) */
+  --error: #c0392b;            /* save error (AddRecipe), validation error (Login) */
+  --status-draft-bg: #fef3c7;  /* draft status badge background (RecipeModal) */
+  --status-draft-text: #92400e; /* draft status badge text (RecipeModal) */
+  --status-archived-bg: #f3f4f6; /* archived status badge background (RecipeModal) */
+  --status-archived-text: #6b7280; /* archived status badge text (RecipeModal) */
 
   /* Font-family tokens */
-  --font-serif: 'Crimson Pro', Georgia, serif;
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: 'Crimson Pro', Georgia, serif; /* recipe title, section names, profile button letter, type utilities */
+  --font-sans: 'Inter', system-ui, sans-serif; /* body base, buttons, inputs, labels, all UI text */
 
   /* Type-scale tokens */
-  --text-xs: 11px;
-  --text-sm: 13px;
-  --text-base: 15px;
-  --text-lg: 20px;
-  --text-xl: 30px;
-  --text-2xl: 36px;
-  --text-display: 48px;
+  --text-xs: 11px;      /* section/field labels (AddRecipe), nutrition labels & sep, status badge (RecipeModal) */
+  --text-sm: 13px;      /* save btn, desc, unit labels, servings, field textarea (AddRecipe); form label & error (Login); used-in card & nutrition value (RecipeModal) */
+  --text-base: 15px;    /* status select, section handle, dropdown items (AddRecipe); input & button (Login); serves count (RecipeModal) */
+  --text-lg: 20px;      /* nutrition input, section name, servings btn (AddRecipe); profile letter (HomePage); section chevron/name (RecipeModal) */
+  --text-xl: 30px;      /* .type-h2 utility only — not used in component CSS */
+  --text-2xl: 36px;     /* recipe title input (AddRecipe); .type-h1 utility */
+  --text-display: 48px; /* .type-display utility only — not used in component CSS */
 }
 
 /* ─── Body Base Styles ───────────────────────────────────────────────────── */
