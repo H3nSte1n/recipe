@@ -363,6 +363,7 @@
   min-height: 80px;
   line-height: 1.6;
   display: block;
+  overflow: hidden;
 }
 
 .add-recipe-modal__field-textarea::placeholder {

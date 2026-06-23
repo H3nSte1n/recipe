@@ -29,6 +29,34 @@ interface Section {
   linkedIngredients?: RecipeIngredient[];
 }
 
+interface AutoResizeTextareaProps {
+  className?: string;
+  placeholder?: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  disabled?: boolean;
+}
+
+function AutoResizeTextarea({ className, placeholder, value, onChange, disabled }: AutoResizeTextareaProps) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      className={className}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
+    />
+  );
+}
+
 function formatIngredients(ingredients: RecipeIngredient[], factor: number): string {
   return ingredients
     .map((i) => {
@@ -471,7 +499,7 @@ function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps
                 {/* Ingredients field card */}
                 <div className="add-recipe-modal__field-card">
                   <span className="add-recipe-modal__field-label">INGREDIENTS</span>
-                  <textarea
+                  <AutoResizeTextarea
                     className="add-recipe-modal__field-textarea"
                     placeholder={'e.g. 1 cup flour\ne.g. 2 eggs'}
                     value={sections[0].ingredients}
@@ -481,7 +509,7 @@ function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps
                 {/* Instructions field card */}
                 <div className="add-recipe-modal__field-card">
                   <span className="add-recipe-modal__field-label">INSTRUCTIONS</span>
-                  <textarea
+                  <AutoResizeTextarea
                     className="add-recipe-modal__field-textarea"
                     placeholder={'e.g. Combine dry ingredients\ne.g. Add wet ingredients and mix'}
                     value={sections[0].instructions}
@@ -578,7 +606,7 @@ function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps
                   <div className="add-recipe-modal__section-content">
                     <div className="add-recipe-modal__field-card">
                       <span className="add-recipe-modal__field-label">INGREDIENTS</span>
-                      <textarea
+                      <AutoResizeTextarea
                         className="add-recipe-modal__field-textarea"
                         placeholder={'e.g. 1 cup flour\ne.g. 2 eggs'}
                         value={section.ingredients}
@@ -588,7 +616,7 @@ function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps
                     </div>
                     <div className="add-recipe-modal__field-card">
                       <span className="add-recipe-modal__field-label">INSTRUCTIONS</span>
-                      <textarea
+                      <AutoResizeTextarea
                         className="add-recipe-modal__field-textarea"
                         placeholder="e.g. Combine dry ingredients"
                         value={section.instructions}
@@ -598,7 +626,7 @@ function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps
                     </div>
                     <div className="add-recipe-modal__field-card">
                       <span className="add-recipe-modal__field-label">NOTES</span>
-                      <textarea
+                      <AutoResizeTextarea
                         className="add-recipe-modal__field-textarea"
                         placeholder="e.g. Leave out thyme — too overpowering here"
                         value={section.notes}
