@@ -18,6 +18,7 @@ export default function HomePage({ onLogout }: HomePageProps) {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [serves, setServes] = useState(2);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
 
   const filtered = filterRecipes(query);
 
@@ -34,6 +35,11 @@ export default function HomePage({ onLogout }: HomePageProps) {
 
   const handleInc = () => setServes((s) => Math.min(20, s + 1));
   const handleDec = () => setServes((s) => Math.max(1, s - 1));
+
+  function handleEditRecipe() {
+    setEditingRecipe(selectedRecipe);
+    setSelectedRecipe(null);
+  }
 
   return (
     <div>
@@ -79,6 +85,7 @@ export default function HomePage({ onLogout }: HomePageProps) {
           onInc={handleInc}
           onDec={handleDec}
           onClose={() => setSelectedRecipe(null)}
+          onEdit={handleEditRecipe}
           usedIn={usedIn}
         />
       )}
@@ -86,6 +93,16 @@ export default function HomePage({ onLogout }: HomePageProps) {
         <AddRecipeModal
           onClose={() => setShowAddModal(false)}
           onSaved={refresh}
+        />
+      )}
+      {editingRecipe && (
+        <AddRecipeModal
+          initialRecipe={editingRecipe}
+          onClose={() => setEditingRecipe(null)}
+          onSaved={() => {
+            refresh();
+            setEditingRecipe(null);
+          }}
         />
       )}
     </div>

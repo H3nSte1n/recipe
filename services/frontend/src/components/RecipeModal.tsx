@@ -10,6 +10,7 @@ interface RecipeModalProps {
   onInc: () => void;
   onDec: () => void;
   onClose: () => void;
+  onEdit?: () => void;
   usedIn?: Record<string, Recipe[]>;
 }
 
@@ -20,7 +21,7 @@ interface ModalSection {
   childId?: string;
 }
 
-export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, usedIn }: RecipeModalProps) {
+export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onEdit, usedIn }: RecipeModalProps) {
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -80,7 +81,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, use
     <div className="recipe-modal" onClick={onClose}>
       <div className="recipe-modal__card" onClick={(e) => e.stopPropagation()}>
         <div className="recipe-modal__controls">
-          <button className="recipe-modal__control-btn" type="button" aria-label="Edit recipe">
+          <button className="recipe-modal__control-btn" type="button" aria-label="Edit recipe" onClick={onEdit}>
             <svg
               width={18}
               height={18}
