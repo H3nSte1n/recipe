@@ -1,0 +1,189 @@
+/* Design System Panel — .dsp-* namespace, no var(--) tokens, self-contained */
+
+.dsp-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9998;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: #1f1f1e;
+  color: #f7f6f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.15s;
+}
+
+.dsp-fab:hover {
+  opacity: 0.85;
+}
+
+.dsp-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  overflow-y: auto;
+  background: #f7f6f3;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color: #1f1f1e;
+}
+
+.dsp-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 32px;
+  background: #1f1f1e;
+  color: #f7f6f3;
+}
+
+.dsp-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dsp-close {
+  background: transparent;
+  border: none;
+  color: #f7f6f3;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.dsp-close:hover {
+  opacity: 1;
+}
+
+.dsp-body {
+  padding: 32px;
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.dsp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dsp-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9a9791;
+  margin: 0 0 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ecebe5;
+}
+
+/* Color tokens */
+.dsp-token-row {
+  display: grid;
+  grid-template-columns: 48px 160px 90px 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid #ecebe5;
+}
+
+.dsp-swatch {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+  display: block;
+}
+
+.dsp-token-name {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  background: #ecebe5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.dsp-token-value {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  color: #9a9791;
+  white-space: nowrap;
+}
+
+.dsp-token-usage {
+  font-size: 12px;
+  color: #9a9791;
+  line-height: 1.5;
+}
+
+/* Font families */
+.dsp-font-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #ecebe5;
+}
+
+.dsp-font-specimen {
+  font-size: 20px;
+}
+
+/* Type scale */
+.dsp-scale-row {
+  display: grid;
+  grid-template-columns: 160px 60px 1fr 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #ecebe5;
+}
+
+/* Type utilities */
+.dsp-utility-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #ecebe5;
+}
+
+/* Shadows */
+.dsp-shadow-row {
+  display: grid;
+  grid-template-columns: 72px 200px 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #ecebe5;
+}
+
+.dsp-shadow-box {
+  width: 64px;
+  height: 40px;
+  border-radius: 8px;
+  background: #ffffff;
+  display: block;
+}
