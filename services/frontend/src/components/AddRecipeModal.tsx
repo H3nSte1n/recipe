@@ -1,16 +1,20 @@
-import { useRef, useState } from 'react';
-import { createRecipe } from '../services/recipeService';
+import { useEffect, useRef, useState } from 'react';
+import { createRecipe, getMyRecipes, getRecipeById, updateRecipe } from '../services/recipeService';
 import {
   CreateRecipeIngredientPayload,
   CreateRecipeInstructionPayload,
   CreateRecipeNutritionPayload,
   Recipe,
+  RecipeIngredient,
+  SubRecipePayload,
 } from '../types/recipe';
+import { parseIngText } from '../utils/formatters';
 import '../styles/AddRecipeModal.css';
 
 interface AddRecipeModalProps {
   onClose: () => void;
   onSaved: () => void;
+  initialRecipe?: Recipe;
 }
 
 interface Section {
@@ -20,13 +24,73 @@ interface Section {
   ingredients: string;
   instructions: string;
   notes: string;
+  linkedRecipeId?: string;
+  linkedIngredients?: RecipeIngredient[];
+}
+
+function formatIngredients(ingredients: RecipeIngredient[], factor: number): string {
+  return ingredients
+    .map((i) => {
+      let amt = i.amount;
+      let unit = i.unit;
+      let name = i.name;
+      if (amt === 0) {
+        const parsed = parseIngText(i.description || i.name);
+        if (parsed) { amt = parsed.amount; unit = parsed.unit; name = parsed.name; }
+      }
+      if (amt > 0) {
+        const scaled = Math.round(amt * factor * 100) / 100;
+        const amountStr = Number.isInteger(scaled) ? String(scaled) : scaled.toFixed(2).replace(/\.?0+$/, '');
+        return unit ? `${amountStr}${unit} ${name}` : `${amountStr} ${name}`;
+      }
+      return i.description || i.name;
+    })
+    .join('\n');
+}
+
+function buildInitialSections(recipe?: Recipe): Section[] {
+  if (!recipe) {
+    return [{ id: String(Date.now()), name: '', servings: 1, ingredients: '', instructions: '', notes: '' }];
+  }
+  const subs = recipe.sub_recipes ?? [];
+  if (subs.length > 0) {
+    return subs.map((sr, i) => ({
+      id: String(Date.now() + i),
+      name: sr.child?.title ?? '',
+      servings: sr.serving_factor,
+      linkedRecipeId: sr.child_id,
+      linkedIngredients: sr.child?.ingredients ?? [],
+      ingredients: formatIngredients(sr.child?.ingredients ?? [], sr.serving_factor),
+      instructions: (sr.child?.instructions ?? [])
+        .sort((a, b) => a.step_number - b.step_number)
+        .map((ins) => ins.instruction)
+        .join('\n'),
+      notes: '',
+    }));
+  }
+  return [{
+    id: String(Date.now()),
+    name: '',
+    servings: recipe.servings,
+    ingredients: formatIngredients(recipe.ingredients ?? [], 1),
+    instructions: (recipe.instructions ?? [])
+      .sort((a, b) => a.step_number - b.step_number)
+      .map((ins) => ins.instruction)
+      .join('\n'),
+    notes: recipe.notes ?? '',
+  }];
 }
 
 function parseIngredients(text: string): CreateRecipeIngredientPayload[] {
   return text
     .split('\n')
     .filter((l) => l.trim())
-    .map((line) => ({ name: line.trim(), description: line.trim(), amount: 0, unit: '', notes: '' }));
+    .map((line) => {
+      const parsed = parseIngText(line.trim());
+      return parsed
+        ? { name: parsed.name, description: line.trim(), amount: parsed.amount, unit: parsed.unit, notes: '' }
+        : { name: line.trim(), description: line.trim(), amount: 0, unit: '', notes: '' };
+    });
 }
 
 function parseInstructions(text: string): CreateRecipeInstructionPayload[] {
@@ -36,27 +100,31 @@ function parseInstructions(text: string): CreateRecipeInstructionPayload[] {
     .map((line, idx) => ({ step_number: idx + 1, instruction: line.trim() }));
 }
 
-function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps) {
+  const [title, setTitle] = useState(initialRecipe?.title ?? '');
+  const [description, setDescription] = useState(initialRecipe?.description ?? '');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState('');
-  const [prepTime, setPrepTime] = useState('');
-  const [calories, setCalories] = useState('');
-  const [protein, setProtein] = useState('');
-  const [fat, setFat] = useState('');
-  const [cookTime, setCookTime] = useState('');
-  const [shelfLife, setShelfLife] = useState('');
-  const [servings, setServings] = useState('1');
-  const [status, setStatus] = useState('published');
-  const [carbs, setCarbs] = useState('');
-  const [sections, setSections] = useState<Section[]>([
-    { id: String(Date.now()), name: '', servings: 1, ingredients: '', instructions: '', notes: '' },
-  ]);
+  const [imagePreview, setImagePreview] = useState(initialRecipe?.image_url ?? '');
+  const [prepTime, setPrepTime] = useState(initialRecipe?.prep_time ? String(initialRecipe.prep_time) : '');
+  const [calories, setCalories] = useState(initialRecipe?.nutrition?.calories ? String(initialRecipe.nutrition.calories) : '');
+  const [protein, setProtein] = useState(initialRecipe?.nutrition?.protein ? String(initialRecipe.nutrition.protein) : '');
+  const [fat, setFat] = useState(initialRecipe?.nutrition?.fat ? String(initialRecipe.nutrition.fat) : '');
+  const [cookTime, setCookTime] = useState(initialRecipe?.cook_time ? String(initialRecipe.cook_time) : '');
+  const [shelfLife, setShelfLife] = useState(initialRecipe?.shelf_life ? String(initialRecipe.shelf_life) : '');
+  const [servings, setServings] = useState(initialRecipe?.servings ? String(initialRecipe.servings) : '1');
+  const [status, setStatus] = useState(initialRecipe?.status ?? 'published');
+  const [carbs, setCarbs] = useState(initialRecipe?.nutrition?.carbs ? String(initialRecipe.nutrition.carbs) : '');
+  const [sections, setSections] = useState<Section[]>(() => buildInitialSections(initialRecipe));
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    getMyRecipes().then(setAllRecipes).catch(() => {});
+  }, []);
 
   function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -79,7 +147,7 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
     });
   }
 
-  function handleSectionChange(id: string, field: keyof Section, value: string) {
+  function handleSectionChange(id: string, field: 'name' | 'ingredients' | 'instructions' | 'notes', value: string) {
     setSections((prev) =>
       prev.map((s) => (s.id === id ? { ...s, [field]: value } : s)),
     );
@@ -90,8 +158,48 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
       prev.map((s) => {
         if (s.id !== id) return s;
         const next = Math.min(99, Math.max(1, s.servings + delta));
+        if (s.linkedIngredients) {
+          return { ...s, servings: next, ingredients: formatIngredients(s.linkedIngredients, next) };
+        }
         return { ...s, servings: next };
       }),
+    );
+  }
+
+  async function handleLinkRecipe(sectionId: string, recipe: Recipe) {
+    setOpenDropdownId(null);
+    setSections((prev) =>
+      prev.map((s) =>
+        s.id === sectionId
+          ? { ...s, name: recipe.title, linkedRecipeId: recipe.id, ingredients: '', instructions: '' }
+          : s,
+      ),
+    );
+    try {
+      const full = await getRecipeById(recipe.id);
+      const linkedIngredients = full.ingredients ?? [];
+      const instructionsText = (full.instructions ?? []).map((i) => i.instruction).join('\n');
+      setSections((prev) =>
+        prev.map((s) => {
+          if (s.id !== sectionId || s.linkedRecipeId !== recipe.id) return s;
+          return {
+            ...s,
+            linkedIngredients,
+            ingredients: formatIngredients(linkedIngredients, s.servings),
+            instructions: instructionsText,
+          };
+        }),
+      );
+    } catch {
+      setSaveError('Could not load recipe details. Please try again.');
+    }
+  }
+
+  function handleUnlinkSection(sectionId: string) {
+    setSections((prev) =>
+      prev.map((s) =>
+        s.id === sectionId ? { ...s, linkedRecipeId: undefined } : s,
+      ),
     );
   }
 
@@ -99,6 +207,7 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
     if (!title.trim() || isSaving) return;
     setIsSaving(true);
     setSaveError('');
+    const isEditing = !!initialRecipe;
 
     const parsedServings = parseInt(servings);
     if (isNaN(parsedServings) || parsedServings < 1) {
@@ -124,62 +233,70 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
 
     try {
       if (sections.length === 1) {
-        await createRecipe(
-          {
-            title: title.trim(),
-            description,
-            source_type: 'MANUAL',
-            servings: parsedServings,
-            prep_time: parseInt(prepTime) || 0,
-            cook_time: parseInt(cookTime) || 0,
-            shelf_life: parseInt(shelfLife) || 0,
-            notes: '',
-            is_private: false,
-            status,
-            ingredients: parseIngredients(sections[0].ingredients),
-            instructions: parseInstructions(sections[0].instructions),
-            nutrition: nutritionPayload,
-          },
-          imageFile,
-        );
-      } else {
-        const subRecipes: Recipe[] = [];
-        for (const section of sections) {
-          const created = await createRecipe({
-            title: section.name.trim() || 'Untitled',
-            description: '',
-            source_type: 'MANUAL',
-            servings: section.servings,
-            prep_time: 0,
-            cook_time: parseInt(cookTime) || 0,
-            shelf_life: parseInt(shelfLife) || 0,
-            notes: section.notes,
-            is_private: false,
-            status,
-            ingredients: parseIngredients(section.ingredients),
-            instructions: parseInstructions(section.instructions),
-          });
-          subRecipes.push(created);
+        const singlePayload = {
+          title: title.trim(),
+          description,
+          source_type: 'MANUAL',
+          servings: parsedServings,
+          prep_time: parseInt(prepTime) || 0,
+          cook_time: parseInt(cookTime) || 0,
+          shelf_life: parseInt(shelfLife) || 0,
+          notes: '',
+          is_private: false,
+          status,
+          ingredients: parseIngredients(sections[0].ingredients),
+          instructions: parseInstructions(sections[0].instructions),
+          nutrition: nutritionPayload,
+        };
+        if (isEditing) {
+          await updateRecipe(initialRecipe!.id, singlePayload, imageFile);
+        } else {
+          await createRecipe(singlePayload, imageFile);
         }
-        await createRecipe(
-          {
-            title: title.trim(),
-            description,
-            source_type: 'MANUAL',
-            servings: parsedServings,
-            prep_time: parseInt(prepTime) || 0,
-            cook_time: parseInt(cookTime) || 0,
-            shelf_life: parseInt(shelfLife) || 0,
-            notes: '',
-            is_private: false,
-            status,
-            ingredients: [],
-            instructions: [],
-            nutrition: nutritionPayload,
-            sub_recipes: subRecipes.map((r) => ({ recipe_id: r.id, serving_factor: 1 })),
-          },
-          imageFile,
-        );
+      } else {
+        const subRecipePayloads: SubRecipePayload[] = [];
+        for (const section of sections) {
+          if (section.linkedRecipeId) {
+            subRecipePayloads.push({ recipe_id: section.linkedRecipeId, serving_factor: section.servings });
+          } else {
+            const created = await createRecipe({
+              title: section.name.trim() || 'Untitled',
+              description: '',
+              source_type: 'MANUAL',
+              servings: section.servings,
+              prep_time: 0,
+              cook_time: parseInt(cookTime) || 0,
+              shelf_life: parseInt(shelfLife) || 0,
+              notes: section.notes,
+              is_private: false,
+              status,
+              ingredients: parseIngredients(section.ingredients),
+              instructions: parseInstructions(section.instructions),
+            });
+            subRecipePayloads.push({ recipe_id: created.id, serving_factor: section.servings });
+          }
+        }
+        const multiPayload = {
+          title: title.trim(),
+          description,
+          source_type: 'MANUAL',
+          servings: parsedServings,
+          prep_time: parseInt(prepTime) || 0,
+          cook_time: parseInt(cookTime) || 0,
+          shelf_life: parseInt(shelfLife) || 0,
+          notes: '',
+          is_private: false,
+          status,
+          ingredients: [],
+          instructions: [],
+          nutrition: nutritionPayload,
+          sub_recipes: subRecipePayloads,
+        };
+        if (isEditing) {
+          await updateRecipe(initialRecipe!.id, multiPayload, imageFile);
+        } else {
+          await createRecipe(multiPayload, imageFile);
+        }
       }
       onSaved();
       onClose();
@@ -204,7 +321,7 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
           disabled={!title.trim() || isSaving}
           onClick={handleSave}
         >
-          Save
+          {initialRecipe ? 'Update' : 'Save'}
         </button>
       </div>
 
@@ -276,54 +393,27 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
           </div>
         </div>
 
-        {/* D2: Meta grid */}
-        <div className="add-recipe-modal__meta-grid">
-          <div className="add-recipe-modal__meta-card">
-            <span className="add-recipe-modal__meta-card-label">Prep Time</span>
-            <div className="add-recipe-modal__meta-card-row">
-              <span className="add-recipe-modal__meta-card-icon">
-                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                </svg>
-              </span>
-              <input className="add-recipe-modal__meta-card-input" type="number" min={0} placeholder="0" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} />
-              <span className="add-recipe-modal__meta-card-unit">min</span>
-            </div>
+        {/* D2: Meta grid — same card style as nutrition */}
+        <div className="add-recipe-modal__nutrition-grid add-recipe-modal__meta-grid">
+          <div className="add-recipe-modal__nutrition-card">
+            <span className="add-recipe-modal__nutrition-card-label">Prep Time</span>
+            <input className="add-recipe-modal__nutrition-card-input" type="number" min={0} placeholder="0" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} />
+            <span className="add-recipe-modal__nutrition-card-unit">min</span>
           </div>
-          <div className="add-recipe-modal__meta-card">
-            <span className="add-recipe-modal__meta-card-label">Cook Time</span>
-            <div className="add-recipe-modal__meta-card-row">
-              <span className="add-recipe-modal__meta-card-icon">
-                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2c0 6-6 8-6 14a6 6 0 0 0 12 0c0-6-6-8-6-14z" />
-                </svg>
-              </span>
-              <input className="add-recipe-modal__meta-card-input" type="number" min={0} placeholder="0" value={cookTime} onChange={(e) => setCookTime(e.target.value)} />
-              <span className="add-recipe-modal__meta-card-unit">min</span>
-            </div>
+          <div className="add-recipe-modal__nutrition-card">
+            <span className="add-recipe-modal__nutrition-card-label">Cook Time</span>
+            <input className="add-recipe-modal__nutrition-card-input" type="number" min={0} placeholder="0" value={cookTime} onChange={(e) => setCookTime(e.target.value)} />
+            <span className="add-recipe-modal__nutrition-card-unit">min</span>
           </div>
-          <div className="add-recipe-modal__meta-card">
-            <span className="add-recipe-modal__meta-card-label">Servings</span>
-            <div className="add-recipe-modal__meta-card-row">
-              <span className="add-recipe-modal__meta-card-icon">
-                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="9" cy="7" r="4" /><path d="M3 21v-2a4 4 0 0 1 4-4h4" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /><path d="M21 21v-2a4 4 0 0 0-3-3.85" />
-                </svg>
-              </span>
-              <input className="add-recipe-modal__meta-card-input" type="number" min={1} step={1} placeholder="1" value={servings} onChange={(e) => setServings(e.target.value)} />
-            </div>
+          <div className="add-recipe-modal__nutrition-card">
+            <span className="add-recipe-modal__nutrition-card-label">Servings</span>
+            <input className="add-recipe-modal__nutrition-card-input" type="number" min={1} step={1} placeholder="1" value={servings} onChange={(e) => setServings(e.target.value)} />
+            <span className="add-recipe-modal__nutrition-card-unit">&nbsp;</span>
           </div>
-          <div className="add-recipe-modal__meta-card">
-            <span className="add-recipe-modal__meta-card-label">Shelf Life</span>
-            <div className="add-recipe-modal__meta-card-row">
-              <span className="add-recipe-modal__meta-card-icon">
-                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-              </span>
-              <input className="add-recipe-modal__meta-card-input" type="number" min={0} placeholder="0" value={shelfLife} onChange={(e) => setShelfLife(e.target.value)} />
-              <span className="add-recipe-modal__meta-card-unit">days</span>
-            </div>
+          <div className="add-recipe-modal__nutrition-card">
+            <span className="add-recipe-modal__nutrition-card-label">Shelf Life</span>
+            <input className="add-recipe-modal__nutrition-card-input" type="number" min={0} placeholder="0" value={shelfLife} onChange={(e) => setShelfLife(e.target.value)} />
+            <span className="add-recipe-modal__nutrition-card-unit">days</span>
           </div>
         </div>
 
@@ -379,82 +469,115 @@ function AddRecipeModal({ onClose, onSaved }: AddRecipeModalProps) {
               </div>
             </div>
           ) : (
-            sections.map((section) => (
-              <div key={section.id} className="add-recipe-modal__section-card">
-                <div className="add-recipe-modal__section-header">
-                  <span className="add-recipe-modal__section-handle">↓</span>
-                  <input
-                    className="add-recipe-modal__section-name"
-                    placeholder="Give me a name"
-                    value={section.name}
-                    onChange={(e) => handleSectionChange(section.id, 'name', e.target.value)}
-                  />
-                  <button
-                    className="add-recipe-modal__section-delete"
-                    onClick={() => handleDeleteSection(section.id)}
-                    type="button"
-                    aria-label="Delete section"
-                  >
-                    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6l-1 14H6L5 6" />
-                      <path d="M10 11v6M14 11v6" />
-                      <path d="M9 6V4h6v2" />
-                    </svg>
-                  </button>
-                </div>
-                <div className="add-recipe-modal__servings-row">
-                  <span>Servings:</span>
-                  <button
-                    className="add-recipe-modal__servings-btn"
-                    type="button"
-                    onClick={() => handleServingsChange(section.id, -1)}
-                  >
-                    −
-                  </button>
-                  <span className="add-recipe-modal__servings-count">{section.servings}</span>
-                  <button
-                    className="add-recipe-modal__servings-btn"
-                    type="button"
-                    onClick={() => handleServingsChange(section.id, 1)}
-                  >
-                    +
-                  </button>
-                </div>
-                <div className="add-recipe-modal__section-content">
-                  {/* Ingredients field card */}
-                  <div className="add-recipe-modal__field-card">
-                    <span className="add-recipe-modal__field-label">INGREDIENTS</span>
-                    <textarea
-                      className="add-recipe-modal__field-textarea"
-                      placeholder={'e.g. 1 cup flour\ne.g. 2 eggs'}
-                      value={section.ingredients}
-                      onChange={(e) => handleSectionChange(section.id, 'ingredients', e.target.value)}
-                    />
+            sections.map((section) => {
+              const filtered = allRecipes.filter(
+                (r) => section.name.length > 0 && r.title.toLowerCase().includes(section.name.toLowerCase()),
+              );
+              return (
+                <div key={section.id} className="add-recipe-modal__section-card">
+                  <div className="add-recipe-modal__section-header">
+                    <span className="add-recipe-modal__section-handle">↓</span>
+                    {section.linkedRecipeId ? (
+                      <>
+                        <span className="add-recipe-modal__section-linked-name">{section.name}</span>
+                        <button
+                          className="add-recipe-modal__section-unlink"
+                          type="button"
+                          onClick={() => handleUnlinkSection(section.id)}
+                          aria-label="Unlink recipe"
+                        >×</button>
+                      </>
+                    ) : (
+                      <div className="add-recipe-modal__section-search">
+                        <input
+                          className="add-recipe-modal__section-name"
+                          placeholder="Give me a name"
+                          value={section.name}
+                          onChange={(e) => {
+                            handleSectionChange(section.id, 'name', e.target.value);
+                            setOpenDropdownId(section.id);
+                          }}
+                          onFocus={() => { if (section.name.length > 0) setOpenDropdownId(section.id); }}
+                          onBlur={() => setTimeout(() => setOpenDropdownId(null), 150)}
+                        />
+                        {openDropdownId === section.id && filtered.length > 0 && (
+                          <div className="add-recipe-modal__section-dropdown">
+                            {filtered.slice(0, 5).map((r) => (
+                              <button
+                                key={r.id}
+                                className="add-recipe-modal__section-dropdown-item"
+                                type="button"
+                                onMouseDown={() => handleLinkRecipe(section.id, r)}
+                              >
+                                {r.title}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <button
+                      className="add-recipe-modal__section-delete"
+                      onClick={() => handleDeleteSection(section.id)}
+                      type="button"
+                      aria-label="Delete section"
+                    >
+                      <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14H6L5 6" />
+                        <path d="M10 11v6M14 11v6" />
+                        <path d="M9 6V4h6v2" />
+                      </svg>
+                    </button>
                   </div>
-                  {/* Instructions field card */}
-                  <div className="add-recipe-modal__field-card">
-                    <span className="add-recipe-modal__field-label">INSTRUCTIONS</span>
-                    <textarea
-                      className="add-recipe-modal__field-textarea"
-                      placeholder="e.g. Combine dry ingredients"
-                      value={section.instructions}
-                      onChange={(e) => handleSectionChange(section.id, 'instructions', e.target.value)}
-                    />
+                  <div className="add-recipe-modal__servings-row">
+                    <span>Servings:</span>
+                    <button
+                      className="add-recipe-modal__servings-btn"
+                      type="button"
+                      onClick={() => handleServingsChange(section.id, -1)}
+                    >−</button>
+                    <span className="add-recipe-modal__servings-count">{section.servings}</span>
+                    <button
+                      className="add-recipe-modal__servings-btn"
+                      type="button"
+                      onClick={() => handleServingsChange(section.id, 1)}
+                    >+</button>
                   </div>
-                  {/* Notes field card */}
-                  <div className="add-recipe-modal__field-card">
-                    <span className="add-recipe-modal__field-label">NOTES</span>
-                    <textarea
-                      className="add-recipe-modal__field-textarea"
-                      placeholder="e.g. Leave out thyme — too overpowering here"
-                      value={section.notes}
-                      onChange={(e) => handleSectionChange(section.id, 'notes', e.target.value)}
-                    />
+                  <div className="add-recipe-modal__section-content">
+                    <div className="add-recipe-modal__field-card">
+                      <span className="add-recipe-modal__field-label">INGREDIENTS</span>
+                      <textarea
+                        className="add-recipe-modal__field-textarea"
+                        placeholder={'e.g. 1 cup flour\ne.g. 2 eggs'}
+                        value={section.ingredients}
+                        disabled={!!section.linkedRecipeId}
+                        onChange={(e) => handleSectionChange(section.id, 'ingredients', e.target.value)}
+                      />
+                    </div>
+                    <div className="add-recipe-modal__field-card">
+                      <span className="add-recipe-modal__field-label">INSTRUCTIONS</span>
+                      <textarea
+                        className="add-recipe-modal__field-textarea"
+                        placeholder="e.g. Combine dry ingredients"
+                        value={section.instructions}
+                        disabled={!!section.linkedRecipeId}
+                        onChange={(e) => handleSectionChange(section.id, 'instructions', e.target.value)}
+                      />
+                    </div>
+                    <div className="add-recipe-modal__field-card">
+                      <span className="add-recipe-modal__field-label">NOTES</span>
+                      <textarea
+                        className="add-recipe-modal__field-textarea"
+                        placeholder="e.g. Leave out thyme — too overpowering here"
+                        value={section.notes}
+                        onChange={(e) => handleSectionChange(section.id, 'notes', e.target.value)}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
