@@ -21,6 +21,7 @@ interface Section {
   id: string;
   name: string;
   servings: number;
+  servingsInput?: string;
   ingredients: string;
   instructions: string;
   notes: string;
@@ -157,11 +158,32 @@ function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps
     setSections((prev) =>
       prev.map((s) => {
         if (s.id !== id) return s;
-        const next = Math.min(99, Math.max(1, s.servings + delta));
+        const next = Math.min(99, Math.max(0.5, Math.round((s.servings + delta) * 2) / 2));
         if (s.linkedIngredients) {
-          return { ...s, servings: next, ingredients: formatIngredients(s.linkedIngredients, next) };
+          return { ...s, servings: next, servingsInput: undefined, ingredients: formatIngredients(s.linkedIngredients, next) };
         }
-        return { ...s, servings: next };
+        return { ...s, servings: next, servingsInput: undefined };
+      }),
+    );
+  }
+
+  function handleServingsInputChange(id: string, value: string) {
+    setSections((prev) => prev.map((s) => (s.id !== id ? s : { ...s, servingsInput: value })));
+  }
+
+  function handleServingsInputBlur(id: string, value: string) {
+    const parsed = parseFloat(value.replace(',', '.'));
+    setSections((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        if (!isNaN(parsed) && parsed > 0) {
+          const next = Math.min(99, Math.max(0.1, parsed));
+          if (s.linkedIngredients) {
+            return { ...s, servings: next, servingsInput: undefined, ingredients: formatIngredients(s.linkedIngredients, next) };
+          }
+          return { ...s, servings: next, servingsInput: undefined };
+        }
+        return { ...s, servingsInput: undefined };
       }),
     );
   }
@@ -538,7 +560,14 @@ function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps
                       type="button"
                       onClick={() => handleServingsChange(section.id, -1)}
                     >−</button>
-                    <span className="add-recipe-modal__servings-count">{section.servings}</span>
+                    <input
+                      className="add-recipe-modal__servings-input"
+                      type="text"
+                      inputMode="decimal"
+                      value={section.servingsInput ?? String(section.servings)}
+                      onChange={(e) => handleServingsInputChange(section.id, e.target.value)}
+                      onBlur={(e) => handleServingsInputBlur(section.id, e.target.value)}
+                    />
                     <button
                       className="add-recipe-modal__servings-btn"
                       type="button"

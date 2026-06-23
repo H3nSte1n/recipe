@@ -315,6 +315,19 @@
   font-weight: 600;
 }
 
+.add-recipe-modal__servings-input {
+  width: 40px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink);
+  font-weight: 600;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  outline: none;
+  padding: 0 2px;
+}
+
 .add-recipe-modal__section-content {
   display: flex;
   flex-direction: column;
