@@ -38,6 +38,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=your_password
       - POSTGRES_DB=recipe_db
+      - PGDATA=/var/lib/postgresql/data
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
