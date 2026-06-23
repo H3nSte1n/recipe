@@ -65,9 +65,23 @@ func (h *RecipeHandler) Create(c *gin.Context) {
 
 func (h *RecipeHandler) Update(c *gin.Context) {
 	var req domain.CreateRecipeRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+
+	contentType := c.GetHeader("Content-Type")
+	if strings.Contains(contentType, "multipart/form-data") {
+		recipeJSON := c.PostForm("recipe")
+		if err := json.Unmarshal([]byte(recipeJSON), &req); err != nil {
+			h.logger.Error("failed to parse recipe json", zap.Error(err))
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if file, err := c.FormFile("image"); err == nil {
+			req.Image = file
+		}
+	} else {
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	userID := middleware.GetUserID(c)

@@ -241,7 +241,7 @@ function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps
           prep_time: parseInt(prepTime) || 0,
           cook_time: parseInt(cookTime) || 0,
           shelf_life: parseInt(shelfLife) || 0,
-          notes: '',
+          notes: sections[0].notes,
           is_private: false,
           status,
           ingredients: parseIngredients(sections[0].ingredients),
