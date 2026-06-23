@@ -263,7 +263,7 @@ function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps
               title: section.name.trim() || 'Untitled',
               description: '',
               source_type: 'MANUAL',
-              servings: section.servings,
+              servings: parsedServings,
               prep_time: 0,
               cook_time: parseInt(cookTime) || 0,
               shelf_life: parseInt(shelfLife) || 0,
@@ -273,7 +273,7 @@ function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps
               ingredients: parseIngredients(section.ingredients),
               instructions: parseInstructions(section.instructions),
             });
-            subRecipePayloads.push({ recipe_id: created.id, serving_factor: section.servings });
+            subRecipePayloads.push({ recipe_id: created.id, serving_factor: 1 });
           }
         }
         const multiPayload = {
@@ -530,6 +530,7 @@ function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps
                       </svg>
                     </button>
                   </div>
+                  {section.linkedRecipeId && (
                   <div className="add-recipe-modal__servings-row">
                     <span>Servings:</span>
                     <button
@@ -544,6 +545,7 @@ function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps
                       onClick={() => handleServingsChange(section.id, 1)}
                     >+</button>
                   </div>
+                  )}
                   <div className="add-recipe-modal__section-content">
                     <div className="add-recipe-modal__field-card">
                       <span className="add-recipe-modal__field-label">INGREDIENTS</span>
