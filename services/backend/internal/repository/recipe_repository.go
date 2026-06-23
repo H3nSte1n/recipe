@@ -66,8 +66,9 @@ func (r *RecipeRepositoryImpl) Update(ctx context.Context, recipe *domain.Recipe
 
 		// Update recipe base data
 		if err := tx.Model(recipe).
-			Select("title", "description", "source_type", "source_url", "is_private",
-				"servings", "prep_time", "cook_time", "updated_at").
+			Select("title", "description", "notes", "rating", "status", "image_url",
+				"source_type", "source_url", "is_private",
+				"servings", "prep_time", "cook_time", "shelf_life", "updated_at").
 			Updates(recipe).Error; err != nil {
 			return err
 		}
