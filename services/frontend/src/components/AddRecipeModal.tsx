@@ -582,58 +582,54 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
 
         {/* ── Body ───────────────────────────────────────────── */}
         <div className="add-recipe-modal__body">
-          {/* Main recipe — styled as a sub-recipe card */}
-          <div className="sub-recipe-card">
-            <div className="sub-recipe-card__header">
-              <span className="sub-recipe-card__drag">↕</span>
-              <span className="sub-recipe-card__name-text">
-                {title.trim() || <span style={{ color: 'var(--label)', fontStyle: 'italic' }}>Give me a name</span>}
-              </span>
-            </div>
-            <div className="sub-recipe-card__panels">
-              <div className="add-recipe-modal__panel">
-                <span className="add-recipe-modal__panel-label">Ingredients</span>
+          {subSections.length === 0 ? (
+            /* Single-block mode: flat card with no header */
+            <div className="sub-recipe-card sub-recipe-card--flat">
+              <div className="sub-recipe-card__panels">
+                <div className="add-recipe-modal__panel">
+                  <span className="add-recipe-modal__panel-label">Ingredients</span>
+                  <AutoResizeTextarea
+                    className="add-recipe-modal__panel-textarea"
+                    placeholder={'1 cup flour\n2 eggs'}
+                    value={ingredients}
+                    onChange={(e) => setIngredients(e.target.value)}
+                  />
+                </div>
+                <div className="add-recipe-modal__panel">
+                  <span className="add-recipe-modal__panel-label">Instructions</span>
+                  <AutoResizeTextarea
+                    className="add-recipe-modal__panel-textarea"
+                    placeholder={'Combine dry ingredients\nAdd wet ingredients and mix'}
+                    value={instructions}
+                    onChange={(e) => setInstructions(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="add-recipe-modal__notes-panel">
+                <span className="add-recipe-modal__panel-label">Notes</span>
                 <AutoResizeTextarea
                   className="add-recipe-modal__panel-textarea"
-                  placeholder={'1 cup flour\n2 eggs'}
-                  value={ingredients}
-                  onChange={(e) => setIngredients(e.target.value)}
-                />
-              </div>
-              <div className="add-recipe-modal__panel">
-                <span className="add-recipe-modal__panel-label">Instructions</span>
-                <AutoResizeTextarea
-                  className="add-recipe-modal__panel-textarea"
-                  placeholder={'Combine dry ingredients\nAdd wet ingredients and mix'}
-                  value={instructions}
-                  onChange={(e) => setInstructions(e.target.value)}
+                  placeholder="Any notes for this recipe…"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
             </div>
-            <div className="add-recipe-modal__notes-panel">
-              <span className="add-recipe-modal__panel-label">Notes</span>
-              <AutoResizeTextarea
-                className="add-recipe-modal__panel-textarea"
-                placeholder="Any notes for this recipe…"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+          ) : (
+            /* Multi-block mode: all blocks as SubRecipeCard */
+            subSections.map((sub) => (
+              <SubRecipeCard
+                key={sub.id}
+                sub={sub}
+                allRecipes={allRecipes}
+                onDelete={() => handleDeleteSubSection(sub.id)}
+                onChange={(field, value) => handleSubChange(sub.id, field, value)}
+                onLink={(recipe) => void handleLink(sub.id, recipe)}
+                onUnlink={() => handleUnlink(sub.id)}
+                onPortionChange={(delta) => handlePortionChange(sub.id, delta)}
               />
-            </div>
-          </div>
-
-          {/* Sub-recipe cards */}
-          {subSections.map((sub) => (
-            <SubRecipeCard
-              key={sub.id}
-              sub={sub}
-              allRecipes={allRecipes}
-              onDelete={() => handleDeleteSubSection(sub.id)}
-              onChange={(field, value) => handleSubChange(sub.id, field, value)}
-              onLink={(recipe) => void handleLink(sub.id, recipe)}
-              onUnlink={() => handleUnlink(sub.id)}
-              onPortionChange={(delta) => handlePortionChange(sub.id, delta)}
-            />
-          ))}
+            ))
+          )}
         </div>
 
         {/* ── Footer ─────────────────────────────────────────── */}
