@@ -110,6 +110,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onE
           {/* Sub-recipes inline */}
           {(recipe.sub_recipes ?? []).map((sub) => {
             if (!sub.child) return null;
+            const subScale = scale * sub.serving_factor;
             return (
               <div key={sub.child.id} className="recipe-modal__sub-section">
                 {sub.child.status === 'published' && onSubRecipeClick ? (
@@ -132,7 +133,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onE
                   <div className="recipe-modal__ingredients">
                     {(sub.child.ingredients ?? []).map((ing) => (
                       <div key={ing.id} className="recipe-modal__ingredient-item">
-                        {ingLine(ing.amount, ing.unit, ing.name, scale)}
+                        {ingLine(ing.amount, ing.unit, ing.name, subScale)}
                       </div>
                     ))}
                   </div>
