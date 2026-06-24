@@ -352,3 +352,33 @@
   color: var(--meta);
   font-size: var(--text-xs);
 }
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 559px) {
+  .recipe-modal__card {
+    margin: 0 auto 4vh;
+    border-radius: 0;
+    width: 100%;
+  }
+
+  .recipe-modal__hero {
+    aspect-ratio: 4 / 3;
+  }
+
+  .recipe-modal__content {
+    padding: 28px 20px 48px;
+  }
+
+  .recipe-modal__columns {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .recipe-modal__used-in-card {
+    flex: 0 0 120px;
+  }
+
+  .recipe-modal__breadcrumb {
+    padding: 10px 20px;
+  }
+}

@@ -85,3 +85,11 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 599px) {
+  .login-page__card {
+    margin: 0 16px;
+    padding: 2rem 1.25rem;
+  }
+}
