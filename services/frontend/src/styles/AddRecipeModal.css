@@ -277,6 +277,10 @@
   margin-top: 16px;
 }
 
+.sub-recipe-card--flat {
+  margin-top: 0;
+}
+
 .sub-recipe-card__header {
   display: flex;
   align-items: center;

@@ -584,7 +584,7 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
         <div className="add-recipe-modal__body">
           {subSections.length === 0 ? (
             /* Single-block mode: flat card with no header */
-            <div className="sub-recipe-card">
+            <div className="sub-recipe-card sub-recipe-card--flat">
               <div className="sub-recipe-card__panels">
                 <div className="add-recipe-modal__panel">
                   <span className="add-recipe-modal__panel-label">Ingredients</span>
