@@ -518,9 +518,15 @@ export default function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddR
 
         {/* ── Body ───────────────────────────────────────────── */}
         <div className="add-recipe-modal__body">
-          {/* Main recipe panels */}
-          <div className="add-recipe-modal__form-container">
-            <div className="add-recipe-modal__panels">
+          {/* Main recipe — styled as a sub-recipe card */}
+          <div className="sub-recipe-card">
+            <div className="sub-recipe-card__header">
+              <span className="sub-recipe-card__drag">↕</span>
+              <span className="sub-recipe-card__name-text">
+                {title.trim() || <span style={{ color: 'var(--label)', fontStyle: 'italic' }}>Give me a name</span>}
+              </span>
+            </div>
+            <div className="sub-recipe-card__panels">
               <div className="add-recipe-modal__panel">
                 <span className="add-recipe-modal__panel-label">Ingredients</span>
                 <AutoResizeTextarea

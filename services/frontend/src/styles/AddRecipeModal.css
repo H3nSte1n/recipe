@@ -218,12 +218,6 @@
   padding: 20px 85px 20px;
 }
 
-.add-recipe-modal__form-container {
-  background: var(--bg);
-  border-radius: 20px;
-  padding: 12px;
-}
-
 .add-recipe-modal__panels {
   display: grid;
   grid-template-columns: 1fr 1.37fr;
