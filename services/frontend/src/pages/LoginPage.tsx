@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import ScatteredBackground from '../components/ScatteredBackground';
 import '../styles/LoginPage.css';
 
 interface LoginPageProps {
@@ -30,47 +31,39 @@ export default function LoginPage({ onLogin, onBack }: LoginPageProps) {
 
   return (
     <div className="login-page">
-      <div className="login-page__card">
+      <ScatteredBackground />
+      <div className="login-page__form-area">
         {onBack && (
           <button className="login-page__back" onClick={onBack} type="button" aria-label="Back">
             ←
           </button>
         )}
-        <h1 className="login-page__heading type-h2">Mise</h1>
+        <p className="login-page__label">Login</p>
         <form className="login-page__form" onSubmit={handleSubmit}>
-          <div className="login-page__field">
-            <label htmlFor="email" className="login-page__label">Email</label>
-            <input
-              id="email"
-              className="login-page__input"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </div>
-          <div className="login-page__field">
-            <label htmlFor="password" className="login-page__label">Password</label>
-            <input
-              id="password"
-              className="login-page__input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </div>
+          <input
+            className="login-page__input"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+          <input
+            className="login-page__input"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+          />
           {error && <p className="login-page__error">{error}</p>}
-          <button
-            className="login-page__button"
-            type="submit"
-            disabled={loading}
-          >
-            {loading ? 'Signing in…' : 'Sign in'}
+          <button className="login-page__submit" type="submit" disabled={loading}>
+            {loading ? 'Signing in…' : 'Continue'}
           </button>
         </form>
+        <p className="login-page__forgot">Forgot password?</p>
       </div>
     </div>
   );
