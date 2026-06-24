@@ -1,0 +1,81 @@
+.landing-page {
+  position: relative;
+  min-height: 100vh;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.landing-page__center {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0;
+}
+
+.landing-page__brand {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--ink);
+  margin: 0 0 20px;
+  line-height: 1.4;
+}
+
+.landing-page__headline {
+  margin: 0 0 36px;
+  text-align: center;
+  line-height: 1.2;
+  /* type-h1 supplies font-family, style, weight, size */
+}
+
+.landing-page__actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+.landing-page__btn {
+  width: 150px;
+  height: 56px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: var(--text-lg);
+  line-height: 1;
+  transition: opacity 0.15s;
+}
+
+.landing-page__btn:hover {
+  opacity: 0.85;
+}
+
+.landing-page__btn--primary {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.landing-page__btn--secondary {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 599px) {
+  .landing-page__actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .landing-page__btn {
+    width: 240px;
+  }
+}

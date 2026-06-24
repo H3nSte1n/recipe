@@ -26,6 +26,28 @@ export async function login(email: string, password: string): Promise<void> {
   }
 }
 
+export async function register(name: string, email: string, password: string): Promise<void> {
+  try {
+    const response = await fetch('/api/v1/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Registration failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data: AuthResponse = await response.json();
+    localStorage.setItem(TOKEN_KEY, data.token);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('An unexpected error occurred during registration');
+  }
+}
+
 export function logout(): void {
   localStorage.removeItem(TOKEN_KEY);
 }

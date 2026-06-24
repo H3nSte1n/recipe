@@ -4,9 +4,10 @@ import '../styles/LoginPage.css';
 
 interface LoginPageProps {
   onLogin: () => void;
+  onBack?: () => void;
 }
 
-export default function LoginPage({ onLogin }: LoginPageProps) {
+export default function LoginPage({ onLogin, onBack }: LoginPageProps) {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,6 +31,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   return (
     <div className="login-page">
       <div className="login-page__card">
+        {onBack && (
+          <button className="login-page__back" onClick={onBack} type="button" aria-label="Back">
+            ←
+          </button>
+        )}
         <h1 className="login-page__heading type-h2">Mise</h1>
         <form className="login-page__form" onSubmit={handleSubmit}>
           <div className="login-page__field">

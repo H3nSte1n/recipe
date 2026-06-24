@@ -45,7 +45,7 @@ body {
 
 /* ─── Body Base Styles ───────────────────────────────────────────────────── */
 body {
-  background-color: var(--bg);
+  background-color: var(--surface);
   color: var(--ink);
   font-family: var(--font-sans);
 }

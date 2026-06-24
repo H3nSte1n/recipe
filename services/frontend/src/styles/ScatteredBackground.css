@@ -1,0 +1,27 @@
+.scattered-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.scattered-bg__tile {
+  position: absolute;
+  border-radius: 10px;
+  background: linear-gradient(150deg, #1e1e1e 0%, #2c2c2c 55%, #181818 100%);
+}
+
+/* Frosted-glass clearing in the center — white blurred ellipse */
+.scattered-bg__blur {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 50.78%;
+  height: 55.65%;
+  min-width: 320px;
+  border-radius: 10.94%;
+  background: #ffffff;
+  filter: blur(67px);
+}

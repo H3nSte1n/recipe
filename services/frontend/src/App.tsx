@@ -1,17 +1,43 @@
 import { useState } from 'react';
 import { isAuthenticated as checkAuth } from './services/authService';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
-import DesignSystemPanel from './components/DesignSystemPanel';
+
+type Screen = 'landing' | 'login' | 'register' | 'home';
 
 function App() {
-  const [authed, setAuthed] = useState(checkAuth());
+  const [screen, setScreen] = useState<Screen>(checkAuth() ? 'home' : 'landing');
 
-  if (!authed) {
-    return <LoginPage onLogin={() => setAuthed(true)} />;
+  if (screen === 'home') {
+    return <HomePage onLogout={() => setScreen('landing')} />;
   }
 
-  return <><HomePage onLogout={() => setAuthed(false)} /><DesignSystemPanel /></>;
+  if (screen === 'login') {
+    return (
+      <LoginPage
+        onLogin={() => setScreen('home')}
+        onBack={() => setScreen('landing')}
+      />
+    );
+  }
+
+  if (screen === 'register') {
+    return (
+      <RegisterPage
+        onRegister={() => setScreen('home')}
+        onBack={() => setScreen('landing')}
+      />
+    );
+  }
+
+  return (
+    <LandingPage
+      onLogin={() => setScreen('login')}
+      onRegister={() => setScreen('register')}
+    />
+  );
 }
 
 export default App;

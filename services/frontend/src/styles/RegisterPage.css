@@ -1,0 +1,117 @@
+.register-page {
+  position: relative;
+  min-height: 100vh;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.register-page__form-area {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 300px;
+}
+
+.register-page__back {
+  position: absolute;
+  top: -32px;
+  left: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--ink);
+  padding: 4px;
+  line-height: 1;
+}
+
+.register-page__label {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--ink);
+  margin: 0 0 16px;
+  text-align: center;
+}
+
+.register-page__form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.register-page__input {
+  width: 100%;
+  height: 56px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 20px;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--ink);
+  background: var(--surface);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.register-page__input:focus {
+  border-color: var(--ink);
+}
+
+.register-page__input::placeholder {
+  color: var(--label);
+}
+
+.register-page__error {
+  font-size: var(--text-sm);
+  color: var(--error);
+  margin: 0;
+  text-align: center;
+}
+
+.register-page__submit {
+  width: 100%;
+  height: 56px;
+  border-radius: 50px;
+  border: none;
+  background: var(--ink);
+  color: var(--surface);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--text-lg);
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-top: 4px;
+}
+
+.register-page__submit:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.register-page__submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.register-page__forgot {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  opacity: 0.5;
+  margin: 4px 0 0;
+  text-align: center;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 599px) {
+  .register-page__form-area {
+    width: calc(100vw - 48px);
+    max-width: 300px;
+  }
+}
