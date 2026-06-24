@@ -142,7 +142,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onE
 
           {parentRecipes.length > 0 && (
             <div className="recipe-modal__used-in">
-              <p className="recipe-modal__used-in-title">Also used in</p>
+              <p className="recipe-modal__used-in-title">Used in</p>
               <div className="recipe-modal__used-in-grid">
                 {parentRecipes.map((parent) => (
                   <RecipeCard key={parent.id} recipe={parent} onClick={() => undefined} />
