@@ -15,8 +15,8 @@
 .home-page__grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  column-gap: 36px;
-  row-gap: 48px;
+  column-gap: 40px;
+  row-gap: 56px;
 }
 
 .home-page__empty {
