@@ -340,7 +340,8 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
   }
 
   function handleDeleteSubSection(id: string) {
-    const filtered = subSectionsRef.current.filter((s) => s.id !== id);
+    const current = subSectionsRef.current;
+    const filtered = current.filter((s) => s.id !== id);
     if (filtered.length === 1) {
       // Transition from multi-block back to single-block mode:
       // restore surviving block's content into top-level state
@@ -348,6 +349,15 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
       setIngredients(survivor.ingredients);
       setInstructions(survivor.instructions);
       setNotes(survivor.notes);
+      setSubSections([]);
+    } else if (filtered.length === 0) {
+      // Deleting the last block: restore its content to top-level state
+      const deleted = current.find((s) => s.id === id);
+      if (deleted) {
+        setIngredients(deleted.ingredients);
+        setInstructions(deleted.instructions);
+        setNotes(deleted.notes);
+      }
       setSubSections([]);
     } else {
       setSubSections(filtered);
