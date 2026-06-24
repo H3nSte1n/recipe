@@ -92,7 +92,7 @@
   font-family: var(--font-serif);
   font-style: italic;
   font-weight: 400;
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   color: var(--ink);
   margin-bottom: 6px;
 }
@@ -121,7 +121,7 @@
   width: 100%;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 16px 20px;
   display: flex;
   align-items: center;
@@ -184,7 +184,7 @@
 .add-recipe-modal__nutrition-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
@@ -238,7 +238,7 @@
 .add-recipe-modal__section-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
   overflow: hidden;
   padding: 16px;
 }
@@ -337,7 +337,7 @@
 .add-recipe-modal__field-card {
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 14px;
 }
 
