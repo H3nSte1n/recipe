@@ -41,3 +41,11 @@
 .search-bar__add-btn:hover {
   opacity: 0.6;
 }
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 599px) {
+  .search-bar__add-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

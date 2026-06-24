@@ -116,3 +116,13 @@ body {
   text-transform: uppercase;
   color: var(--label);
 }
+
+/* ─── Responsive Type Scale ──────────────────────────────────────────────── */
+@media (max-width: 599px) {
+  :root {
+    --text-lg:      18px;  /* H3 on mobile */
+    --text-xl:      28px;  /* H2 on mobile */
+    --text-2xl:     36px;  /* H1 on mobile (60px is too large for 375px screens) */
+    --text-display: 36px;
+  }
+}
