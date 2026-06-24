@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Recipe } from '../types/recipe';
 import { metaOf, ingLine } from '../utils/formatters';
-import { getRecipeById } from '../services/recipeService';
+import RecipeCard from './RecipeCard';
 import '../styles/RecipeModal.css';
 
 interface RecipeModalProps {
@@ -12,13 +12,6 @@ interface RecipeModalProps {
   onClose: () => void;
   onEdit?: () => void;
   usedIn?: Record<string, Recipe[]>;
-}
-
-interface ModalSection {
-  name: string;
-  ingredients: Recipe['ingredients'];
-  instructions: Recipe['instructions'];
-  childId?: string;
 }
 
 export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onEdit, usedIn }: RecipeModalProps) {
@@ -35,265 +28,128 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onE
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
-  const [navStack, setNavStack] = useState<Recipe[]>([recipe]);
-  const [navLoading, setNavLoading] = useState(false);
+  const scale = serves / (recipe.servings || 1);
 
-  const currentRecipe = navStack[navStack.length - 1];
-
-  const navigateToSub = async (childId: string) => {
-    if (navLoading) return;
-    const existingIndex = navStack.findIndex((r) => r.id === childId);
-    if (existingIndex !== -1) {
-      setNavStack((prev) => prev.slice(0, existingIndex + 1));
-      return;
-    }
-    setNavLoading(true);
-    try {
-      const full = await getRecipeById(childId);
-      setNavStack((prev) => [...prev, full]);
-    } finally {
-      setNavLoading(false);
-    }
-  };
-
-  const sections: ModalSection[] = [
-    {
-      name: currentRecipe.title,
-      ingredients: currentRecipe.ingredients ?? [],
-      instructions: currentRecipe.instructions ?? [],
-    },
-  ];
-
-  if (currentRecipe.sub_recipes) {
-    for (const sub of currentRecipe.sub_recipes) {
-      if (sub.child) {
-        sections.push({
-          name: sub.child.title,
-          ingredients: sub.child.ingredients ?? [],
-          instructions: sub.child.instructions ?? [],
-          childId: sub.child.id,
-        });
-      }
-    }
-  }
+  const parentRecipes = usedIn?.[recipe.id] ?? [];
 
   return (
     <div className="recipe-modal" onClick={onClose}>
       <div className="recipe-modal__card" onClick={(e) => e.stopPropagation()}>
-        <div className="recipe-modal__controls">
-          <button className="recipe-modal__control-btn" type="button" aria-label="Edit recipe" onClick={onEdit}>
-            <svg
-              width={18}
-              height={18}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-            </svg>
-          </button>
-          <button
-            className="recipe-modal__control-btn"
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-          >
-            <svg
-              width={18}
-              height={18}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1={6} y1={6} x2={18} y2={18} />
-              <line x1={18} y1={6} x2={6} y2={18} />
-            </svg>
-          </button>
-        </div>
+        {/* ── Header ─────────────────────────────────────────── */}
         <div className="recipe-modal__header">
-          <div className="recipe-modal__hero">
-            {currentRecipe.image_url ? (
-              <img src={currentRecipe.image_url} alt={currentRecipe.title} />
+          <div className="recipe-modal__image">
+            {recipe.image_url ? (
+              <img src={recipe.image_url} alt={recipe.title} />
             ) : (
-              <div className="recipe-modal__hero-placeholder" />
+              <div className="recipe-modal__image-placeholder" />
             )}
           </div>
-          <div className="recipe-modal__header-info">
-            <h1 className="recipe-modal__title type-h1">{currentRecipe.title}</h1>
-            <div className="recipe-modal__meta type-body">
-              {metaOf(currentRecipe.prep_time, currentRecipe.cook_time, currentRecipe.shelf_life)}
+          <div className="recipe-modal__info">
+            <div className="recipe-modal__actions">
+              {onEdit && (
+                <button className="recipe-modal__action-btn" type="button" aria-label="Edit recipe" onClick={onEdit}>
+                  <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                  </svg>
+                </button>
+              )}
+              <button className="recipe-modal__action-btn" type="button" aria-label="Close" onClick={onClose}>
+                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <line x1={6} y1={6} x2={18} y2={18} />
+                  <line x1={18} y1={6} x2={6} y2={18} />
+                </svg>
+              </button>
             </div>
-            {currentRecipe.status && currentRecipe.status !== 'published' && (
-              <span className={`recipe-modal__status-badge recipe-modal__status-badge--${currentRecipe.status}`}>
-                {currentRecipe.status.charAt(0).toUpperCase() + currentRecipe.status.slice(1)}
-              </span>
+
+            <h1 className="recipe-modal__title type-h1">{recipe.title}</h1>
+            <p className="recipe-modal__cook-time">
+              {metaOf(recipe.prep_time, recipe.cook_time, recipe.shelf_life)}
+            </p>
+
+            {recipe.nutrition && (
+              <p className="recipe-modal__nutrition">
+                {Math.round(recipe.nutrition.calories * scale)} kcal
+                &nbsp;·&nbsp;{Math.round(recipe.nutrition.protein * scale)}g protein
+                &nbsp;·&nbsp;{Math.round(recipe.nutrition.fat * scale)}g fat
+                &nbsp;·&nbsp;{Math.round(recipe.nutrition.carbs * scale)}g carbs
+              </p>
             )}
+
+            <div className="recipe-modal__stepper">
+              <span className="recipe-modal__serves-label">Serves</span>
+              <button className="recipe-modal__stepper-btn" type="button" aria-label="Decrease servings" onClick={onDec}>−</button>
+              <span className="recipe-modal__serves-count">{serves}</span>
+              <button className="recipe-modal__stepper-btn" type="button" aria-label="Increase servings" onClick={onInc}>+</button>
+            </div>
           </div>
         </div>
 
-        {navStack.length > 1 && (
-          <div className="recipe-modal__breadcrumb">
-            {navStack.map((r, i) => (
-              <span key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {i > 0 && <span className="recipe-modal__breadcrumb-sep type-caption">›</span>}
-                {i < navStack.length - 1 ? (
-                  <button
-                    className="recipe-modal__breadcrumb-item type-body-sm"
-                    type="button"
-                    onClick={() => setNavStack((prev) => prev.slice(0, i + 1))}
-                  >
-                    {r.title}
-                  </button>
-                ) : (
-                  <span className="recipe-modal__breadcrumb-item type-body-sm recipe-modal__breadcrumb-item--active">
-                    {r.title}
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="recipe-modal__content">
-          <div className="recipe-modal__serves">
-            <span className="recipe-modal__serves-label type-label">Serves</span>
-            <button
-              className="recipe-modal__serves-btn"
-              type="button"
-              aria-label="Decrease servings"
-              onClick={onDec}
-            >
-              <svg
-                width={18}
-                height={18}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.5}
-                strokeLinecap="round"
-              >
-                <line x1={5} y1={12} x2={19} y2={12} />
-              </svg>
-            </button>
-            <span className="recipe-modal__serves-count">{serves}</span>
-            <button
-              className="recipe-modal__serves-btn"
-              type="button"
-              aria-label="Increase servings"
-              onClick={onInc}
-            >
-              <svg
-                width={18}
-                height={18}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.5}
-                strokeLinecap="round"
-              >
-                <line x1={5} y1={12} x2={19} y2={12} />
-                <line x1={12} y1={5} x2={12} y2={19} />
-              </svg>
-            </button>
-          </div>
-
-          {currentRecipe.nutrition && (() => {
-            const nutritionScale = currentRecipe.nutrition.per_serving ? serves / (recipe.servings || 1) : 1;
-            return (
-              <div className="recipe-modal__nutrition">
-                <span className="recipe-modal__nutrition-item type-body">
-                  <span className="recipe-modal__nutrition-value">{Math.round(currentRecipe.nutrition.calories * nutritionScale)}</span>
-                  <span className="recipe-modal__nutrition-label type-label">kcal</span>
-                </span>
-                <span className="recipe-modal__nutrition-sep">·</span>
-                <span className="recipe-modal__nutrition-item type-body">
-                  <span className="recipe-modal__nutrition-value">{Math.round(currentRecipe.nutrition.carbs * nutritionScale)}g</span>
-                  <span className="recipe-modal__nutrition-label type-label">carbs</span>
-                </span>
-                <span className="recipe-modal__nutrition-sep">·</span>
-                <span className="recipe-modal__nutrition-item type-body">
-                  <span className="recipe-modal__nutrition-value">{Math.round(currentRecipe.nutrition.protein * nutritionScale)}g</span>
-                  <span className="recipe-modal__nutrition-label type-label">protein</span>
-                </span>
-                <span className="recipe-modal__nutrition-sep">·</span>
-                <span className="recipe-modal__nutrition-item type-body">
-                  <span className="recipe-modal__nutrition-value">{Math.round(currentRecipe.nutrition.fat * nutritionScale)}g</span>
-                  <span className="recipe-modal__nutrition-label type-label">fat</span>
-                </span>
-              </div>
-            );
-          })()}
-
-          {sections.map((section, i) => (
-            <div key={i} className="recipe-modal__section">
-              {sections.length > 1 && i > 0 && (
-                section.childId ? (
-                  <button
-                    className="recipe-modal__section-name type-h3 recipe-modal__section-name--link"
-                    type="button"
-                    onClick={() => void navigateToSub(section.childId!)}
-                    disabled={navLoading}
-                  >
-                    {section.name}
-                    <span className="recipe-modal__section-chevron">›</span>
-                  </button>
-                ) : (
-                  <div className="recipe-modal__section-name type-h3">{section.name}</div>
-                )
-              )}
-              <div className="recipe-modal__columns">
-                <div className="recipe-modal__ingredients">
-                  {(section.ingredients ?? []).map((ing) => (
-                    <div key={ing.id} className="recipe-modal__ingredient type-body">
-                      {ingLine(ing.amount, ing.unit, ing.name, serves / (recipe.servings || 1))}
-                    </div>
-                  ))}
+        {/* ── Body ───────────────────────────────────────────── */}
+        <div className="recipe-modal__body">
+          <div className="recipe-modal__columns">
+            <div className="recipe-modal__ingredients">
+              {(recipe.ingredients ?? []).map((ing) => (
+                <div key={ing.id} className="recipe-modal__ingredient-item">
+                  {ingLine(ing.amount, ing.unit, ing.name, scale)}
                 </div>
-                <div className="recipe-modal__steps">
-                  {[...(section.instructions ?? [])]
-                    .sort((a, b) => a.step_number - b.step_number)
-                    .map((inst) => (
-                      <div key={inst.id} className="recipe-modal__step type-body">
-                        {inst.instruction}
+              ))}
+            </div>
+            <div className="recipe-modal__instructions">
+              {[...(recipe.instructions ?? [])]
+                .sort((a, b) => a.step_number - b.step_number)
+                .map((inst) => (
+                  <div key={inst.id} className="recipe-modal__instruction-item">
+                    {inst.instruction}
+                  </div>
+                ))}
+            </div>
+          </div>
+
+          {/* Sub-recipes inline */}
+          {(recipe.sub_recipes ?? []).map((sub) => {
+            if (!sub.child) return null;
+            return (
+              <div key={sub.child.id} className="recipe-modal__sub-section">
+                <p className="recipe-modal__sub-title">{sub.child.title}</p>
+                <div className="recipe-modal__columns">
+                  <div className="recipe-modal__ingredients">
+                    {(sub.child.ingredients ?? []).map((ing) => (
+                      <div key={ing.id} className="recipe-modal__ingredient-item">
+                        {ingLine(ing.amount, ing.unit, ing.name, scale)}
                       </div>
                     ))}
+                  </div>
+                  <div className="recipe-modal__instructions">
+                    {[...(sub.child.instructions ?? [])]
+                      .sort((a, b) => a.step_number - b.step_number)
+                      .map((inst) => (
+                        <div key={inst.id} className="recipe-modal__instruction-item">
+                          {inst.instruction}
+                        </div>
+                      ))}
+                  </div>
                 </div>
               </div>
+            );
+          })}
+
+          {recipe.notes && (
+            <div className="recipe-modal__notes-section">
+              <p className="recipe-modal__notes-label">Notes</p>
+              <p className="recipe-modal__notes-text">{recipe.notes}</p>
             </div>
-          ))}
-          {usedIn?.[currentRecipe.id]?.length ? (
+          )}
+
+          {parentRecipes.length > 0 && (
             <div className="recipe-modal__used-in">
-              <div className="recipe-modal__used-in-label type-label">Used in</div>
-              <div className="recipe-modal__used-in-strip">
-                {usedIn[currentRecipe.id].map((parent) => (
-                  <button
-                    key={parent.id}
-                    className="recipe-modal__used-in-card"
-                    type="button"
-                    disabled={navLoading}
-                    onClick={() => void navigateToSub(parent.id)}
-                  >
-                    {parent.image_url ? (
-                      <img
-                        className="recipe-modal__used-in-card-image"
-                        src={parent.image_url}
-                        alt={parent.title}
-                      />
-                    ) : (
-                      <div className="recipe-modal__used-in-card-image" />
-                    )}
-                    <div className="recipe-modal__used-in-card-title">{parent.title}</div>
-                  </button>
+              <p className="recipe-modal__used-in-title">Also used in</p>
+              <div className="recipe-modal__used-in-grid">
+                {parentRecipes.map((parent) => (
+                  <RecipeCard key={parent.id} recipe={parent} onClick={() => undefined} />
                 ))}
               </div>
             </div>
-          ) : null}
+          )}
         </div>
       </div>
     </div>
