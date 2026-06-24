@@ -120,10 +120,23 @@ export default function HomePage({ onLogout }: HomePageProps) {
       {editingRecipe && (
         <AddRecipeModal
           initialRecipe={editingRecipe}
-          onClose={() => setEditingRecipe(null)}
+          onClose={() => {
+            setSelectedRecipe(editingRecipe);
+            setEditingRecipe(null);
+          }}
           onSaved={() => {
+            const recipeId = editingRecipe.id;
             refresh();
             setEditingRecipe(null);
+            void (async () => {
+              try {
+                const updated = await getRecipeById(recipeId);
+                setSelectedRecipe(updated);
+                setServes(updated.servings ?? 2);
+              } catch {
+                // refresh failed — stay at overview
+              }
+            })();
           }}
           onDeleted={() => {
             refresh();
