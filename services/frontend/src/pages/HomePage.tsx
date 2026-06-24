@@ -44,18 +44,20 @@ export default function HomePage({ onLogout }: HomePageProps) {
   return (
     <div className="home-page">
       <header className="home-page__header">
-        <SearchBar value={query} onChange={setQuery} />
-        <button
-          className="home-page__add-btn"
-          type="button"
-          aria-label="Add recipe"
-          onClick={() => setShowAddModal(true)}
-        >
-          <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
-            <line x1={5} y1={12} x2={19} y2={12} />
-            <line x1={12} y1={5} x2={12} y2={19} />
-          </svg>
-        </button>
+        <div className="home-page__header-content">
+          <SearchBar value={query} onChange={setQuery} />
+          <button
+            className="home-page__add-btn"
+            type="button"
+            aria-label="Add recipe"
+            onClick={() => setShowAddModal(true)}
+          >
+            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
+              <line x1={5} y1={12} x2={19} y2={12} />
+              <line x1={12} y1={5} x2={12} y2={19} />
+            </svg>
+          </button>
+        </div>
       </header>
       <main className="home-page__main">
         {isLoading && <div className="home-page__loading">Loading…</div>}

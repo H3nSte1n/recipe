@@ -4,18 +4,24 @@
 }
 
 .home-page__header {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 32px 40px;
   max-width: 1520px;
   margin: 0 auto;
 }
 
+.home-page__header-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* same effective width as the 3-col grid: 3×360 + 2×24 = 1128px */
+  width: min(1128px, 100%);
+  margin: 0 auto;
+}
+
 .home-page__add-btn {
   position: absolute;
-  right: 40px;
+  right: 0;
   cursor: pointer;
   background: none;
   border: none;
