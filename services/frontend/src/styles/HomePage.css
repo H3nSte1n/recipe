@@ -52,12 +52,34 @@
 }
 
 .home-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
   text-align: center;
   padding: 140px 0;
   color: var(--label);
   font-style: italic;
   font-family: var(--font-serif);
   font-size: var(--text-lg);
+}
+
+.home-page__empty-add-btn {
+  height: 44px;
+  padding: 0 28px;
+  border-radius: 50px;
+  background: var(--ink);
+  color: var(--surface);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--text-base);
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.home-page__empty-add-btn:hover {
+  opacity: 0.8;
 }
 
 .home-page__loading,

@@ -63,7 +63,16 @@ export default function HomePage({ onLogout }: HomePageProps) {
         {isLoading && <div className="home-page__loading">Loading…</div>}
         {error && !isLoading && <div className="home-page__error">Failed to load recipes.</div>}
         {!isLoading && !error && filtered.length === 0 && (
-          <div className="home-page__empty">Nothing here.</div>
+          <div className="home-page__empty">
+            <span>Nothing here 😋</span>
+            <button
+              className="home-page__empty-add-btn"
+              type="button"
+              onClick={() => setShowAddModal(true)}
+            >
+              Add recipe
+            </button>
+          </div>
         )}
         {!isLoading && !error && filtered.length > 0 && (
           <div className="home-page__grid">
