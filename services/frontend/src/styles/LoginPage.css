@@ -3,21 +3,27 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background-color: var(--bg);
+  background-color: var(--surface);
 }
 
 .login-page__card {
   width: 100%;
   max-width: 400px;
   padding: 2.5rem 2rem;
-  background-color: var(--surface);
-  border: 1px solid var(--line);
+  background-color: transparent;
+  border: none;
   border-radius: 8px;
 }
 
 .login-page__heading {
   margin: 0 0 2rem 0;
   text-align: center;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: var(--text-xl); /* 36px instead of the 60px type-h1 */
+  line-height: 1.2;
+  color: var(--ink);
 }
 
 .login-page__form {
@@ -42,7 +48,7 @@
   padding: 0.625rem 0.75rem;
   font-size: var(--text-base);
   color: var(--ink);
-  background-color: var(--bg);
+  background-color: var(--surface);
   border: 1px solid var(--line);
   border-radius: 4px;
   outline: none;
@@ -63,7 +69,7 @@
   padding: 0.75rem 1.5rem;
   font-size: var(--text-base);
   font-weight: 500;
-  color: var(--bg);
+  color: var(--surface);
   background-color: var(--ink);
   border: none;
   border-radius: 4px;
