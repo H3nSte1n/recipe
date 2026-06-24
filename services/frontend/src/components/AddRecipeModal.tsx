@@ -330,6 +330,7 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
       setSubSections([existingBlock, emptyBlock]);
       setIngredients('');
       setInstructions('');
+      setNotes('');
     } else {
       // Already in multi-block mode: just append a new empty block
       setSubSections((prev) => [
