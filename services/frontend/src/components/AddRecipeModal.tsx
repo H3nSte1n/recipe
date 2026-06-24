@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { createRecipe, updateRecipe } from '../services/recipeService';
+import { createRecipe, getMyRecipes, getRecipeById, updateRecipe } from '../services/recipeService';
 import {
   CreateRecipeIngredientPayload,
   CreateRecipeInstructionPayload,
   CreateRecipeNutritionPayload,
   Recipe,
+  RecipeIngredient,
+  SubRecipePayload,
 } from '../types/recipe';
 import { parseIngText } from '../utils/formatters';
 import '../styles/AddRecipeModal.css';
@@ -15,14 +17,26 @@ interface AddRecipeModalProps {
   initialRecipe?: Recipe;
 }
 
+interface SubSection {
+  id: string;
+  name: string;
+  portion: number;
+  ingredients: string;
+  instructions: string;
+  notes: string;
+  linkedRecipeId?: string;
+  linkedIngredients?: RecipeIngredient[];
+}
+
 interface AutoResizeTextareaProps {
   className?: string;
   placeholder?: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  disabled?: boolean;
 }
 
-function AutoResizeTextarea({ className, placeholder, value, onChange }: AutoResizeTextareaProps) {
+function AutoResizeTextarea({ className, placeholder, value, onChange, disabled }: AutoResizeTextareaProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -37,11 +51,32 @@ function AutoResizeTextarea({ className, placeholder, value, onChange }: AutoRes
       placeholder={placeholder}
       value={value}
       onChange={onChange}
+      disabled={disabled}
     />
   );
 }
 
-function formatIngredients(recipe: Recipe): string {
+function formatRecipeIngredients(ings: RecipeIngredient[], factor: number): string {
+  return ings
+    .map((i) => {
+      let amt = i.amount;
+      let unit = i.unit;
+      let name = i.name;
+      if (amt === 0) {
+        const parsed = parseIngText(i.description || i.name);
+        if (parsed) { amt = parsed.amount; unit = parsed.unit; name = parsed.name; }
+      }
+      if (amt > 0) {
+        const scaled = Math.round(amt * factor * 100) / 100;
+        const amountStr = Number.isInteger(scaled) ? String(scaled) : scaled.toFixed(2).replace(/\.?0+$/, '');
+        return unit ? `${amountStr}${unit} ${name}` : `${amountStr} ${name}`;
+      }
+      return i.description || i.name;
+    })
+    .join('\n');
+}
+
+function formatRecipe(recipe: Recipe): string {
   return (recipe.ingredients ?? [])
     .map((i) => {
       if (i.amount > 0) {
@@ -73,6 +108,140 @@ function parseInstructions(text: string): CreateRecipeInstructionPayload[] {
     .map((line, idx) => ({ step_number: idx + 1, instruction: line.trim() }));
 }
 
+function buildInitialSubSections(recipe: Recipe): SubSection[] {
+  const subs = recipe.sub_recipes ?? [];
+  return subs.map((sr, i) => ({
+    id: String(Date.now() + i),
+    name: sr.child?.title ?? '',
+    portion: sr.serving_factor,
+    linkedRecipeId: sr.child_id,
+    linkedIngredients: sr.child?.ingredients ?? [],
+    ingredients: formatRecipeIngredients(sr.child?.ingredients ?? [], sr.serving_factor),
+    instructions: (sr.child?.instructions ?? [])
+      .sort((a, b) => a.step_number - b.step_number)
+      .map((ins) => ins.instruction)
+      .join('\n'),
+    notes: '',
+  }));
+}
+
+// ── SubRecipeCard ───────────────────────────────────────────────────────────
+
+interface SubRecipeCardProps {
+  sub: SubSection;
+  allRecipes: Recipe[];
+  onDelete: () => void;
+  onChange: (field: keyof Pick<SubSection, 'name' | 'ingredients' | 'instructions' | 'notes'>, value: string) => void;
+  onLink: (recipe: Recipe) => void;
+  onUnlink: () => void;
+  onPortionChange: (delta: number) => void;
+}
+
+function SubRecipeCard({ sub, allRecipes, onDelete, onChange, onLink, onUnlink, onPortionChange }: SubRecipeCardProps) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const suggestions = sub.name.length > 0
+    ? allRecipes.filter((r) => r.title.toLowerCase().includes(sub.name.toLowerCase())).slice(0, 5)
+    : [];
+
+  return (
+    <div className="sub-recipe-card">
+      {/* Card header */}
+      <div className="sub-recipe-card__header">
+        <span className="sub-recipe-card__drag">↕</span>
+
+        {sub.linkedRecipeId ? (
+          <div className="sub-recipe-card__name-linked">
+            <span className="sub-recipe-card__name-text">{sub.name}</span>
+            <button className="sub-recipe-card__unlink" type="button" onClick={onUnlink} aria-label="Unlink">×</button>
+          </div>
+        ) : (
+          <div className="sub-recipe-card__name-search">
+            <input
+              className="sub-recipe-card__name-input"
+              placeholder="Give me a name (e.g. Salmon)"
+              value={sub.name}
+              onChange={(e) => {
+                onChange('name', e.target.value);
+                setDropdownOpen(true);
+              }}
+              onFocus={() => { if (sub.name.length > 0) setDropdownOpen(true); }}
+              onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
+            />
+            {dropdownOpen && suggestions.length > 0 && (
+              <div className="sub-recipe-card__dropdown">
+                {suggestions.map((r) => (
+                  <button
+                    key={r.id}
+                    className="sub-recipe-card__dropdown-item"
+                    type="button"
+                    onMouseDown={() => onLink(r)}
+                  >
+                    {r.title}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="sub-recipe-card__right">
+          {sub.linkedRecipeId && (
+            <div className="sub-recipe-card__portion">
+              <span className="sub-recipe-card__portion-label">Portion</span>
+              <button className="sub-recipe-card__portion-btn" type="button" onClick={() => onPortionChange(-1)}>−</button>
+              <span className="sub-recipe-card__portion-count">{sub.portion}</span>
+              <button className="sub-recipe-card__portion-btn" type="button" onClick={() => onPortionChange(1)}>+</button>
+            </div>
+          )}
+          <button className="sub-recipe-card__delete" type="button" aria-label="Delete sub-recipe" onClick={onDelete}>
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14H6L5 6" />
+              <path d="M10 11v6M14 11v6M9 6V4h6v2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Panels */}
+      <div className="sub-recipe-card__panels">
+        <div className="add-recipe-modal__panel">
+          <span className="add-recipe-modal__panel-label">Ingredients</span>
+          <AutoResizeTextarea
+            className="add-recipe-modal__panel-textarea"
+            placeholder={'1 cup flour\n2 eggs'}
+            value={sub.ingredients}
+            disabled={!!sub.linkedRecipeId}
+            onChange={(e) => onChange('ingredients', e.target.value)}
+          />
+        </div>
+        <div className="add-recipe-modal__panel">
+          <span className="add-recipe-modal__panel-label">Instructions</span>
+          <AutoResizeTextarea
+            className="add-recipe-modal__panel-textarea"
+            placeholder={'Step 1\nStep 2'}
+            value={sub.instructions}
+            disabled={!!sub.linkedRecipeId}
+            onChange={(e) => onChange('instructions', e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="add-recipe-modal__notes-panel">
+        <span className="add-recipe-modal__panel-label">Notes</span>
+        <AutoResizeTextarea
+          className="add-recipe-modal__panel-textarea"
+          placeholder="Any notes…"
+          value={sub.notes}
+          onChange={(e) => onChange('notes', e.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── AddRecipeModal ──────────────────────────────────────────────────────────
+
 export default function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps) {
   const [title, setTitle] = useState(initialRecipe?.title ?? '');
   const [description, setDescription] = useState(initialRecipe?.description ?? '');
@@ -86,7 +255,7 @@ export default function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddR
   const [carbs, setCarbs] = useState(initialRecipe?.nutrition?.carbs ? String(initialRecipe.nutrition.carbs) : '');
   const [protein, setProtein] = useState(initialRecipe?.nutrition?.protein ? String(initialRecipe.nutrition.protein) : '');
   const [fat, setFat] = useState(initialRecipe?.nutrition?.fat ? String(initialRecipe.nutrition.fat) : '');
-  const [ingredients, setIngredients] = useState(initialRecipe ? formatIngredients(initialRecipe) : '');
+  const [ingredients, setIngredients] = useState(initialRecipe ? formatRecipe(initialRecipe) : '');
   const [instructions, setInstructions] = useState(
     (initialRecipe?.instructions ?? [])
       .sort((a, b) => a.step_number - b.step_number)
@@ -94,9 +263,17 @@ export default function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddR
       .join('\n')
   );
   const [notes, setNotes] = useState(initialRecipe?.notes ?? '');
+  const [subSections, setSubSections] = useState<SubSection[]>(() =>
+    initialRecipe ? buildInitialSubSections(initialRecipe) : []
+  );
+  const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    getMyRecipes().then(setAllRecipes).catch(() => {});
+  }, []);
 
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
@@ -113,6 +290,71 @@ export default function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddR
     setImagePreview(URL.createObjectURL(file));
   }
 
+  function handleAddSubSection() {
+    setSubSections((prev) => [
+      ...prev,
+      { id: String(Date.now()), name: '', portion: 1, ingredients: '', instructions: '', notes: '' },
+    ]);
+  }
+
+  function handleDeleteSubSection(id: string) {
+    setSubSections((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  function handleSubChange(id: string, field: keyof Pick<SubSection, 'name' | 'ingredients' | 'instructions' | 'notes'>, value: string) {
+    setSubSections((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s));
+  }
+
+  async function handleLink(id: string, recipe: Recipe) {
+    setSubSections((prev) =>
+      prev.map((s) => s.id === id
+        ? { ...s, name: recipe.title, linkedRecipeId: recipe.id, ingredients: '', instructions: '' }
+        : s)
+    );
+    try {
+      const full = await getRecipeById(recipe.id);
+      const linkedIngredients = full.ingredients ?? [];
+      setSubSections((prev) =>
+        prev.map((s) => {
+          if (s.id !== id || s.linkedRecipeId !== recipe.id) return s;
+          return {
+            ...s,
+            linkedIngredients,
+            ingredients: formatRecipeIngredients(linkedIngredients, s.portion),
+            instructions: (full.instructions ?? [])
+              .sort((a, b) => a.step_number - b.step_number)
+              .map((i) => i.instruction)
+              .join('\n'),
+          };
+        })
+      );
+    } catch {
+      // keep the name link even if fetching details fails
+    }
+  }
+
+  function handleUnlink(id: string) {
+    setSubSections((prev) =>
+      prev.map((s) => s.id === id ? { ...s, linkedRecipeId: undefined, linkedIngredients: undefined } : s)
+    );
+  }
+
+  function handlePortionChange(id: string, delta: number) {
+    setSubSections((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const next = Math.min(99, Math.max(0.5, Math.round((s.portion + delta) * 2) / 2));
+        return {
+          ...s,
+          portion: next,
+          ingredients: s.linkedIngredients
+            ? formatRecipeIngredients(s.linkedIngredients, next)
+            : s.ingredients,
+        };
+      })
+    );
+  }
+
   const handleSave = async () => {
     if (!title.trim() || isSaving) return;
     setIsSaving(true);
@@ -122,23 +364,48 @@ export default function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddR
         ? { calories: parseFloat(calories) || 0, protein: parseFloat(protein) || 0, fat: parseFloat(fat) || 0, carbs: parseFloat(carbs) || 0 }
         : undefined;
 
-    const payload = {
-      title: title.trim(),
-      description,
-      source_type: 'MANUAL',
-      servings,
-      prep_time: parseInt(prepTime) || 0,
-      cook_time: parseInt(cookTime) || 0,
-      shelf_life: parseInt(shelfLife) || 0,
-      notes,
-      is_private: false,
-      status: 'published',
-      ingredients: parseIngredients(ingredients),
-      instructions: parseInstructions(instructions),
-      nutrition: nutritionPayload,
-    };
-
     try {
+      // Build sub-recipe payloads (create new ones if not linked)
+      const subRecipePayloads: SubRecipePayload[] = [];
+      for (const sub of subSections) {
+        if (sub.linkedRecipeId) {
+          subRecipePayloads.push({ recipe_id: sub.linkedRecipeId, serving_factor: sub.portion });
+        } else if (sub.name.trim() || sub.ingredients.trim() || sub.instructions.trim()) {
+          const created = await createRecipe({
+            title: sub.name.trim() || 'Untitled',
+            description: '',
+            source_type: 'MANUAL',
+            servings,
+            prep_time: 0,
+            cook_time: parseInt(cookTime) || 0,
+            shelf_life: parseInt(shelfLife) || 0,
+            notes: sub.notes,
+            is_private: false,
+            status: 'published',
+            ingredients: parseIngredients(sub.ingredients),
+            instructions: parseInstructions(sub.instructions),
+          });
+          subRecipePayloads.push({ recipe_id: created.id, serving_factor: sub.portion });
+        }
+      }
+
+      const payload = {
+        title: title.trim(),
+        description,
+        source_type: 'MANUAL',
+        servings,
+        prep_time: parseInt(prepTime) || 0,
+        cook_time: parseInt(cookTime) || 0,
+        shelf_life: parseInt(shelfLife) || 0,
+        notes,
+        is_private: false,
+        status: 'published',
+        ingredients: parseIngredients(ingredients),
+        instructions: parseInstructions(instructions),
+        nutrition: nutritionPayload,
+        ...(subRecipePayloads.length > 0 && { sub_recipes: subRecipePayloads }),
+      };
+
       if (initialRecipe) {
         await updateRecipe(initialRecipe.id, payload, imageFile);
       } else {
@@ -251,6 +518,7 @@ export default function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddR
 
         {/* ── Body ───────────────────────────────────────────── */}
         <div className="add-recipe-modal__body">
+          {/* Main recipe panels */}
           <div className="add-recipe-modal__form-container">
             <div className="add-recipe-modal__panels">
               <div className="add-recipe-modal__panel">
@@ -282,11 +550,25 @@ export default function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddR
               />
             </div>
           </div>
+
+          {/* Sub-recipe cards */}
+          {subSections.map((sub) => (
+            <SubRecipeCard
+              key={sub.id}
+              sub={sub}
+              allRecipes={allRecipes}
+              onDelete={() => handleDeleteSubSection(sub.id)}
+              onChange={(field, value) => handleSubChange(sub.id, field, value)}
+              onLink={(recipe) => void handleLink(sub.id, recipe)}
+              onUnlink={() => handleUnlink(sub.id)}
+              onPortionChange={(delta) => handlePortionChange(sub.id, delta)}
+            />
+          ))}
         </div>
 
         {/* ── Footer ─────────────────────────────────────────── */}
         <div className="add-recipe-modal__footer">
-          <button className="add-recipe-modal__sub-recipe-btn" type="button" disabled>
+          <button className="add-recipe-modal__sub-recipe-btn" type="button" onClick={handleAddSubSection}>
             + Add sub-recipe
           </button>
         </div>
