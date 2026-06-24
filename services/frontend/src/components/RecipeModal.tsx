@@ -11,10 +11,11 @@ interface RecipeModalProps {
   onDec: () => void;
   onClose: () => void;
   onEdit?: () => void;
+  onSubRecipeClick?: (recipe: Recipe) => void;
   usedIn?: Record<string, Recipe[]>;
 }
 
-export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onEdit, usedIn }: RecipeModalProps) {
+export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onEdit, onSubRecipeClick, usedIn }: RecipeModalProps) {
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -110,14 +111,22 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onE
             if (!sub.child) return null;
             return (
               <div key={sub.child.id} className="recipe-modal__sub-section">
-                <p className="recipe-modal__sub-title">
-                  {sub.child.title}
-                  {sub.child.status === 'published' && (
+                {sub.child.status === 'published' && onSubRecipeClick ? (
+                  <button
+                    type="button"
+                    className="recipe-modal__sub-title recipe-modal__sub-title--link"
+                    onClick={() => onSubRecipeClick(sub.child!)}
+                  >
+                    {sub.child.title}
                     <svg className="recipe-modal__sub-chevron" width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="9 18 15 12 9 6" />
                     </svg>
-                  )}
-                </p>
+                  </button>
+                ) : (
+                  <p className="recipe-modal__sub-title">
+                    {sub.child.title}
+                  </p>
+                )}
                 <div className="recipe-modal__columns">
                   <div className="recipe-modal__ingredients">
                     {(sub.child.ingredients ?? []).map((ing) => (

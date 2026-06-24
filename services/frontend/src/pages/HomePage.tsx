@@ -108,6 +108,17 @@ export default function HomePage({ onLogout }: HomePageProps) {
           onDec={handleDec}
           onClose={() => setSelectedRecipe(null)}
           onEdit={handleEditRecipe}
+          onSubRecipeClick={(sub) => {
+            void (async () => {
+              try {
+                const full = await getRecipeById(sub.id);
+                setSelectedRecipe(full);
+                setServes(full.servings ?? 2);
+              } catch {
+                // ignore
+              }
+            })();
+          }}
           usedIn={usedIn}
         />
       )}
