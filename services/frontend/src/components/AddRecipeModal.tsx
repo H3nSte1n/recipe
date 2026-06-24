@@ -269,10 +269,12 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
           .map((i) => i.instruction)
           .join('\n')
   );
-  const [notes, setNotes] = useState(hasSubRecipes ? '' : (initialRecipe?.notes ?? ''));
+  const [notes, setNotes] = useState(initialRecipe?.notes ?? '');
   const [subSections, setSubSections] = useState<SubSection[]>(() =>
     hasSubRecipes ? buildInitialSubSections(initialRecipe!) : []
   );
+  const subSectionsRef = useRef<SubSection[]>(subSections);
+  useEffect(() => { subSectionsRef.current = subSections; }, [subSections]);
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -310,7 +312,7 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
       // Transition from single-block to multi-block mode:
       // wrap current top-level content as subSections[0], add empty subSections[1]
       const existingBlock: SubSection = {
-        id: String(Date.now()),
+        id: crypto.randomUUID(),
         name: '',
         portion: 1,
         ingredients,
@@ -318,7 +320,7 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
         notes,
       };
       const emptyBlock: SubSection = {
-        id: String(Date.now() + 1),
+        id: crypto.randomUUID(),
         name: '',
         portion: 1,
         ingredients: '',
@@ -328,18 +330,17 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
       setSubSections([existingBlock, emptyBlock]);
       setIngredients('');
       setInstructions('');
-      setNotes('');
     } else {
       // Already in multi-block mode: just append a new empty block
       setSubSections((prev) => [
         ...prev,
-        { id: String(Date.now()), name: '', portion: 1, ingredients: '', instructions: '', notes: '' },
+        { id: crypto.randomUUID(), name: '', portion: 1, ingredients: '', instructions: '', notes: '' },
       ]);
     }
   }
 
   function handleDeleteSubSection(id: string) {
-    const filtered = subSections.filter((s) => s.id !== id);
+    const filtered = subSectionsRef.current.filter((s) => s.id !== id);
     if (filtered.length === 1) {
       // Transition from multi-block back to single-block mode:
       // restore surviving block's content into top-level state
@@ -441,7 +442,7 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
         }
       }
 
-      const isMultiBlock = subSections.length >= 2;
+      const isMultiBlock = subSections.length >= 1;
       const payload = {
         title: title.trim(),
         description,
