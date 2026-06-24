@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { createRecipe, getMyRecipes, getRecipeById, updateRecipe } from '../services/recipeService';
+import { createRecipe, deleteRecipe, getMyRecipes, getRecipeById, updateRecipe } from '../services/recipeService';
 import {
   CreateRecipeIngredientPayload,
   CreateRecipeInstructionPayload,
@@ -14,6 +14,7 @@ import '../styles/AddRecipeModal.css';
 interface AddRecipeModalProps {
   onClose: () => void;
   onSaved: () => void;
+  onDeleted?: () => void;
   initialRecipe?: Recipe;
 }
 
@@ -242,7 +243,7 @@ function SubRecipeCard({ sub, allRecipes, onDelete, onChange, onLink, onUnlink, 
 
 // ── AddRecipeModal ──────────────────────────────────────────────────────────
 
-export default function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddRecipeModalProps) {
+export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRecipe }: AddRecipeModalProps) {
   const [title, setTitle] = useState(initialRecipe?.title ?? '');
   const [description, setDescription] = useState(initialRecipe?.description ?? '');
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -288,6 +289,14 @@ export default function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddR
     if (!file) return;
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
+  }
+
+  async function handleDelete() {
+    if (!initialRecipe) return;
+    if (!window.confirm('Delete this recipe? This cannot be undone.')) return;
+    await deleteRecipe(initialRecipe.id);
+    onDeleted?.();
+    onClose();
   }
 
   function handleAddSubSection() {
@@ -456,6 +465,15 @@ export default function AddRecipeModal({ onClose, onSaved, initialRecipe }: AddR
               >
                 {initialRecipe ? 'Update' : 'Publish'}
               </button>
+              {initialRecipe && (
+                <button className="add-recipe-modal__action-btn" type="button" aria-label="Delete recipe" onClick={handleDelete}>
+                  <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v6M14 11v6M9 6V4h6v2" />
+                  </svg>
+                </button>
+              )}
               <button className="add-recipe-modal__action-btn" type="button" aria-label="Close" onClick={onClose}>
                 <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
                   <line x1={6} y1={6} x2={18} y2={18} />

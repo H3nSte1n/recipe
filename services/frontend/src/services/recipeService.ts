@@ -96,6 +96,24 @@ export async function getMyRecipes(): Promise<Recipe[]> {
   }
 }
 
+export async function deleteRecipe(id: string): Promise<void> {
+  try {
+    const response = await apiFetch(`/api/v1/recipes/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to delete recipe: ${response.status} ${response.statusText}`);
+    }
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error('An unexpected error occurred while deleting the recipe');
+  }
+}
+
 export async function getRecipeById(id: string): Promise<Recipe> {
   try {
     const response = await apiFetch(`/api/v1/recipes/${id}`, {

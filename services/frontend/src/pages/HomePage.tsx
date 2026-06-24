@@ -116,6 +116,10 @@ export default function HomePage({ onLogout }: HomePageProps) {
             refresh();
             setEditingRecipe(null);
           }}
+          onDeleted={() => {
+            refresh();
+            setEditingRecipe(null);
+          }}
         />
       )}
     </div>
