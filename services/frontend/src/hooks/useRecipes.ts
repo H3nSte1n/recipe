@@ -25,7 +25,7 @@ export function useRecipes(): UseRecipesReturn {
         setError(null);
         const data = await getMyRecipes();
         if (!cancelled) {
-          setRecipes(data);
+          setRecipes(data.filter((r) => r.status === 'published'));
         }
       } catch (err) {
         if (!cancelled) {

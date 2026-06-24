@@ -391,7 +391,7 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
             shelf_life: parseInt(shelfLife) || 0,
             notes: sub.notes,
             is_private: false,
-            status: 'published',
+            status: 'draft',
             ingredients: parseIngredients(sub.ingredients),
             instructions: parseInstructions(sub.instructions),
           });
