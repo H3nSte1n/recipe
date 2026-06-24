@@ -172,6 +172,16 @@
   font-size: var(--text-lg);
   color: var(--ink);
   margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.recipe-modal__sub-chevron {
+  flex-shrink: 0;
+  color: var(--meta);
+  position: relative;
+  top: 1px;
 }
 
 .recipe-modal__notes-section {
