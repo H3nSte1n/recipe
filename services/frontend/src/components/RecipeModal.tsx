@@ -110,7 +110,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onE
           {/* Sub-recipes inline */}
           {(recipe.sub_recipes ?? []).map((sub) => {
             if (!sub.child) return null;
-            const subScale = scale * sub.serving_factor;
+            const subScale = scale * (sub.serving_factor || 1);
             return (
               <div key={sub.child.id} className="recipe-modal__sub-section">
                 {sub.child.status === 'published' && onSubRecipeClick ? (
