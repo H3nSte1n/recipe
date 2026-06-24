@@ -116,7 +116,7 @@ export async function deleteRecipe(id: string): Promise<void> {
 
 export async function getRecipeById(id: string): Promise<Recipe> {
   try {
-    const response = await apiFetch(`/api/v1/recipes/${id}`, {
+    const response = await apiFetch(`/api/v1/recipes/${id}?nutrition_level=macro`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

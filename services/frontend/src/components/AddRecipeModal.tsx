@@ -252,10 +252,11 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
   const [cookTime, setCookTime] = useState(initialRecipe?.cook_time ? String(initialRecipe.cook_time) : '');
   const [shelfLife, setShelfLife] = useState(initialRecipe?.shelf_life ? String(initialRecipe.shelf_life) : '');
   const [servings, setServings] = useState(initialRecipe?.servings ?? 1);
-  const [calories, setCalories] = useState(initialRecipe?.nutrition?.calories ? String(initialRecipe.nutrition.calories) : '');
-  const [carbs, setCarbs] = useState(initialRecipe?.nutrition?.carbs ? String(initialRecipe.nutrition.carbs) : '');
-  const [protein, setProtein] = useState(initialRecipe?.nutrition?.protein ? String(initialRecipe.nutrition.protein) : '');
-  const [fat, setFat] = useState(initialRecipe?.nutrition?.fat ? String(initialRecipe.nutrition.fat) : '');
+  const initNutrition = initialRecipe?.nutrition;
+  const [calories, setCalories] = useState(initNutrition != null ? String(initNutrition.calories) : '');
+  const [carbs, setCarbs] = useState(initNutrition != null ? String(initNutrition.carbs) : '');
+  const [protein, setProtein] = useState(initNutrition != null ? String(initNutrition.protein) : '');
+  const [fat, setFat] = useState(initNutrition != null ? String(initNutrition.fat) : '');
   const [ingredients, setIngredients] = useState(initialRecipe ? formatRecipe(initialRecipe) : '');
   const [instructions, setInstructions] = useState(
     (initialRecipe?.instructions ?? [])
