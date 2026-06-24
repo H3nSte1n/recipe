@@ -114,9 +114,16 @@ export default function HomePage({ onLogout }: HomePageProps) {
                 const full = await getRecipeById(sub.id);
                 setSelectedRecipe(full);
                 setServes(full.servings ?? 2);
-              } catch {
-                // ignore
-              }
+              } catch { /* ignore */ }
+            })();
+          }}
+          onParentRecipeClick={(parent) => {
+            void (async () => {
+              try {
+                const full = await getRecipeById(parent.id);
+                setSelectedRecipe(full);
+                setServes(full.servings ?? 2);
+              } catch { /* ignore */ }
             })();
           }}
           usedIn={usedIn}

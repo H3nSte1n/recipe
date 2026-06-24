@@ -4,12 +4,12 @@ import '../styles/RecipeCard.css';
 
 interface RecipeCardProps {
   recipe: Recipe;
-  onClick: () => void;
+  onClick?: () => void;
 }
 
 export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Enter' || event.key === ' ') {
+    if ((event.key === 'Enter' || event.key === ' ') && onClick) {
       event.preventDefault();
       onClick();
     }
@@ -18,8 +18,8 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
   return (
     <div
       className="recipe-card"
-      role="button"
-      tabIndex={0}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
       onKeyDown={handleKeyDown}
     >

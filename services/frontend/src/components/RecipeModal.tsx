@@ -12,10 +12,11 @@ interface RecipeModalProps {
   onClose: () => void;
   onEdit?: () => void;
   onSubRecipeClick?: (recipe: Recipe) => void;
+  onParentRecipeClick?: (recipe: Recipe) => void;
   usedIn?: Record<string, Recipe[]>;
 }
 
-export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onEdit, onSubRecipeClick, usedIn }: RecipeModalProps) {
+export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onEdit, onSubRecipeClick, onParentRecipeClick, usedIn }: RecipeModalProps) {
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -161,7 +162,11 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onE
               <p className="recipe-modal__used-in-title">Used in</p>
               <div className="recipe-modal__used-in-grid">
                 {parentRecipes.map((parent) => (
-                  <RecipeCard key={parent.id} recipe={parent} onClick={() => undefined} />
+                  <RecipeCard
+                    key={parent.id}
+                    recipe={parent}
+                    onClick={onParentRecipeClick ? () => onParentRecipeClick(parent) : undefined}
+                  />
                 ))}
               </div>
             </div>
