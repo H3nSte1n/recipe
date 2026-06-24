@@ -23,16 +23,16 @@ export default function RecipeCard({ recipe, onClick }: RecipeCardProps) {
       onClick={onClick}
       onKeyDown={handleKeyDown}
     >
-      <div className="recipe-card__image">
+      <div className="recipe-card__image-wrap">
         {recipe.image_url ? (
-          <img src={recipe.image_url} alt={recipe.title} />
+          <img className="recipe-card__image" src={recipe.image_url} alt={recipe.title} />
         ) : (
           <div className="recipe-card__image-placeholder" />
         )}
       </div>
-      <div className="recipe-card__title type-h3">{recipe.title}</div>
-      <div className="recipe-card__meta type-body-sm">
-        {metaOf(recipe.prep_time, recipe.cook_time, recipe.shelf_life)}
+      <div className="recipe-card__meta">
+        <p className="recipe-card__title">{recipe.title}</p>
+        <p className="recipe-card__time">{metaOf(recipe.prep_time, recipe.cook_time, recipe.shelf_life)}</p>
       </div>
     </div>
   );

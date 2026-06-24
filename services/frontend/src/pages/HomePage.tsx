@@ -42,15 +42,26 @@ export default function HomePage({ onLogout }: HomePageProps) {
   }
 
   return (
-    <div>
+    <div className="home-page">
       <header className="home-page__header">
-        <SearchBar value={query} onSearch={setQuery} onAdd={() => setShowAddModal(true)} />
+        <SearchBar value={query} onChange={setQuery} />
+        <button
+          className="home-page__add-btn"
+          type="button"
+          aria-label="Add recipe"
+          onClick={() => setShowAddModal(true)}
+        >
+          <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
+            <line x1={5} y1={12} x2={19} y2={12} />
+            <line x1={12} y1={5} x2={12} y2={19} />
+          </svg>
+        </button>
       </header>
       <main className="home-page__main">
-        {isLoading && <div className="home-page__loading type-body">Loading…</div>}
-        {error && !isLoading && <div className="home-page__error type-body">Failed to load recipes.</div>}
+        {isLoading && <div className="home-page__loading">Loading…</div>}
+        {error && !isLoading && <div className="home-page__error">Failed to load recipes.</div>}
         {!isLoading && !error && filtered.length === 0 && (
-          <div className="home-page__empty type-h2">Nothing here.</div>
+          <div className="home-page__empty">Nothing here.</div>
         )}
         {!isLoading && !error && filtered.length > 0 && (
           <div className="home-page__grid">
@@ -75,8 +86,8 @@ export default function HomePage({ onLogout }: HomePageProps) {
           </div>
         )}
       </main>
-      <button className="home-page__profile" type="button" aria-label="Profile" onClick={onLogout}>
-        J
+      <button className="home-page__signout" type="button" onClick={onLogout}>
+        Sign out
       </button>
       {selectedRecipe && (
         <RecipeModal
