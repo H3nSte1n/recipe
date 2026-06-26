@@ -72,6 +72,50 @@
   color: rgba(255,255,255,0.9);
 }
 
+/* Tooltip icon */
+.tunnel-controls__tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 5px;
+  font-size: 9px;
+  color: rgba(255,255,255,0.25);
+  cursor: default;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.tunnel-controls__tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 0;
+  width: 180px;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(8px);
+  color: rgba(255,255,255,0.85);
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.1);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s, transform 0.15s;
+  white-space: normal;
+  z-index: 10;
+}
+
+.tunnel-controls__tip:hover {
+  color: rgba(255,255,255,0.6);
+}
+
+.tunnel-controls__tip:hover::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* Slider row */
 .tunnel-controls__row {
   margin-bottom: 12px;

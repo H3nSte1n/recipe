@@ -249,7 +249,7 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
         if (driftStrength > 0.01) {
           const diff = params.current.focusHoverRadius - card.distance;
           const rawDrift = Math.abs(diff) * 0.025;
-          card.distance += Math.min(2.0, rawDrift) * Math.sign(diff) * driftStrength;
+          card.distance += Math.min(params.current.focusDriftSpeed, rawDrift) * Math.sign(diff) * driftStrength;
         }
 
         card.distance += effectiveSpeed;
