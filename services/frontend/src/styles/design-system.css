@@ -33,14 +33,14 @@ body {
   --font-serif: 'Newsreader', Georgia, serif; /* recipe title, section names, profile button letter, type utilities */
   --font-sans: 'Noto Sans', system-ui, sans-serif; /* body base, buttons, inputs, labels, all UI text */
 
-  /* Type-scale tokens */
+  /* Type-scale tokens (mobile-first base values, ≤599px) */
   --text-xs: 11px;      /* section/field labels (AddRecipe), nutrition labels & sep, status badge (RecipeModal) */
   --text-sm: 13px;      /* save btn, desc, unit labels, servings, field textarea (AddRecipe); form label & error (Login); used-in card & nutrition value (RecipeModal) — Figma Copy-Small */
   --text-base: 15px;    /* status select, section handle, dropdown items (AddRecipe); input & button (Login); serves count (RecipeModal) — Figma Copy-Regular */
-  --text-lg: 22px;      /* nutrition input, section name, servings btn (AddRecipe); profile letter (HomePage); section chevron/name (RecipeModal) — Figma H3 */
-  --text-xl: 36px;      /* .type-h2 utility — Figma H2 */
-  --text-2xl: 60px;     /* recipe title input (AddRecipe); .type-h1 utility — Figma H1 */
-  --text-display: 60px; /* .type-display utility — Figma H1 display size */
+  --text-lg: 18px;      /* H3 on mobile — scales up to 22px at ≥600px */
+  --text-xl: 28px;      /* H2 on mobile — scales up to 36px at ≥600px */
+  --text-2xl: 36px;     /* H1 on mobile — scales up to 60px at ≥600px */
+  --text-display: 36px; /* display on mobile — scales up to 60px at ≥600px */
 }
 
 /* ─── Body Base Styles ───────────────────────────────────────────────────── */
@@ -118,11 +118,11 @@ body {
 }
 
 /* ─── Responsive Type Scale ──────────────────────────────────────────────── */
-@media (max-width: 599px) {
+@media (min-width: 600px) {
   :root {
-    --text-lg:      18px;  /* H3 on mobile */
-    --text-xl:      28px;  /* H2 on mobile */
-    --text-2xl:     36px;  /* H1 on mobile (60px is too large for 375px screens) */
-    --text-display: 36px;
+    --text-lg:      22px;  /* H3 at tablet+ — Figma H3 */
+    --text-xl:      36px;  /* H2 at tablet+ — Figma H2 */
+    --text-2xl:     60px;  /* H1 at tablet+ — Figma H1 */
+    --text-display: 60px;  /* display at tablet+ — Figma H1 display size */
   }
 }
