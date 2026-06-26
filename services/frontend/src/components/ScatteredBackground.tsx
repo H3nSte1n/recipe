@@ -172,14 +172,14 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
     cardsRef.current = cards;
     nodeMapRef.current = nodeMap;
 
-    // Stagger initial spawn: short initial delay, then 80ms between cards.
-    // Head start is beyond the portal+fade zone so cards are visible immediately.
+    // Stagger initial spawn: 400ms initial delay, then 100ms between cards.
+    // Head start is 0–60% of portalRadius so cards need 1.5–3s of travel
+    // before emerging — first visible card appears around 1.5–2.5s after load.
     for (let i = 0; i < CARD_COUNT; i++) {
       const tid = setTimeout(() => {
         const c = cards[i];
         const p = params.current;
-        // Spawn cards already past the portal so they're visible (or fading in) on first frame
-        c.distance = p.portalRadius + Math.random() * (p.fadeBand + 80);
+        c.distance = Math.random() * (p.portalRadius * 0.6);
         c.angle = angleForQuadrant(c.quadrant);
         c.size = 120 + Math.random() * 80;
         c.scale = 0.05;
@@ -191,7 +191,7 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
           n.style.height = `${c.size}px`;
           applyCardBackground(n, c.imageIndex);
         }
-      }, 100 + i * 80);
+      }, 400 + i * 100);
       timeoutIdsRef.current.push(tid);
     }
 
