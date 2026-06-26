@@ -22,8 +22,8 @@ export function createDefaultTunnelParams(): TunnelParams {
     scaleDistance: 750,
     hoverSpeedMult: 0.30,
     focusMode: false,
-    focusHoverRadius: 200,
-    focusLerpRate: 0.033,
-    focusDriftSpeed: 2.0,
+    focusHoverRadius: 500,
+    focusLerpRate: 0.085,
+    focusDriftSpeed: 5.0,
   };
 }
