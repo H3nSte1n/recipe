@@ -174,7 +174,8 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
       const tid = setTimeout(() => {
         const c = cards[i];
         // Reset to a proper spawned state (keep quadrant assigned at creation)
-        c.distance = 0;
+        // Random head start so cards are already mid-journey on first appearance
+        c.distance = Math.random() * params.current.portalRadius;
         c.angle = angleForQuadrant(c.quadrant);
         c.size = 120 + Math.random() * 80;
         c.scale = 0.05;

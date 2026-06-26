@@ -1,6 +1,6 @@
 export interface TunnelParams {
   speed: number;             // base px/frame at 60fps — default 0.8
-  portalRadius: number;      // px from center where cards are invisible — default 220
+  portalRadius: number;      // px from center where cards are invisible — default 120
   fadeBand: number;          // px band over which cards fade in — default 60
   parallaxStrength: number;  // max vanishing point offset in px — default 160
   scrollSensitivity: number; // deltaY multiplier for scroll velocity — default 0.003
@@ -11,7 +11,7 @@ export interface TunnelParams {
 export function createDefaultTunnelParams(): TunnelParams {
   return {
     speed: 0.60,
-    portalRadius: 200,
+    portalRadius: 120,
     fadeBand: 60,
     parallaxStrength: 30,
     scrollSensitivity: 0.012,
