@@ -32,7 +32,7 @@ const FOCUS_SLIDERS: SliderConfig[] = [
   { label: 'Hover radius',   field: 'focusHoverRadius',  min: 50,   max: 500,   step: 10,     description: 'Distance from center where cards drift to and hover in focus mode' },
   { label: 'Transition',     field: 'focusLerpRate',     min: 0.005,max: 0.1,   step: 0.005,  description: 'How fast speed drops when entering focus mode — higher is snappier' },
   { label: 'Drift speed',    field: 'focusDriftSpeed',   min: 0,    max: 100,   step: 1,      description: 'Max px/frame cards move inward toward the hover radius in focus mode' },
-  { label: 'Drift pull',     field: 'focusDriftPull',    min: 0,    max: 1.0,   step: 0.005,  description: 'Proportional pull strength — fraction of remaining distance covered per frame' },
+  { label: 'Drift pull',     field: 'focusDriftPull',    min: 0,    max: 0.2,   step: 0.005,  description: 'Proportional pull strength — fraction of remaining distance covered per frame' },
 ];
 
 const BLUR_SLIDERS: SliderConfig[] = [
