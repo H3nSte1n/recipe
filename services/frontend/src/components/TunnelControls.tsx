@@ -75,7 +75,6 @@ export default function TunnelControls({ paramsRef }: TunnelControlsProps) {
               step={step}
               value={values[field]}
               onChange={e => handleChange(field, e.target.value)}
-              onInput={e => handleChange(field, (e.target as HTMLInputElement).value)}
             />
           </div>
         ))}
