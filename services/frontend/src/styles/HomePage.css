@@ -38,6 +38,9 @@
   overflow: hidden;
   padding: 0;
   position: relative;
+  max-width: none;
+  margin: 0;
+  width: 100%;
 }
 
 .home-page__view-btn {
