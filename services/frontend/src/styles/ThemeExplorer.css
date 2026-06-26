@@ -1,0 +1,133 @@
+/* TEMPORARY — paired with ThemeExplorer.tsx */
+
+.theme-explorer__toggle {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 1000;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.theme-explorer__toggle:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.theme-explorer__panel {
+  position: fixed;
+  bottom: 60px;
+  left: 16px;
+  z-index: 1000;
+  width: 240px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.theme-explorer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.theme-explorer__title {
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.theme-explorer__close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.theme-explorer__close:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.theme-explorer__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.theme-explorer__label {
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  flex: 1;
+}
+
+.theme-explorer__color-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-explorer__color-input {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  padding: 0;
+  cursor: pointer;
+  background: none;
+}
+
+.theme-explorer__color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.theme-explorer__color-input::-webkit-color-swatch {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+}
+
+.theme-explorer__hex {
+  font-family: monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  min-width: 56px;
+  text-align: right;
+}
+
+.theme-explorer__reset {
+  width: 100%;
+  padding: 7px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.6);
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-top: 2px;
+}
+
+.theme-explorer__reset:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+}

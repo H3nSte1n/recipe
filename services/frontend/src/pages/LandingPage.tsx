@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { register as registerUser } from '../services/authService';
 import ScatteredBackground from '../components/ScatteredBackground';
 import TunnelControls from '../components/TunnelControls';
+import ThemeExplorer from '../components/ThemeExplorer'; // TEMPORARY
 import { createDefaultTunnelParams, type TunnelParams } from '../types/tunnelParams';
 import '../styles/LandingPage.css';
 
@@ -145,6 +146,7 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
     <div className="landing-page">
       <ScatteredBackground paramsRef={tunnelParamsRef} />
       <TunnelControls paramsRef={tunnelParamsRef} blurTargetRef={centerRef} />
+      <ThemeExplorer /> {/* TEMPORARY */}
       <div ref={centerRef} className="landing-page__center">
         {view === 'landing' && (
           <HeroView onLogin={() => switchView('login')} onRegister={() => switchView('register')} />
