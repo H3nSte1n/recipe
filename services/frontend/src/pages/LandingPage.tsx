@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import ScatteredBackground from '../components/ScatteredBackground';
+import TunnelControls from '../components/TunnelControls';
 import { createDefaultTunnelParams, type TunnelParams } from '../types/tunnelParams';
 import '../styles/LandingPage.css';
 
@@ -26,6 +27,7 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
   return (
     <div className="landing-page">
       <ScatteredBackground paramsRef={tunnelParamsRef} />
+      <TunnelControls paramsRef={tunnelParamsRef} />
       <div ref={centerRef} className="landing-page__center">
         <p className="landing-page__brand">Mise</p>
         <h1 className="landing-page__headline type-h1">
