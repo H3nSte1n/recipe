@@ -1,15 +1,116 @@
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { register as registerUser } from '../services/authService';
 import ScatteredBackground from '../components/ScatteredBackground';
 import TunnelControls from '../components/TunnelControls';
 import { createDefaultTunnelParams, type TunnelParams } from '../types/tunnelParams';
 import '../styles/LandingPage.css';
+
+type AuthView = 'landing' | 'login' | 'register';
 
 interface LandingPageProps {
   onLogin: () => void;
   onRegister: () => void;
 }
 
+function HeroView({ onLogin, onRegister }: { onLogin: () => void; onRegister: () => void }) {
+  return (
+    <>
+      <p className="landing-page__brand">Mise</p>
+      <h1 className="landing-page__headline type-h1">
+        Your recipes,<br />always with you.
+      </h1>
+      <div className="landing-page__actions">
+        <button className="landing-page__btn landing-page__btn--primary" onClick={onLogin}>
+          Login
+        </button>
+        <button className="landing-page__btn landing-page__btn--secondary" onClick={onRegister}>
+          Register
+        </button>
+      </div>
+    </>
+  );
+}
+
+function LoginView({ onSuccess, onBack, onRegister }: { onSuccess: () => void; onBack: () => void; onRegister: () => void }) {
+  const { login } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await login(email, password);
+      onSuccess();
+    } catch {
+      setError('Invalid email or password. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="landing-page__form-wrap">
+      <button className="landing-page__back" onClick={onBack} type="button" aria-label="Back">←</button>
+      <p className="landing-page__form-title">Login</p>
+      <form className="landing-page__form" onSubmit={handleSubmit}>
+        <input className="landing-page__input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
+        <input className="landing-page__input" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password" />
+        {error && <p className="landing-page__form-error">{error}</p>}
+        <button className="landing-page__submit" type="submit" disabled={loading}>
+          {loading ? 'Signing in…' : 'Continue'}
+        </button>
+      </form>
+      <p className="landing-page__form-link" onClick={onRegister}>Create an account</p>
+    </div>
+  );
+}
+
+function RegisterView({ onSuccess, onBack, onLogin }: { onSuccess: () => void; onBack: () => void; onLogin: () => void }) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await registerUser(name, email, password);
+      onSuccess();
+    } catch {
+      setError('Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="landing-page__form-wrap">
+      <button className="landing-page__back" onClick={onBack} type="button" aria-label="Back">←</button>
+      <p className="landing-page__form-title">Create account</p>
+      <form className="landing-page__form" onSubmit={handleSubmit}>
+        <input className="landing-page__input" type="text" placeholder="Name" value={name} onChange={e => setName(e.target.value)} required autoComplete="name" />
+        <input className="landing-page__input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
+        <input className="landing-page__input" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="new-password" />
+        {error && <p className="landing-page__form-error">{error}</p>}
+        <button className="landing-page__submit" type="submit" disabled={loading}>
+          {loading ? 'Creating account…' : 'Create account'}
+        </button>
+      </form>
+      <p className="landing-page__form-link" onClick={onLogin}>Already have an account? Sign in</p>
+    </div>
+  );
+}
+
 export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
+  const [view, setView] = useState<AuthView>('landing');
   const centerRef = useRef<HTMLDivElement>(null);
   const tunnelParamsRef = useRef<TunnelParams>(createDefaultTunnelParams());
 
@@ -29,18 +130,15 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
       <ScatteredBackground paramsRef={tunnelParamsRef} />
       <TunnelControls paramsRef={tunnelParamsRef} />
       <div ref={centerRef} className="landing-page__center">
-        <p className="landing-page__brand">Mise</p>
-        <h1 className="landing-page__headline type-h1">
-          Your recipes,<br />always with you.
-        </h1>
-        <div className="landing-page__actions">
-          <button className="landing-page__btn landing-page__btn--primary" onClick={onLogin}>
-            Login
-          </button>
-          <button className="landing-page__btn landing-page__btn--secondary" onClick={onRegister}>
-            Register
-          </button>
-        </div>
+        {view === 'landing' && (
+          <HeroView onLogin={() => setView('login')} onRegister={() => setView('register')} />
+        )}
+        {view === 'login' && (
+          <LoginView onSuccess={onLogin} onBack={() => setView('landing')} onRegister={() => setView('register')} />
+        )}
+        {view === 'register' && (
+          <RegisterView onSuccess={onRegister} onBack={() => setView('landing')} onLogin={() => setView('login')} />
+        )}
       </div>
     </div>
   );

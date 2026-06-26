@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { isAuthenticated as checkAuth } from './services/authService';
 import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 
-type Screen = 'landing' | 'login' | 'register' | 'home';
+type Screen = 'landing' | 'home';
 
 function App() {
   const [screen, setScreen] = useState<Screen>(checkAuth() ? 'home' : 'landing');
@@ -14,28 +12,10 @@ function App() {
     return <HomePage onLogout={() => setScreen('landing')} />;
   }
 
-  if (screen === 'login') {
-    return (
-      <LoginPage
-        onLogin={() => setScreen('home')}
-        onBack={() => setScreen('landing')}
-      />
-    );
-  }
-
-  if (screen === 'register') {
-    return (
-      <RegisterPage
-        onRegister={() => setScreen('home')}
-        onBack={() => setScreen('landing')}
-      />
-    );
-  }
-
   return (
     <LandingPage
-      onLogin={() => setScreen('login')}
-      onRegister={() => setScreen('register')}
+      onLogin={() => setScreen('home')}
+      onRegister={() => setScreen('home')}
     />
   );
 }

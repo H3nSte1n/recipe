@@ -77,6 +77,113 @@
   color: var(--ink);
 }
 
+/* ─── Auth forms (login / register) ─────────────────────────────────────── */
+
+.landing-page__form-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 300px;
+  animation: fadeIn 0.4s ease-out both;
+}
+
+.landing-page__back {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--ink);
+  padding: 4px;
+  line-height: 1;
+}
+
+.landing-page__form-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--ink);
+  margin: 0 0 20px;
+  text-align: center;
+}
+
+.landing-page__form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.landing-page__input {
+  width: 100%;
+  height: 56px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 20px;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: var(--ink);
+  background: var(--surface);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.landing-page__input:focus {
+  border-color: var(--ink);
+}
+
+.landing-page__input::placeholder {
+  color: var(--label);
+}
+
+.landing-page__form-error {
+  font-size: var(--text-sm);
+  color: var(--error, #d0443a);
+  margin: 0;
+  text-align: center;
+}
+
+.landing-page__submit {
+  width: 100%;
+  height: 56px;
+  border-radius: 50px;
+  border: none;
+  background: var(--ink);
+  color: var(--surface);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--text-lg);
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-top: 4px;
+}
+
+.landing-page__submit:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.landing-page__submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.landing-page__form-link {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  opacity: 0.5;
+  margin: 12px 0 0;
+  text-align: center;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.landing-page__form-link:hover {
+  opacity: 1;
+}
+
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 599px) {
   .landing-page__actions {
