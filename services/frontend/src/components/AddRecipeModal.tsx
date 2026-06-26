@@ -136,9 +136,13 @@ interface SubRecipeCardProps {
   onLink: (recipe: Recipe) => void;
   onUnlink: () => void;
   onPortionChange: (delta: number) => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
 }
 
-function SubRecipeCard({ sub, allRecipes, onDelete, onChange, onLink, onUnlink, onPortionChange }: SubRecipeCardProps) {
+function SubRecipeCard({ sub, allRecipes, onDelete, onChange, onLink, onUnlink, onPortionChange, onMoveUp, onMoveDown, canMoveUp, canMoveDown }: SubRecipeCardProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const suggestions = sub.name.length > 0
@@ -149,7 +153,10 @@ function SubRecipeCard({ sub, allRecipes, onDelete, onChange, onLink, onUnlink, 
     <div className="sub-recipe-card">
       {/* Card header */}
       <div className="sub-recipe-card__header">
-        <span className="sub-recipe-card__drag">↕</span>
+        <div className="sub-recipe-card__reorder">
+          <button className="sub-recipe-card__reorder-btn" type="button" aria-label="Move up" onClick={onMoveUp} disabled={!canMoveUp}>▲</button>
+          <button className="sub-recipe-card__reorder-btn" type="button" aria-label="Move down" onClick={onMoveDown} disabled={!canMoveDown}>▼</button>
+        </div>
 
         {sub.linkedRecipeId ? (
           <div className="sub-recipe-card__name-linked">
@@ -403,6 +410,18 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
     );
   }
 
+  function handleMoveSubSection(id: string, dir: 'up' | 'down') {
+    setSubSections((prev) => {
+      const idx = prev.findIndex((s) => s.id === id);
+      if (idx < 0) return prev;
+      const next = [...prev];
+      const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= next.length) return prev;
+      [next[idx], next[swapIdx]] = [next[swapIdx], next[idx]];
+      return next;
+    });
+  }
+
   function handlePortionChange(id: string, delta: number) {
     setSubSections((prev) =>
       prev.map((s) => {
@@ -628,7 +647,7 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
             </div>
           ) : (
             /* Multi-block mode: all blocks as SubRecipeCard */
-            subSections.map((sub) => (
+            subSections.map((sub, idx) => (
               <SubRecipeCard
                 key={sub.id}
                 sub={sub}
@@ -638,6 +657,10 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
                 onLink={(recipe) => void handleLink(sub.id, recipe)}
                 onUnlink={() => handleUnlink(sub.id)}
                 onPortionChange={(delta) => handlePortionChange(sub.id, delta)}
+                onMoveUp={() => handleMoveSubSection(sub.id, 'up')}
+                onMoveDown={() => handleMoveSubSection(sub.id, 'down')}
+                canMoveUp={idx > 0}
+                canMoveDown={idx < subSections.length - 1}
               />
             ))
           )}
