@@ -254,7 +254,7 @@
   font-size: var(--text-base);
   color: var(--ink);
   resize: none;
-  line-height: 1.5;
+  line-height: 2.2;
   min-height: 80px;
   box-sizing: border-box;
 }
