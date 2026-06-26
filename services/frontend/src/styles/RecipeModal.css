@@ -158,6 +158,11 @@
   padding-right: 50px;
 }
 
+.recipe-modal__ingredient-ref:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .recipe-modal__ingredient-item,
 .recipe-modal__instruction-item {
   margin-bottom: 12px;
