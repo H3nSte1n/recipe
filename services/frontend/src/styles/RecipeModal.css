@@ -110,7 +110,7 @@
 
 .recipe-modal__serves-label {
   font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   color: var(--meta);
 }
 
