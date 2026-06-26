@@ -6,8 +6,8 @@
   backdrop-filter: blur(26px);
   overflow-y: auto;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: center;
   padding: 0;
 }
 
@@ -16,7 +16,7 @@
   width: 100%;
   background: var(--surface);
   border-radius: 0;
-  overflow: hidden;
+  overflow: clip;
   min-height: 100vh;
 }
 
@@ -80,7 +80,6 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  width: 100%;
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -255,7 +254,6 @@
 @media (min-width: 600px) {
   .recipe-modal {
     padding: 5vh 20px 9vh;
-    align-items: center;
   }
 
   .recipe-modal__card {
