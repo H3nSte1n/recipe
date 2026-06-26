@@ -16,8 +16,12 @@
   width: 100%;
   background: var(--surface);
   border-radius: 0;
-  overflow: clip;
+  overflow: hidden;
   min-height: 100vh;
+}
+
+@supports (overflow: clip) {
+  .add-recipe-modal__card { overflow: clip; }
 }
 
 /* ─── Floating actions ────────────────────────────────────────── */
@@ -114,6 +118,12 @@
 .add-recipe-modal__publish-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.add-recipe-modal__save-error {
+  font-size: var(--text-sm);
+  color: #c0392b;
+  margin: 0 0 12px;
 }
 
 .add-recipe-modal__title-input {

@@ -16,8 +16,12 @@
   width: 100%;
   background: var(--surface);
   border-radius: 0;
-  overflow: clip;
+  overflow: hidden;
   min-height: 100vh;
+}
+
+@supports (overflow: clip) {
+  .recipe-modal__card { overflow: clip; }
 }
 
 /* ─── Header ─────────────────────────────────────────────────── */
@@ -52,7 +56,7 @@
   flex: 1;
   background: var(--bg);
   position: relative;
-  padding: 80px 24px 80px;
+  padding: 36px 24px 80px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;

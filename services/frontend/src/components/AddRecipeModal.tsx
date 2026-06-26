@@ -284,6 +284,7 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
   useEffect(() => { subSectionsRef.current = subSections; }, [subSections]);
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -309,9 +310,13 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
   async function handleDelete() {
     if (!initialRecipe) return;
     if (!window.confirm('Delete this recipe? This cannot be undone.')) return;
-    await deleteRecipe(initialRecipe.id);
-    onDeleted?.();
-    onClose();
+    try {
+      await deleteRecipe(initialRecipe.id);
+      onDeleted?.();
+      onClose();
+    } catch {
+      setSaveError('Failed to delete recipe. Please try again.');
+    }
   }
 
   function handleAddSubSection() {
@@ -500,6 +505,7 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
       onClose();
     } catch {
       setIsSaving(false);
+      setSaveError('Failed to save recipe. Please try again.');
     }
   };
 
@@ -557,11 +563,12 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
           <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageSelect} />
 
           <div className="add-recipe-modal__form-side">
+            {saveError && <p className="add-recipe-modal__save-error">{saveError}</p>}
             <input
               className="add-recipe-modal__title-input"
               placeholder="Recipe name"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => { setTitle(e.target.value); setSaveError(null); }}
             />
             <input
               className="add-recipe-modal__desc-input"
