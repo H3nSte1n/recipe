@@ -135,7 +135,7 @@ function RecipeColumns({ ingredients, instructions, scale }: RecipeColumnsProps)
             key={ing.id}
             className="recipe-modal__ingredient-item"
             style={{
-              opacity: hoveredIngredientId !== null && hoveredIngredientId !== ing.id ? 0.5 : 1,
+              opacity: hoveredIngredientId !== null && hoveredIngredientId !== ing.id ? 0.25 : 1,
               transition: 'opacity 0.15s',
             }}
           >
