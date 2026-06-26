@@ -26,9 +26,11 @@ function getMatchPatterns(name: string): string[] {
   const cleaned = name
     .replace(/\s*\(.*?\)/g, '')   // strip parentheticals
     .split(/ or /i)[0]            // take part before " or "
+    .replace(/[^\w\s]/g, ' ')     // strip punctuation (e.g. trailing commas in "onion, finely diced")
+    .replace(/\s+/g, ' ')
     .trim();
 
-  const words = cleaned.split(/\s+/);
+  const words = cleaned.split(' ');
   const patterns: string[] = [];
 
   for (let start = 0; start < words.length; start++) {
