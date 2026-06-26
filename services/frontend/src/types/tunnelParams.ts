@@ -28,8 +28,8 @@ export function createDefaultTunnelParams(): TunnelParams {
     focusHoverRadius: 500,
     focusLerpRate: 0.085,
     focusDriftSpeed: 5.0,
-    blurPaddingX: 250,
-    blurPaddingY: 150,
-    blurAmount: 110,
+    blurPaddingX: 140,
+    blurPaddingY: 130,
+    blurAmount: 40,
   };
 }
