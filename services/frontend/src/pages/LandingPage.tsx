@@ -120,6 +120,17 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
   };
 
   useEffect(() => {
+    // Apply initial blur CSS vars from params
+    const el = centerRef.current;
+    if (el) {
+      const p = tunnelParamsRef.current;
+      el.style.setProperty('--blur-padding-x', `${p.blurPaddingX}px`);
+      el.style.setProperty('--blur-padding-y', `${p.blurPaddingY}px`);
+      el.style.setProperty('--blur-amount', `${p.blurAmount}px`);
+    }
+  }, []);
+
+  useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (!centerRef.current) return;
       const dx = (e.clientX - window.innerWidth / 2) / window.innerWidth * 24;
@@ -133,7 +144,7 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
   return (
     <div className="landing-page">
       <ScatteredBackground paramsRef={tunnelParamsRef} />
-      <TunnelControls paramsRef={tunnelParamsRef} />
+      <TunnelControls paramsRef={tunnelParamsRef} blurTargetRef={centerRef} />
       <div ref={centerRef} className="landing-page__center">
         {view === 'landing' && (
           <HeroView onLogin={() => switchView('login')} onRegister={() => switchView('register')} />

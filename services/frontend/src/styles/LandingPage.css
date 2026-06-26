@@ -27,9 +27,12 @@
 .landing-page__center::before {
   content: '';
   position: absolute;
-  inset: -80px -120px;
+  top: calc(var(--blur-padding-y, 80px) * -1);
+  bottom: calc(var(--blur-padding-y, 80px) * -1);
+  left: calc(var(--blur-padding-x, 120px) * -1);
+  right: calc(var(--blur-padding-x, 120px) * -1);
   background: var(--surface);
-  filter: blur(70px);
+  filter: blur(var(--blur-amount, 70px));
   border-radius: 20px;
   z-index: -1;
   pointer-events: none;
