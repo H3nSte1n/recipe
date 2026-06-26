@@ -146,6 +146,7 @@
   grid-template-columns: auto 40px auto;
   gap: 0 8px;
   row-gap: 4px;
+  align-items: baseline;
   flex: 1;
 }
 
