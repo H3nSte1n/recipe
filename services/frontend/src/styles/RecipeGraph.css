@@ -31,12 +31,13 @@
   align-items: center;
   gap: 10px;
   background: var(--surface);
+  border: none;
   border-radius: 12px;
   padding: 8px 14px 8px 8px;
   cursor: pointer;
   text-align: left;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition: box-shadow 0.15s;
 }
 
 .recipe-graph__node:hover {
