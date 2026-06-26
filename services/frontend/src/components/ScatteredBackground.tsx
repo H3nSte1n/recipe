@@ -172,7 +172,7 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
     cardsRef.current = cards;
     nodeMapRef.current = nodeMap;
 
-    // Stagger initial spawn: 400ms initial delay, then 100ms between cards.
+    // Stagger initial spawn: no initial delay, then 100ms between cards.
     // Head start is 0–60% of portalRadius so cards need 1.5–3s of travel
     // before emerging — first visible card appears around 1.5–2.5s after load.
     for (let i = 0; i < CARD_COUNT; i++) {
@@ -191,7 +191,7 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
           n.style.height = `${c.size}px`;
           applyCardBackground(n, c.imageIndex);
         }
-      }, 400 + i * 100);
+      }, i * 100);
       timeoutIdsRef.current.push(tid);
     }
 
