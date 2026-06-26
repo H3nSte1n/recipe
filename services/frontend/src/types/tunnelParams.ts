@@ -27,7 +27,7 @@ export function createDefaultTunnelParams(): TunnelParams {
     focusMode: false,
     focusHoverRadius: 500,
     focusLerpRate: 0.1,
-    focusDriftSpeed: 30.0,
+    focusDriftSpeed: 100,
     blurPaddingX: 140,
     blurPaddingY: 130,
     blurAmount: 40,
