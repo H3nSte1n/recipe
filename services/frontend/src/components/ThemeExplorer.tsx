@@ -1,6 +1,7 @@
 // TEMPORARY — color exploration tool for the landing page.
 // To remove: delete this file, ThemeExplorer.css, and the import + <ThemeExplorer /> in LandingPage.tsx.
 import { useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import '../styles/ThemeExplorer.css';
 
 interface ColorSlot {
@@ -32,7 +33,7 @@ export default function ThemeExplorer() {
     setColors(Object.fromEntries(SLOTS.map(s => [s.cssVar, s.defaultHex])));
   }, []);
 
-  return (
+  return createPortal(
     <>
       <button
         className="theme-explorer__toggle"
@@ -68,6 +69,7 @@ export default function ThemeExplorer() {
           <button className="theme-explorer__reset" onClick={reset}>Reset defaults</button>
         </div>
       )}
-    </>
+    </>,
+    document.body
   );
 }
