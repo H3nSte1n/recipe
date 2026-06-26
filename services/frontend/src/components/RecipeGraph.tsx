@@ -162,6 +162,11 @@ export default function RecipeGraph({ recipes, usedIn, onRecipeClick }: RecipeGr
         style={{ width: canvasW, height: canvasH, transform: `translate(${transform.x}px,${transform.y}px) scale(${transform.scale})` }}
       >
         <svg className="recipe-graph__svg" width={canvasW} height={canvasH}>
+          <defs>
+            <marker id="graph-arrow" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6 Z" fill="rgba(0,0,0,0.18)" />
+            </marker>
+          </defs>
           {edges.map((e, i) => {
             const mx = (e.x2 - e.x1) * 0.5;
             return (
@@ -171,6 +176,7 @@ export default function RecipeGraph({ recipes, usedIn, onRecipeClick }: RecipeGr
                 fill="none"
                 stroke="rgba(0,0,0,0.12)"
                 strokeWidth={1.5}
+                markerEnd="url(#graph-arrow)"
               />
             );
           })}
