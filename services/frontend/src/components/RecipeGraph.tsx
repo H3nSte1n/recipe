@@ -138,11 +138,12 @@ export default function RecipeGraph({ recipes, usedIn, onRecipeClick }: RecipeGr
   };
 
   const onMouseMove = (e: React.MouseEvent) => {
-    if (!dragRef.current) return;
-    const dx = e.clientX - dragRef.current.startX;
-    const dy = e.clientY - dragRef.current.startY;
+    const drag = dragRef.current;
+    if (!drag) return;
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) hasDraggedRef.current = true;
-    setTransform(prev => ({ ...prev, x: dragRef.current!.tx + dx, y: dragRef.current!.ty + dy }));
+    setTransform(prev => ({ ...prev, x: drag.tx + dx, y: drag.ty + dy }));
   };
 
   const onMouseUp = () => { dragRef.current = null; };
