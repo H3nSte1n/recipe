@@ -33,6 +33,13 @@
   grid-template-rows: auto 1fr;
 }
 
+.home-page--graph > .home-page__header {
+  width: 100%;
+  box-sizing: border-box;
+  max-width: none;
+  margin: 0;
+}
+
 .home-page__main--graph {
   overflow: hidden;
   padding: 0;
