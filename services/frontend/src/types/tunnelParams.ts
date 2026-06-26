@@ -10,7 +10,9 @@ export interface TunnelParams {
   focusHoverRadius: number;  // px from center where cards hover in focus mode — default 200
   focusLerpRate: number;     // lerp rate for focus transition (higher = faster) — default 0.033
   focusDriftSpeed: number;   // max inward drift speed cap in px/frame — default 100
-  focusDriftPull: number;    // proportional pull strength toward hover radius (fraction of distance per frame) — default 0.025
+  focusDriftPull: number;    // proportional pull strength toward hover radius (fraction of distance per frame) — default 0.06
+  focusAngleJitter: number;  // max ± degrees of random offset from even circular spacing — default 10
+  focusRadiusJitter: number; // max ± px offset from hover radius — default 20
   blurPaddingX: number;      // px the blur extends left/right beyond center content — default 120
   blurPaddingY: number;      // px the blur extends above/below center content — default 80
   blurAmount: number;        // CSS blur() radius in px — default 70
@@ -30,6 +32,8 @@ export function createDefaultTunnelParams(): TunnelParams {
     focusLerpRate: 0.1,
     focusDriftSpeed: 100,
     focusDriftPull: 0.06,
+    focusAngleJitter: 10,
+    focusRadiusJitter: 20,
     blurPaddingX: 140,
     blurPaddingY: 130,
     blurAmount: 40,

@@ -28,8 +28,10 @@ interface Card {
   opacity: number;  // 0 at spawn, lerps to 1 as it crosses the portal edge
   imageIndex: number;
   hovered: boolean;
-  speedMult: number; // per-card speed multiplier (1.0 default, 0.6 when hovered)
-  quadrant: number;  // 0=bottom-right, 1=bottom-left, 2=top-left, 3=top-right
+  speedMult: number;      // per-card speed multiplier (1.0 default, 0.6 when hovered)
+  quadrant: number;       // 0=bottom-right, 1=bottom-left, 2=top-left, 3=top-right
+  targetAngle: number;    // evenly-distributed target angle assigned on focus entry
+  targetDistance: number; // hover radius ± jitter assigned on focus entry
 }
 
 const CARD_COUNT = 9;
@@ -63,6 +65,8 @@ function makeCard(id: number, quadrant: number): Card {
     hovered: false,
     speedMult: 1.0,
     quadrant,
+    targetAngle: 0,
+    targetDistance: 0,
   };
 }
 
@@ -115,6 +119,7 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
 
   // Focus mode: lerped 0→1 multiplier (1 = normal, 0 = full focus/stopped)
   const focusSpeedMultRef = useRef(1);
+  const prevFocusModeRef = useRef(false);
 
   const rafIdRef = useRef<number | null>(null);
   const timeoutIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -229,6 +234,18 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
       focusSpeedMultRef.current += (focusTarget - focusSpeedMultRef.current) * params.current.focusLerpRate;
       const fsm = focusSpeedMultRef.current;
 
+      // On focus entry, assign evenly-spaced target angles and jittered target distances
+      if (params.current.focusMode && !prevFocusModeRef.current) {
+        const angleStep = (2 * Math.PI) / CARD_COUNT;
+        const jitterRad = (params.current.focusAngleJitter * Math.PI) / 180;
+        for (let j = 0; j < cards.length; j++) {
+          if (cards[j].distance === -Infinity) continue;
+          cards[j].targetAngle = j * angleStep + (Math.random() * 2 - 1) * jitterRad;
+          cards[j].targetDistance = params.current.focusHoverRadius + (Math.random() * 2 - 1) * params.current.focusRadiusJitter;
+        }
+      }
+      prevFocusModeRef.current = params.current.focusMode;
+
       const vw = vwRef.current;
       const vh = vhRef.current;
       const vpX = vpXRef.current;
@@ -244,10 +261,17 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
 
         const effectiveSpeed = params.current.speed * globalScrollMultRef.current * card.speedMult * fsm;
 
-        // Inward drift toward hover radius in focus mode
+        // In focus mode: lerp angle toward even-circle target and drift distance to per-card target
         const driftStrength = 1 - fsm;
         if (driftStrength > 0.01) {
-          const diff = params.current.focusHoverRadius - card.distance;
+          // Angle lerp — shortest path around the circle
+          let angleDiff = card.targetAngle - card.angle;
+          while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+          while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+          card.angle += angleDiff * params.current.focusLerpRate * driftStrength;
+
+          // Distance drift toward per-card target (hover radius ± jitter)
+          const diff = card.targetDistance - card.distance;
           const rawDrift = Math.abs(diff) * params.current.focusDriftPull;
           card.distance += Math.min(params.current.focusDriftSpeed, rawDrift) * Math.sign(diff) * driftStrength;
         }

@@ -33,6 +33,8 @@ const FOCUS_SLIDERS: SliderConfig[] = [
   { label: 'Transition',     field: 'focusLerpRate',     min: 0.005,max: 0.1,   step: 0.005,  description: 'How fast speed drops when entering focus mode — higher is snappier' },
   { label: 'Drift speed',    field: 'focusDriftSpeed',   min: 0,    max: 100,   step: 1,      description: 'Max px/frame cards move inward toward the hover radius in focus mode' },
   { label: 'Drift pull',     field: 'focusDriftPull',    min: 0,    max: 0.2,   step: 0.005,  description: 'Proportional pull strength — fraction of remaining distance covered per frame' },
+  { label: 'Angle jitter',  field: 'focusAngleJitter',  min: 0,    max: 60,    step: 1,      description: 'Max ± degrees of random offset from even circular spacing on focus entry' },
+  { label: 'Radius jitter', field: 'focusRadiusJitter', min: 0,    max: 200,   step: 5,      description: 'Max ± px offset from hover radius — makes the ring slightly imperfect' },
 ];
 
 const BLUR_SLIDERS: SliderConfig[] = [
@@ -52,9 +54,9 @@ function applyBlurVars(el: HTMLElement, p: TunnelParams) {
 function formatValue(field: NumericTunnelParam, value: number): string {
   if (field === 'scrollSensitivity') return value.toFixed(4);
   if (field === 'focusLerpRate' || field === 'focusDriftPull') return value.toFixed(3);
-  if (field === 'focusDriftSpeed') return value.toFixed(1);
   if (field === 'portalRadius' || field === 'fadeBand' || field === 'parallaxStrength' ||
-      field === 'scaleDistance' || field === 'focusHoverRadius' ||
+      field === 'scaleDistance' || field === 'focusHoverRadius' || field === 'focusDriftSpeed' ||
+      field === 'focusAngleJitter' || field === 'focusRadiusJitter' ||
       field === 'blurPaddingX' || field === 'blurPaddingY' || field === 'blurAmount') {
     return String(Math.round(value));
   }
