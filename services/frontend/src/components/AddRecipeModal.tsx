@@ -505,6 +505,31 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
 
   return (
     <div className="add-recipe-modal" onClick={onClose}>
+      <div className="add-recipe-modal__floating-actions" onClick={(e) => e.stopPropagation()}>
+        <button
+          className="add-recipe-modal__publish-btn"
+          type="button"
+          disabled={!title.trim() || isSaving}
+          onClick={handleSave}
+        >
+          {initialRecipe ? 'Update' : 'Publish'}
+        </button>
+        {initialRecipe && (
+          <button className="add-recipe-modal__floating-btn" type="button" aria-label="Delete recipe" onClick={handleDelete}>
+            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14H6L5 6" />
+              <path d="M10 11v6M14 11v6M9 6V4h6v2" />
+            </svg>
+          </button>
+        )}
+        <button className="add-recipe-modal__floating-btn" type="button" aria-label="Close" onClick={onClose}>
+          <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <line x1={6} y1={6} x2={18} y2={18} />
+            <line x1={18} y1={6} x2={6} y2={18} />
+          </svg>
+        </button>
+      </div>
       <div className="add-recipe-modal__card" onClick={(e) => e.stopPropagation()}>
 
         {/* ── Header ─────────────────────────────────────────── */}
@@ -532,32 +557,6 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
           <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageSelect} />
 
           <div className="add-recipe-modal__form-side">
-            <div className="add-recipe-modal__header-actions">
-              <button
-                className="add-recipe-modal__publish-btn"
-                type="button"
-                disabled={!title.trim() || isSaving}
-                onClick={handleSave}
-              >
-                {initialRecipe ? 'Update' : 'Publish'}
-              </button>
-              {initialRecipe && (
-                <button className="add-recipe-modal__action-btn" type="button" aria-label="Delete recipe" onClick={handleDelete}>
-                  <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6l-1 14H6L5 6" />
-                    <path d="M10 11v6M14 11v6M9 6V4h6v2" />
-                  </svg>
-                </button>
-              )}
-              <button className="add-recipe-modal__action-btn" type="button" aria-label="Close" onClick={onClose}>
-                <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                  <line x1={6} y1={6} x2={18} y2={18} />
-                  <line x1={18} y1={6} x2={6} y2={18} />
-                </svg>
-              </button>
-            </div>
-
             <input
               className="add-recipe-modal__title-input"
               placeholder="Recipe name"

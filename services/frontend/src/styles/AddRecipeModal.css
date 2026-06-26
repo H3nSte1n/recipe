@@ -20,6 +20,39 @@
   min-height: 100vh;
 }
 
+/* ─── Floating actions ────────────────────────────────────────── */
+.add-recipe-modal__floating-actions {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  pointer-events: none;
+  margin-bottom: -68px;
+}
+
+.add-recipe-modal__floating-btn {
+  pointer-events: auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--bg) 50%, transparent);
+  border: none;
+  cursor: pointer;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s;
+}
+
+.add-recipe-modal__floating-btn:hover {
+  opacity: 0.8;
+}
+
 /* ─── Header ─────────────────────────────────────────────────── */
 .add-recipe-modal__header {
   display: flex;
@@ -57,22 +90,14 @@
   flex: 1;
   background: var(--bg);
   position: relative;
-  padding: 48px 24px 32px;
+  padding: 24px 24px 32px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
 
-.add-recipe-modal__header-actions {
-  position: absolute;
-  top: 16px;
-  right: 28px;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
 .add-recipe-modal__publish-btn {
+  pointer-events: auto;
   height: 36px;
   padding: 0 20px;
   border-radius: 50px;
@@ -89,21 +114,6 @@
 .add-recipe-modal__publish-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-.add-recipe-modal__action-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--meta);
-  display: flex;
-  align-items: center;
-  padding: 4px;
-  transition: color 0.15s;
-}
-
-.add-recipe-modal__action-btn:hover {
-  color: var(--ink);
 }
 
 .add-recipe-modal__title-input {
@@ -519,7 +529,7 @@
   }
 
   .add-recipe-modal__form-side {
-    padding: 56px 42px 40px;
+    padding: 32px 42px 40px;
   }
 
   .add-recipe-modal__body {
