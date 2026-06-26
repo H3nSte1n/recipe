@@ -104,8 +104,8 @@
   bottom: 40px;
   left: 42px;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .recipe-modal__serves-label {
