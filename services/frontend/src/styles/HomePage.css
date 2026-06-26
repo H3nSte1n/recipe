@@ -29,12 +29,11 @@
 
 .home-page--graph {
   height: 100vh;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 1fr;
 }
 
 .home-page__main--graph {
-  flex: 1;
   overflow: hidden;
   padding: 0;
   position: relative;
