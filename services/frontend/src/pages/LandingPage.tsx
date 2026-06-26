@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import ScatteredBackground from '../components/ScatteredBackground';
+import { createDefaultTunnelParams, type TunnelParams } from '../types/tunnelParams';
 import '../styles/LandingPage.css';
 
 interface LandingPageProps {
@@ -9,6 +10,7 @@ interface LandingPageProps {
 
 export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
   const centerRef = useRef<HTMLDivElement>(null);
+  const tunnelParamsRef = useRef<TunnelParams>(createDefaultTunnelParams());
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
@@ -23,7 +25,7 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
 
   return (
     <div className="landing-page">
-      <ScatteredBackground />
+      <ScatteredBackground paramsRef={tunnelParamsRef} />
       <div ref={centerRef} className="landing-page__center">
         <p className="landing-page__brand">Mise</p>
         <h1 className="landing-page__headline type-h1">

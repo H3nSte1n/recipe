@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { type TunnelParams, createDefaultTunnelParams } from '../types/tunnelParams';
 import '../styles/ScatteredBackground.css';
 
 const FOOD_IMAGES = [
@@ -31,9 +32,6 @@ interface Card {
 }
 
 const CARD_COUNT = 9;
-const BASE_SPEED = 0.8;
-const PORTAL_RADIUS = 220;
-const FADE_BAND = 60;
 
 function makeCard(id: number): Card {
   return {
@@ -72,8 +70,14 @@ function applyCardBackground(node: HTMLDivElement, imageIndex: number): void {
   node.style.backgroundPosition = 'center';
 }
 
-export default function ScatteredBackground() {
+interface ScatteredBackgroundProps {
+  paramsRef?: { current: TunnelParams };
+}
+
+export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const defaultParamsRef = useRef<TunnelParams>(createDefaultTunnelParams());
+  const params = paramsRef ?? defaultParamsRef;
   const cardsRef = useRef<Card[]>([]);
   const nodeMapRef = useRef<Map<number, HTMLDivElement>>(new Map());
 
@@ -204,25 +208,25 @@ export default function ScatteredBackground() {
         // Not yet spawned (distance === -Infinity)
         if (card.distance === -Infinity) continue;
 
-        const effectiveSpeed = BASE_SPEED * globalScrollMultRef.current * card.speedMult;
+        const effectiveSpeed = params.current.speed * globalScrollMultRef.current * card.speedMult;
 
         card.distance += effectiveSpeed;
         card.x = Math.cos(card.angle) * card.distance;
         card.y = Math.sin(card.angle) * card.distance;
 
         // Smooth scale with hover boost
-        const targetSpeed = card.hovered ? 0.6 : 1.0;
+        const targetSpeed = card.hovered ? params.current.hoverSpeedMult : 1.0;
         card.speedMult += (targetSpeed - card.speedMult) * 0.05;
 
-        const targetScale = 0.05 + (card.distance / 600) * 0.95;
+        const targetScale = 0.05 + (card.distance / params.current.scaleDistance) * 0.95;
         const hoverBoost = card.hovered ? 1.08 : 1.0;
         card.scale += (targetScale * hoverBoost - card.scale) * 0.1;
 
         // Portal fade: cards fade in as they emerge from the blur radius
-        if (card.distance < PORTAL_RADIUS) {
+        if (card.distance < params.current.portalRadius) {
           card.opacity = 0;
-        } else if (card.distance < PORTAL_RADIUS + FADE_BAND) {
-          card.opacity = (card.distance - PORTAL_RADIUS) / FADE_BAND;
+        } else if (card.distance < params.current.portalRadius + params.current.fadeBand) {
+          card.opacity = (card.distance - params.current.portalRadius) / params.current.fadeBand;
         } else {
           card.opacity = 1;
         }
@@ -253,7 +257,7 @@ export default function ScatteredBackground() {
     // --- Scroll hijacking ---
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      scrollVelocityRef.current += e.deltaY * 0.003;
+      scrollVelocityRef.current += e.deltaY * params.current.scrollSensitivity;
       scrollVelocityRef.current = Math.max(-0.5, Math.min(2.5, scrollVelocityRef.current));
     };
 
@@ -275,8 +279,8 @@ export default function ScatteredBackground() {
 
     // --- Vanishing point mouse tracking ---
     const onMouseMove = (e: MouseEvent) => {
-      targetVpXRef.current = (e.clientX - window.innerWidth / 2) / window.innerWidth * 160;
-      targetVpYRef.current = (e.clientY - window.innerHeight / 2) / window.innerHeight * 160;
+      targetVpXRef.current = (e.clientX - window.innerWidth / 2) / window.innerWidth * params.current.parallaxStrength;
+      targetVpYRef.current = (e.clientY - window.innerHeight / 2) / window.innerHeight * params.current.parallaxStrength;
     };
 
     window.addEventListener('mousemove', onMouseMove);
@@ -306,7 +310,7 @@ export default function ScatteredBackground() {
         }
       }
     };
-  }, []);
+  }, [params]);
 
   return (
     <div
