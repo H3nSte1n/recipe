@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Recipe, RecipeIngredient, RecipeInstruction } from '../types/recipe';
 import { metaOf, ingLine } from '../utils/formatters';
 import RecipeCard from './RecipeCard';
@@ -16,21 +16,61 @@ interface RecipeModalProps {
   usedIn?: Record<string, Recipe[]>;
 }
 
+const STOPWORDS = new Set(['or', 'and', 'the', 'a', 'an', 'of', 'with', 'in', 'to', 'for']);
+
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function getMatchPatterns(name: string): string[] {
+  const cleaned = name
+    .replace(/\s*\(.*?\)/g, '')   // strip parentheticals
+    .split(/ or /i)[0]            // take part before " or "
+    .trim();
+
+  const words = cleaned.split(/\s+/);
+  const patterns: string[] = [];
+
+  for (let start = 0; start < words.length; start++) {
+    for (let end = words.length; end > start; end--) {
+      const phrase = words.slice(start, end).join(' ');
+      if (end - start === 1 && STOPWORDS.has(phrase.toLowerCase())) continue;
+      patterns.push(phrase);
+    }
+  }
+
+  return patterns;
+}
+
+interface IngredientPattern {
+  pattern: string;
+  ingredientId: string;
+}
+
+function buildIngredientPatterns(ingredients: RecipeIngredient[]): IngredientPattern[] {
+  const seen = new Map<string, string>(); // lowercase pattern → first ingredient id
+
+  for (const ing of ingredients) {
+    for (const p of getMatchPatterns(ing.name)) {
+      const key = p.toLowerCase();
+      if (!seen.has(key)) seen.set(key, ing.id);
+    }
+  }
+
+  return [...seen.entries()]
+    .sort((a, b) => b[0].length - a[0].length)
+    .map(([pattern, ingredientId]) => ({ pattern, ingredientId }));
+}
+
 function parseInstructionText(
   text: string,
-  ingredients: RecipeIngredient[],
+  patterns: IngredientPattern[],
   onEnter: (id: string) => void,
   onLeave: () => void
 ): React.ReactNode {
-  if (ingredients.length === 0) return text;
+  if (patterns.length === 0) return text;
 
-  const sorted = [...ingredients].sort((a, b) => b.name.length - a.name.length);
-  const pattern = sorted.map(ing => escapeRegex(ing.name)).join('|');
-  const regex = new RegExp(`\\b(${pattern})\\b`, 'gi');
+  const regex = new RegExp(`\\b(${patterns.map(p => escapeRegex(p.pattern)).join('|')})\\b`, 'gi');
 
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
@@ -43,14 +83,14 @@ function parseInstructionText(
     }
 
     const matched = match[0];
-    const ingredient = sorted.find(ing => ing.name.toLowerCase() === matched.toLowerCase());
+    const entry = patterns.find(p => p.pattern.toLowerCase() === matched.toLowerCase());
 
-    if (ingredient) {
+    if (entry) {
       parts.push(
         <span
           key={keyIndex++}
           className="recipe-modal__ingredient-ref"
-          onMouseEnter={() => onEnter(ingredient.id)}
+          onMouseEnter={() => onEnter(entry.ingredientId)}
           onMouseLeave={onLeave}
         >
           {matched}
@@ -79,7 +119,11 @@ interface RecipeColumnsProps {
 function RecipeColumns({ ingredients, instructions, scale }: RecipeColumnsProps) {
   const [hoveredIngredientId, setHoveredIngredientId] = useState<string | null>(null);
 
-  const sortedInstructions = [...instructions].sort((a, b) => a.step_number - b.step_number);
+  const patterns = useMemo(() => buildIngredientPatterns(ingredients), [ingredients]);
+  const sortedInstructions = useMemo(
+    () => [...instructions].sort((a, b) => a.step_number - b.step_number),
+    [instructions]
+  );
 
   return (
     <div className="recipe-modal__columns">
@@ -102,7 +146,7 @@ function RecipeColumns({ ingredients, instructions, scale }: RecipeColumnsProps)
           <div key={inst.id} className="recipe-modal__instruction-item">
             {parseInstructionText(
               inst.instruction,
-              ingredients,
+              patterns,
               setHoveredIngredientId,
               () => setHoveredIngredientId(null)
             )}
