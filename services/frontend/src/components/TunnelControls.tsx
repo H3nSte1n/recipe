@@ -6,9 +6,12 @@ interface TunnelControlsProps {
   paramsRef: { current: TunnelParams };
 }
 
+// Only numeric fields of TunnelParams can be driven by range sliders
+type NumericTunnelParam = { [K in keyof TunnelParams]: TunnelParams[K] extends number ? K : never }[keyof TunnelParams];
+
 interface SliderConfig {
   label: string;
-  field: keyof TunnelParams;
+  field: NumericTunnelParam;
   min: number;
   max: number;
   step: number;
@@ -24,7 +27,7 @@ const SLIDERS: SliderConfig[] = [
   { label: 'Hover slow',    field: 'hoverSpeedMult',   min: 0.1,  max: 1.0,   step: 0.05   },
 ];
 
-function formatValue(field: keyof TunnelParams, value: number): string {
+function formatValue(field: NumericTunnelParam, value: number): string {
   if (field === 'scrollSensitivity') return value.toFixed(4);
   if (field === 'portalRadius' || field === 'fadeBand' || field === 'parallaxStrength' || field === 'scaleDistance') {
     return String(Math.round(value));
@@ -36,7 +39,7 @@ export default function TunnelControls({ paramsRef }: TunnelControlsProps) {
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState<TunnelParams>(() => ({ ...paramsRef.current }));
 
-  function handleChange(field: keyof TunnelParams, raw: string) {
+  function handleChange(field: NumericTunnelParam, raw: string) {
     const newValue = parseFloat(raw);
     paramsRef.current[field] = newValue;
     setValues(prev => ({ ...prev, [field]: newValue }));

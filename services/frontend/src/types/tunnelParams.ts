@@ -6,6 +6,7 @@ export interface TunnelParams {
   scrollSensitivity: number; // deltaY multiplier for scroll velocity — default 0.003
   scaleDistance: number;     // distance (px) at which cards reach full size — default 600
   hoverSpeedMult: number;    // card speed when hovered — default 0.6
+  focusMode: boolean;        // when true, speed drops to 0 and cards drift to hover radius
 }
 
 export function createDefaultTunnelParams(): TunnelParams {
@@ -17,5 +18,6 @@ export function createDefaultTunnelParams(): TunnelParams {
     scrollSensitivity: 0.012,
     scaleDistance: 750,
     hoverSpeedMult: 0.30,
+    focusMode: false,
   };
 }

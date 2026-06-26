@@ -114,6 +114,11 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
   const centerRef = useRef<HTMLDivElement>(null);
   const tunnelParamsRef = useRef<TunnelParams>(createDefaultTunnelParams());
 
+  const switchView = (v: AuthView) => {
+    tunnelParamsRef.current.focusMode = v !== 'landing';
+    setView(v);
+  };
+
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
       if (!centerRef.current) return;
@@ -131,13 +136,13 @@ export default function LandingPage({ onLogin, onRegister }: LandingPageProps) {
       <TunnelControls paramsRef={tunnelParamsRef} />
       <div ref={centerRef} className="landing-page__center">
         {view === 'landing' && (
-          <HeroView onLogin={() => setView('login')} onRegister={() => setView('register')} />
+          <HeroView onLogin={() => switchView('login')} onRegister={() => switchView('register')} />
         )}
         {view === 'login' && (
-          <LoginView onSuccess={onLogin} onBack={() => setView('landing')} onRegister={() => setView('register')} />
+          <LoginView onSuccess={onLogin} onBack={() => switchView('landing')} onRegister={() => switchView('register')} />
         )}
         {view === 'register' && (
-          <RegisterView onSuccess={onRegister} onBack={() => setView('landing')} onLogin={() => setView('login')} />
+          <RegisterView onSuccess={onRegister} onBack={() => switchView('landing')} onLogin={() => switchView('login')} />
         )}
       </div>
     </div>
