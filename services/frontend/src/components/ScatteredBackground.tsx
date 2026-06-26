@@ -33,10 +33,6 @@ interface Card {
 }
 
 const CARD_COUNT = 9;
-// Focus mode: cards drift to this radius (px) and speed drops to 0
-const FOCUS_HOVER_RADIUS = 200;
-// Lerp rate for focus speed multiplier — reaches 95% in ~1.5s at 60fps
-const FOCUS_LERP_RATE = 0.033;
 
 // Returns a random angle within the given quadrant (0–3, each spanning π/2)
 function angleForQuadrant(q: number): number {
@@ -230,7 +226,7 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
 
       // Lerp focus speed multiplier (1 = normal, 0 = full focus/stopped)
       const focusTarget = params.current.focusMode ? 0 : 1;
-      focusSpeedMultRef.current += (focusTarget - focusSpeedMultRef.current) * FOCUS_LERP_RATE;
+      focusSpeedMultRef.current += (focusTarget - focusSpeedMultRef.current) * params.current.focusLerpRate;
       const fsm = focusSpeedMultRef.current;
 
       const vw = vwRef.current;
@@ -251,7 +247,7 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
         // Inward drift toward hover radius in focus mode
         const driftStrength = 1 - fsm;
         if (driftStrength > 0.01) {
-          const diff = FOCUS_HOVER_RADIUS - card.distance;
+          const diff = params.current.focusHoverRadius - card.distance;
           const rawDrift = Math.abs(diff) * 0.025;
           card.distance += Math.min(2.0, rawDrift) * Math.sign(diff) * driftStrength;
         }

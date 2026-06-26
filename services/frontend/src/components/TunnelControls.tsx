@@ -17,7 +17,7 @@ interface SliderConfig {
   step: number;
 }
 
-const SLIDERS: SliderConfig[] = [
+const TUNNEL_SLIDERS: SliderConfig[] = [
   { label: 'Speed',         field: 'speed',            min: 0.1,  max: 3.0,   step: 0.05   },
   { label: 'Portal radius', field: 'portalRadius',     min: 50,   max: 450,   step: 10     },
   { label: 'Fade band',     field: 'fadeBand',         min: 10,   max: 150,   step: 5      },
@@ -27,17 +27,28 @@ const SLIDERS: SliderConfig[] = [
   { label: 'Hover slow',    field: 'hoverSpeedMult',   min: 0.1,  max: 1.0,   step: 0.05   },
 ];
 
+const FOCUS_SLIDERS: SliderConfig[] = [
+  { label: 'Hover radius',  field: 'focusHoverRadius', min: 50,   max: 500,   step: 10     },
+  { label: 'Transition',    field: 'focusLerpRate',    min: 0.005,max: 0.1,   step: 0.005  },
+];
+
 function formatValue(field: NumericTunnelParam, value: number): string {
   if (field === 'scrollSensitivity') return value.toFixed(4);
-  if (field === 'portalRadius' || field === 'fadeBand' || field === 'parallaxStrength' || field === 'scaleDistance') {
+  if (field === 'focusLerpRate') return value.toFixed(3);
+  if (field === 'portalRadius' || field === 'fadeBand' || field === 'parallaxStrength' || field === 'scaleDistance' || field === 'focusHoverRadius') {
     return String(Math.round(value));
   }
   return value.toFixed(2);
 }
 
+type Tab = 'tunnel' | 'focus';
+
 export default function TunnelControls({ paramsRef }: TunnelControlsProps) {
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<Tab>('tunnel');
   const [values, setValues] = useState<TunnelParams>(() => ({ ...paramsRef.current }));
+
+  const sliders = tab === 'tunnel' ? TUNNEL_SLIDERS : FOCUS_SLIDERS;
 
   function handleChange(field: NumericTunnelParam, raw: string) {
     const newValue = parseFloat(raw);
@@ -62,9 +73,24 @@ export default function TunnelControls({ paramsRef }: TunnelControlsProps) {
       </button>
 
       <div className={`tunnel-controls__panel${open ? '' : ' tunnel-controls__panel--hidden'}`}>
-        <p className="tunnel-controls__title">Animation</p>
+        <div className="tunnel-controls__tabs">
+          <button
+            className={`tunnel-controls__tab${tab === 'tunnel' ? ' tunnel-controls__tab--active' : ''}`}
+            onClick={() => setTab('tunnel')}
+            type="button"
+          >
+            Tunnel
+          </button>
+          <button
+            className={`tunnel-controls__tab${tab === 'focus' ? ' tunnel-controls__tab--active' : ''}`}
+            onClick={() => setTab('focus')}
+            type="button"
+          >
+            Focus
+          </button>
+        </div>
 
-        {SLIDERS.map(({ label, field, min, max, step }) => (
+        {sliders.map(({ label, field, min, max, step }) => (
           <div key={field} className="tunnel-controls__row">
             <div className="tunnel-controls__row-header">
               <span className="tunnel-controls__label">{label}</span>

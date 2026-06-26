@@ -44,15 +44,32 @@
   transform: scale(0.95);
 }
 
-/* Panel title */
-.tunnel-controls__title {
+/* Tabs */
+.tunnel-controls__tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 16px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.tunnel-controls__tab {
+  flex: 1;
+  padding: 5px 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(255,255,255,0.45);
   font-family: var(--font-sans);
   font-size: var(--text-xs);
-  font-weight: 400;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--meta);
-  margin: 0 0 14px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tunnel-controls__tab--active {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.9);
 }
 
 /* Slider row */

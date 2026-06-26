@@ -7,6 +7,8 @@ export interface TunnelParams {
   scaleDistance: number;     // distance (px) at which cards reach full size — default 600
   hoverSpeedMult: number;    // card speed when hovered — default 0.6
   focusMode: boolean;        // when true, speed drops to 0 and cards drift to hover radius
+  focusHoverRadius: number;  // px from center where cards hover in focus mode — default 200
+  focusLerpRate: number;     // lerp rate for focus transition (higher = faster) — default 0.033
 }
 
 export function createDefaultTunnelParams(): TunnelParams {
@@ -19,5 +21,7 @@ export function createDefaultTunnelParams(): TunnelParams {
     scaleDistance: 750,
     hoverSpeedMult: 0.30,
     focusMode: false,
+    focusHoverRadius: 200,
+    focusLerpRate: 0.033,
   };
 }
