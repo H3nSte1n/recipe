@@ -12,7 +12,7 @@
   font-family: var(--font-serif);
   font-style: italic;
   font-size: var(--text-xl);
-  color: var(--label);
+  color: var(--ink);
   text-align: center;
   width: 400px;
   max-width: 100%;
