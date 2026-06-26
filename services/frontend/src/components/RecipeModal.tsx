@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Recipe } from '../types/recipe';
+import { useState, useEffect, useRef } from 'react';
+import { Recipe, RecipeIngredient, RecipeInstruction } from '../types/recipe';
 import { metaOf, ingLine } from '../utils/formatters';
 import RecipeCard from './RecipeCard';
 import '../styles/RecipeModal.css';
@@ -14,6 +14,103 @@ interface RecipeModalProps {
   onSubRecipeClick?: (recipe: Recipe) => void;
   onParentRecipeClick?: (recipe: Recipe) => void;
   usedIn?: Record<string, Recipe[]>;
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function parseInstructionText(
+  text: string,
+  ingredients: RecipeIngredient[],
+  onEnter: (id: string) => void,
+  onLeave: () => void
+): React.ReactNode {
+  if (ingredients.length === 0) return text;
+
+  const sorted = [...ingredients].sort((a, b) => b.name.length - a.name.length);
+  const pattern = sorted.map(ing => escapeRegex(ing.name)).join('|');
+  const regex = new RegExp(`\\b(${pattern})\\b`, 'gi');
+
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let keyIndex = 0;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+
+    const matched = match[0];
+    const ingredient = sorted.find(ing => ing.name.toLowerCase() === matched.toLowerCase());
+
+    if (ingredient) {
+      parts.push(
+        <span
+          key={keyIndex++}
+          className="recipe-modal__ingredient-ref"
+          onMouseEnter={() => onEnter(ingredient.id)}
+          onMouseLeave={onLeave}
+        >
+          {matched}
+        </span>
+      );
+    } else {
+      parts.push(matched);
+    }
+
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts;
+}
+
+interface RecipeColumnsProps {
+  ingredients: RecipeIngredient[];
+  instructions: RecipeInstruction[];
+  scale: number;
+}
+
+function RecipeColumns({ ingredients, instructions, scale }: RecipeColumnsProps) {
+  const [hoveredIngredientId, setHoveredIngredientId] = useState<string | null>(null);
+
+  const sortedInstructions = [...instructions].sort((a, b) => a.step_number - b.step_number);
+
+  return (
+    <div className="recipe-modal__columns">
+      <div className="recipe-modal__ingredients">
+        {ingredients.map(ing => (
+          <div
+            key={ing.id}
+            className="recipe-modal__ingredient-item"
+            style={{
+              opacity: hoveredIngredientId !== null && hoveredIngredientId !== ing.id ? 0.5 : 1,
+              transition: 'opacity 0.15s',
+            }}
+          >
+            {ingLine(ing.amount, ing.unit, ing.name, scale)}
+          </div>
+        ))}
+      </div>
+      <div className="recipe-modal__instructions">
+        {sortedInstructions.map(inst => (
+          <div key={inst.id} className="recipe-modal__instruction-item">
+            {parseInstructionText(
+              inst.instruction,
+              ingredients,
+              setHoveredIngredientId,
+              () => setHoveredIngredientId(null)
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onEdit, onSubRecipeClick, onParentRecipeClick, usedIn }: RecipeModalProps) {
@@ -88,24 +185,11 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onE
 
         {/* ── Body ───────────────────────────────────────────── */}
         <div className="recipe-modal__body">
-          <div className="recipe-modal__columns">
-            <div className="recipe-modal__ingredients">
-              {(recipe.ingredients ?? []).map((ing) => (
-                <div key={ing.id} className="recipe-modal__ingredient-item">
-                  {ingLine(ing.amount, ing.unit, ing.name, scale)}
-                </div>
-              ))}
-            </div>
-            <div className="recipe-modal__instructions">
-              {[...(recipe.instructions ?? [])]
-                .sort((a, b) => a.step_number - b.step_number)
-                .map((inst) => (
-                  <div key={inst.id} className="recipe-modal__instruction-item">
-                    {inst.instruction}
-                  </div>
-                ))}
-            </div>
-          </div>
+          <RecipeColumns
+            ingredients={recipe.ingredients ?? []}
+            instructions={recipe.instructions ?? []}
+            scale={scale}
+          />
 
           {/* Sub-recipes inline */}
           {(recipe.sub_recipes ?? []).map((sub) => {
@@ -129,24 +213,11 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onE
                     {sub.child.title}
                   </p>
                 )}
-                <div className="recipe-modal__columns">
-                  <div className="recipe-modal__ingredients">
-                    {(sub.child.ingredients ?? []).map((ing) => (
-                      <div key={ing.id} className="recipe-modal__ingredient-item">
-                        {ingLine(ing.amount, ing.unit, ing.name, subScale)}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="recipe-modal__instructions">
-                    {[...(sub.child.instructions ?? [])]
-                      .sort((a, b) => a.step_number - b.step_number)
-                      .map((inst) => (
-                        <div key={inst.id} className="recipe-modal__instruction-item">
-                          {inst.instruction}
-                        </div>
-                      ))}
-                  </div>
-                </div>
+                <RecipeColumns
+                  ingredients={sub.child.ingredients ?? []}
+                  instructions={sub.child.instructions ?? []}
+                  scale={subScale}
+                />
               </div>
             );
           })}
