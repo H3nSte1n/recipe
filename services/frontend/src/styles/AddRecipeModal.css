@@ -178,9 +178,8 @@
 }
 
 .add-recipe-modal__stepper {
-  position: absolute;
-  bottom: 32px;
-  left: 24px;
+  position: static;
+  margin-top: 20px;
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -532,8 +531,10 @@
   }
 
   .add-recipe-modal__stepper {
+    position: absolute;
     left: 42px;
     bottom: 40px;
+    margin-top: 0;
   }
 
   .sub-recipe-card__panels {
