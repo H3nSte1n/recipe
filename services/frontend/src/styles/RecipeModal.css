@@ -145,7 +145,7 @@
 
 .recipe-modal__columns {
   display: grid;
-  grid-template-columns: 44% 56%;
+  grid-template-columns: 50% 50%;
   gap: 0;
 }
 
