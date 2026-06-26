@@ -66,7 +66,7 @@ export default function HomePage({ onLogout }: HomePageProps) {
       />
       <main className={`home-page__main${view === 'graph' ? ' home-page__main--graph' : ''}`}>
         {view === 'graph' ? (
-          <RecipeGraph recipes={filtered} usedIn={usedIn} onRecipeClick={(r) => void handleGraphNodeClick(r)} />
+          <RecipeGraph recipes={recipes} usedIn={usedIn} query={query} onRecipeClick={(r) => void handleGraphNodeClick(r)} />
         ) : (
           <>
             {isLoading && <div className="home-page__loading">Loading…</div>}

@@ -42,7 +42,10 @@
 
 .recipe-graph__node:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  border-color: rgba(0, 0, 0, 0.14);
+}
+
+.recipe-graph__node--highlighted {
+  border: 1px solid var(--ink);
 }
 
 .recipe-graph__node-img {

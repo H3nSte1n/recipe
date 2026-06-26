@@ -5,6 +5,7 @@ import '../styles/RecipeGraph.css';
 interface RecipeGraphProps {
   recipes: Recipe[];
   usedIn: Record<string, Recipe[]>;
+  query?: string;
   onRecipeClick: (recipe: Recipe) => void;
 }
 
@@ -84,7 +85,7 @@ function computeLayout(recipes: Recipe[]): NodePos[] {
 
 interface Edge { x1: number; y1: number; x2: number; y2: number; }
 
-export default function RecipeGraph({ recipes, usedIn, onRecipeClick }: RecipeGraphProps) {
+export default function RecipeGraph({ recipes, usedIn, query, onRecipeClick }: RecipeGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ x: 40, y: 40, scale: 1 });
   const dragRef = useRef<{ startX: number; startY: number; tx: number; ty: number } | null>(null);
@@ -184,11 +185,14 @@ export default function RecipeGraph({ recipes, usedIn, onRecipeClick }: RecipeGr
 
         {nodes.map(n => {
           const parentCount = usedIn[n.id]?.length ?? 0;
+          const highlighted = query
+            ? n.recipe.title.toLowerCase().includes(query.toLowerCase())
+            : false;
           return (
             <button
               key={n.id}
               type="button"
-              className="recipe-graph__node"
+              className={`recipe-graph__node${highlighted ? ' recipe-graph__node--highlighted' : ''}`}
               style={{ left: n.x, top: n.y, width: NODE_W, height: NODE_H }}
               onClick={() => { if (!hasDraggedRef.current) onRecipeClick(n.recipe); }}
             >
