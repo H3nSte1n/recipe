@@ -29,16 +29,32 @@ interface Card {
   imageIndex: number;
   hovered: boolean;
   speedMult: number; // per-card speed multiplier (1.0 default, 0.6 when hovered)
+  quadrant: number;  // 0=bottom-right, 1=bottom-left, 2=top-left, 3=top-right
 }
 
 const CARD_COUNT = 9;
 
-function makeCard(id: number): Card {
+// Returns a random angle within the given quadrant (0–3, each spanning π/2)
+function angleForQuadrant(q: number): number {
+  return q * (Math.PI / 2) + Math.random() * (Math.PI / 2);
+}
+
+// Returns the quadrant index with the fewest cards; breaks ties randomly
+function leastPopulatedQuadrant(counts: number[]): number {
+  const min = Math.min(...counts);
+  const candidates: number[] = [];
+  for (let i = 0; i < counts.length; i++) {
+    if (counts[i] === min) candidates.push(i);
+  }
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function makeCard(id: number, quadrant: number): Card {
   return {
     id,
     x: 0,
     y: 0,
-    angle: Math.random() * Math.PI * 2,
+    angle: angleForQuadrant(quadrant),
     distance: 0,
     size: 120 + Math.random() * 80,
     scale: 0.05,
@@ -46,11 +62,13 @@ function makeCard(id: number): Card {
     imageIndex: id % FOOD_IMAGES.length,
     hovered: false,
     speedMult: 1.0,
+    quadrant,
   };
 }
 
-function recycleCard(card: Card): void {
-  card.angle = Math.random() * Math.PI * 2;
+function recycleCard(card: Card, newQuadrant: number): void {
+  card.quadrant = newQuadrant;
+  card.angle = angleForQuadrant(newQuadrant);
   card.distance = 0;
   card.x = 0;
   card.y = 0;
@@ -97,6 +115,8 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
 
   const rafIdRef = useRef<number | null>(null);
   const timeoutIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Per-quadrant card counts for balanced distribution
+  const quadrantCountsRef = useRef([0, 0, 0, 0]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -119,8 +139,13 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
     const cards: Card[] = [];
     const nodeMap = new Map<number, HTMLDivElement>();
 
+    // Reset quadrant counts for this mount
+    quadrantCountsRef.current = [0, 0, 0, 0];
+
     for (let i = 0; i < CARD_COUNT; i++) {
-      const card = makeCard(i);
+      const q = i % 4;
+      quadrantCountsRef.current[q]++;
+      const card = makeCard(i, q);
       card.distance = -Infinity; // mark as not yet spawned
 
       const node = document.createElement('div');
@@ -148,9 +173,9 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
     for (let i = 0; i < CARD_COUNT; i++) {
       const tid = setTimeout(() => {
         const c = cards[i];
-        // Reset to a proper spawned state
+        // Reset to a proper spawned state (keep quadrant assigned at creation)
         c.distance = 0;
-        c.angle = Math.random() * Math.PI * 2;
+        c.angle = angleForQuadrant(c.quadrant);
         c.size = 120 + Math.random() * 80;
         c.scale = 0.05;
         c.opacity = 0;
@@ -234,12 +259,15 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
         node.style.transform = `translate(calc(-50% + ${vpX + card.x}px), calc(-50% + ${vpY + card.y}px)) scale(${card.scale})`;
         node.style.opacity = String(card.opacity);
 
-        // Off-screen check → recycle
+        // Off-screen check → recycle into least-populated quadrant
         if (
           Math.abs(card.x) > vw / 2 + card.size ||
           Math.abs(card.y) > vh / 2 + card.size
         ) {
-          recycleCard(card);
+          quadrantCountsRef.current[card.quadrant]--;
+          const newQ = leastPopulatedQuadrant(quadrantCountsRef.current);
+          quadrantCountsRef.current[newQ]++;
+          recycleCard(card, newQ);
           // Update DOM node for new size and image
           node.style.width = `${card.size}px`;
           node.style.height = `${card.size}px`;
