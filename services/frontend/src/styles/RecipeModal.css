@@ -155,6 +155,7 @@
   font-size: var(--text-base);
   line-height: 1.4;
   color: var(--ink);
+  padding-right: 50px;
 }
 
 .recipe-modal__ingredient-item,
