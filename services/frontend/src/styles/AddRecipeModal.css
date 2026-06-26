@@ -144,8 +144,7 @@
 .add-recipe-modal__nutrition-table {
   display: grid;
   grid-template-columns: auto 60px auto;
-  gap: 0 8px;
-  row-gap: 4px;
+  gap: 0 4px;
   align-items: baseline;
   align-self: flex-start;
 }
