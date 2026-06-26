@@ -21,7 +21,7 @@ export function createDefaultTunnelParams(): TunnelParams {
     portalRadius: 120,
     fadeBand: 60,
     parallaxStrength: 30,
-    scrollSensitivity: 0.012,
+    scrollSensitivity: 0.5,
     scaleDistance: 750,
     hoverSpeedMult: 0.30,
     focusMode: false,
