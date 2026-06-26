@@ -165,7 +165,7 @@ export default function RecipeGraph({ recipes, usedIn, query, onRecipeClick }: R
         <svg className="recipe-graph__svg" width={canvasW} height={canvasH}>
           <defs>
             <marker id="graph-arrow" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
-              <path d="M0,0 L6,3 L0,6 Z" style={{ fill: 'var(--meta)' }} />
+              <path d="M0,0 L6,3 L0,6 Z" style={{ fill: 'var(--label)' }} />
             </marker>
           </defs>
           {edges.map((e, i) => {
@@ -175,7 +175,7 @@ export default function RecipeGraph({ recipes, usedIn, query, onRecipeClick }: R
                 key={i}
                 d={`M${e.x1},${e.y1} C${e.x1 + mx},${e.y1} ${e.x2 - mx},${e.y2} ${e.x2},${e.y2}`}
                 fill="none"
-                style={{ stroke: 'var(--meta)' }}
+                style={{ stroke: 'var(--label)' }}
                 strokeWidth={1.5}
                 markerEnd="url(#graph-arrow)"
               />
