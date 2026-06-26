@@ -187,7 +187,7 @@
 
 .add-recipe-modal__serves-label {
   font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   color: var(--meta);
 }
 
@@ -413,7 +413,7 @@
 
 .sub-recipe-card__portion-label {
   font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   color: var(--meta);
 }
 
