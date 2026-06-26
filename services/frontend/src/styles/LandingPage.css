@@ -24,6 +24,17 @@
   transition: transform 0.6s ease-out;
 }
 
+.landing-page__center::before {
+  content: '';
+  position: absolute;
+  inset: -80px -120px;
+  background: var(--surface);
+  filter: blur(70px);
+  border-radius: 20px;
+  z-index: -1;
+  pointer-events: none;
+}
+
 .landing-page__brand {
   font-family: var(--font-sans);
   font-size: var(--text-base);

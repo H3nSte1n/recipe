@@ -362,8 +362,6 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
       ref={containerRef}
       className="scattered-bg"
       aria-hidden="true"
-    >
-      <div className="scattered-bg__blur" />
-    </div>
+    />
   );
 }

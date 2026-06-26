@@ -5,18 +5,3 @@
   z-index: 0;
   overflow: hidden;
 }
-
-.scattered-bg__blur {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 50.78%;
-  height: 55.65%;
-  min-width: 320px;
-  border-radius: 10.94%;
-  background: #ffffff;
-  filter: blur(67px);
-  pointer-events: none;
-  z-index: 1;
-}
