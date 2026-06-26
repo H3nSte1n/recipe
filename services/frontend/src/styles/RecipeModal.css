@@ -160,6 +160,7 @@
 
 .recipe-modal__ingredient-ref:hover {
   text-decoration: underline;
+  text-decoration-color: rgba(0, 0, 0, 0.5);
   text-underline-offset: 2px;
 }
 
