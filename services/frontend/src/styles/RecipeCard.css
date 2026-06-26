@@ -34,7 +34,7 @@
 .recipe-card__title {
   font-family: var(--font-serif);
   font-style: italic;
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
   color: var(--ink);
   margin: 0;
   line-height: 1.2;
@@ -47,9 +47,3 @@
   margin: 0;
 }
 
-/* ─── Tablet ──────────────────────────────────────────────────────────────── */
-@media (min-width: 600px) {
-  .recipe-card__title {
-    font-size: var(--text-lg);
-  }
-}
