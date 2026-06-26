@@ -120,7 +120,7 @@ export function metaOf(
 ): string {
   const parts: string[] = [];
   const totalTime = prepTime + cookTime;
-  if (totalTime > 0) parts.push(`${totalTime}min`);
+  if (totalTime > 0) parts.push(`${totalTime} min`);
   if (shelfLife && shelfLife > 0) parts.push(`${shelfLife}d shelf life`);
   return parts.join(' · ');
 }
