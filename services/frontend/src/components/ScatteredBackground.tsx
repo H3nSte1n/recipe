@@ -234,14 +234,29 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
       focusSpeedMultRef.current += (focusTarget - focusSpeedMultRef.current) * params.current.focusLerpRate;
       const fsm = focusSpeedMultRef.current;
 
-      // On focus entry, assign evenly-spaced target angles and jittered target distances
+      // On focus entry, assign each card the nearest available evenly-spaced slot
       if (params.current.focusMode && !prevFocusModeRef.current) {
         const angleStep = (2 * Math.PI) / CARD_COUNT;
         const jitterRad = (params.current.focusAngleJitter * Math.PI) / 180;
-        for (let j = 0; j < cards.length; j++) {
-          if (cards[j].distance === -Infinity) continue;
-          cards[j].targetAngle = j * angleStep + (Math.random() * 2 - 1) * jitterRad;
-          cards[j].targetDistance = params.current.focusHoverRadius + (Math.random() * 2 - 1) * params.current.focusRadiusJitter;
+        const slots = Array.from({ length: CARD_COUNT }, (_, k) =>
+          k * angleStep + (Math.random() * 2 - 1) * jitterRad
+        );
+        const usedSlots = new Set<number>();
+        for (const card of cards) {
+          if (card.distance === -Infinity) continue;
+          let bestSlot = -1;
+          let bestDist = Infinity;
+          for (let s = 0; s < slots.length; s++) {
+            if (usedSlots.has(s)) continue;
+            let diff = Math.abs(slots[s] - card.angle);
+            diff = Math.min(diff, 2 * Math.PI - diff);
+            if (diff < bestDist) { bestDist = diff; bestSlot = s; }
+          }
+          if (bestSlot >= 0) {
+            usedSlots.add(bestSlot);
+            card.targetAngle = slots[bestSlot];
+            card.targetDistance = params.current.focusHoverRadius + (Math.random() * 2 - 1) * params.current.focusRadiusJitter;
+          }
         }
       }
       prevFocusModeRef.current = params.current.focusMode;
