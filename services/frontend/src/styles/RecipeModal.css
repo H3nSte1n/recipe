@@ -6,8 +6,8 @@
   backdrop-filter: blur(26px);
   overflow-y: auto;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   padding: 0;
 }
 
@@ -80,8 +80,10 @@
   position: sticky;
   top: 0;
   z-index: 10;
+  width: 100%;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 8px;
   padding: 16px;
   pointer-events: none;
@@ -253,6 +255,7 @@
 @media (min-width: 600px) {
   .recipe-modal {
     padding: 5vh 20px 9vh;
+    align-items: center;
   }
 
   .recipe-modal__card {
