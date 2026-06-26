@@ -234,10 +234,12 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
       focusSpeedMultRef.current += (focusTarget - focusSpeedMultRef.current) * params.current.focusLerpRate;
       const fsm = focusSpeedMultRef.current;
 
-      // On focus entry, assign each card the nearest available evenly-spaced slot
+      // On focus entry, assign each card the nearest available evenly-spaced slot,
+      // capped at 30° of rotation — cards beyond that stay at their current angle.
       if (params.current.focusMode && !prevFocusModeRef.current) {
         const angleStep = (2 * Math.PI) / CARD_COUNT;
         const jitterRad = (params.current.focusAngleJitter * Math.PI) / 180;
+        const maxRotation = 30 * Math.PI / 180;
         const slots = Array.from({ length: CARD_COUNT }, (_, k) =>
           k * angleStep + (Math.random() * 2 - 1) * jitterRad
         );
@@ -254,9 +256,15 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
           }
           if (bestSlot >= 0) {
             usedSlots.add(bestSlot);
-            card.targetAngle = slots[bestSlot];
-            card.targetDistance = params.current.focusHoverRadius + (Math.random() * 2 - 1) * params.current.focusRadiusJitter;
+            // Clamp rotation: move toward slot but no more than maxRotation
+            let angleDiff = slots[bestSlot] - card.angle;
+            while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+            while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+            card.targetAngle = card.angle + Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), maxRotation);
+          } else {
+            card.targetAngle = card.angle;
           }
+          card.targetDistance = params.current.focusHoverRadius + (Math.random() * 2 - 1) * params.current.focusRadiusJitter;
         }
       }
       prevFocusModeRef.current = params.current.focusMode;
