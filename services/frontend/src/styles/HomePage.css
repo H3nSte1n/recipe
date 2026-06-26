@@ -4,7 +4,7 @@
 }
 
 .home-page__header {
-  padding: 32px 40px;
+  padding: 24px 16px;
   max-width: 1520px;
   margin: 0 auto;
 }
@@ -27,34 +27,12 @@
   gap: 4px;
 }
 
-.home-page--graph {
-  height: 100vh;
-  display: grid;
-  grid-template-rows: auto 1fr;
-}
-
-.home-page--graph > .home-page__header {
-  width: 100%;
-  box-sizing: border-box;
-  max-width: none;
-  margin: 0;
-}
-
-.home-page__main--graph {
-  overflow: hidden;
-  padding: 0;
-  position: relative;
-  max-width: none;
-  margin: 0;
-  width: 100%;
-}
-
 .home-page__view-btn {
   cursor: pointer;
   background: none;
   border: none;
   color: var(--meta);
-  display: flex;
+  display: none;
   align-items: center;
   opacity: 0.7;
   transition: opacity 0.15s;
@@ -91,14 +69,14 @@
 .home-page__main {
   max-width: 1520px;
   margin: 0 auto;
-  padding: 0 40px 100px;
+  padding: 0 16px 80px;
 }
 
 .home-page__grid {
   display: grid;
-  grid-template-columns: repeat(3, 360px);
-  column-gap: 24px;
-  row-gap: 30px;
+  grid-template-columns: 1fr;
+  column-gap: 0;
+  row-gap: 28px;
   justify-content: center;
 }
 
@@ -141,24 +119,8 @@
 }
 
 
-/* ─── Responsive ─────────────────────────────────────────────────────────── */
-@media (max-width: 599px) {
-  .home-page__header {
-    padding: 24px 16px;
-  }
-
-  .home-page__main {
-    padding: 0 16px 80px;
-  }
-
-  .home-page__grid {
-    grid-template-columns: 1fr;
-    column-gap: 0;
-    row-gap: 28px;
-  }
-}
-
-@media (min-width: 600px) and (max-width: 1023px) {
+/* ─── Tablet (≥ 600px) ───────────────────────────────────────────────────── */
+@media (min-width: 600px) {
   .home-page__header {
     padding: 28px 24px;
   }
@@ -171,5 +133,49 @@
     grid-template-columns: repeat(2, 1fr);
     column-gap: 24px;
     row-gap: 28px;
+  }
+}
+
+
+/* ─── Desktop (≥ 1024px) ─────────────────────────────────────────────────── */
+@media (min-width: 1024px) {
+  .home-page__header {
+    padding: 32px 40px;
+  }
+
+  .home-page__main {
+    padding: 0 40px 100px;
+  }
+
+  .home-page__grid {
+    grid-template-columns: repeat(3, 360px);
+    column-gap: 24px;
+    row-gap: 30px;
+  }
+
+  .home-page__view-btn {
+    display: flex;
+  }
+
+  .home-page--graph {
+    height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr;
+  }
+
+  .home-page--graph > .home-page__header {
+    width: 100%;
+    box-sizing: border-box;
+    max-width: none;
+    margin: 0;
+  }
+
+  .home-page__main--graph {
+    overflow: hidden;
+    padding: 0;
+    position: relative;
+    max-width: none;
+    margin: 0;
+    width: 100%;
   }
 }
