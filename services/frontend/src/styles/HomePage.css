@@ -19,9 +19,16 @@
   margin: 0 auto;
 }
 
-.home-page__add-btn {
+.home-page__header-actions {
   position: absolute;
   right: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.home-page__add-btn,
+.home-page__logout-btn {
   cursor: pointer;
   background: none;
   border: none;
@@ -33,7 +40,8 @@
   padding: 4px;
 }
 
-.home-page__add-btn:hover {
+.home-page__add-btn:hover,
+.home-page__logout-btn:hover {
   opacity: 1;
 }
 
@@ -89,24 +97,6 @@
   color: var(--meta);
 }
 
-.home-page__signout {
-  position: fixed;
-  bottom: 16px;
-  right: 20px;
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  color: var(--label);
-  opacity: 0.5;
-  cursor: pointer;
-  background: none;
-  border: none;
-  padding: 4px;
-  transition: opacity 0.15s;
-}
-
-.home-page__signout:hover {
-  opacity: 1;
-}
 
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 599px) {
