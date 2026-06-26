@@ -14,10 +14,11 @@
   font-size: var(--text-xl);
   color: var(--ink);
   text-align: center;
-  width: 400px;
+  width: 100%;
   max-width: 100%;
   caret-color: var(--ink);
-  padding: 0;
+  padding: 10px 0;
+  min-height: 44px;
 }
 
 .search-bar__input::placeholder {
@@ -25,9 +26,11 @@
   opacity: 1;
 }
 
-/* ─── Responsive ─────────────────────────────────────────────────────────── */
-@media (max-width: 599px) {
+/* ─── Desktop ─────────────────────────────────────────────────────────────── */
+@media (min-width: 1024px) {
   .search-bar__input {
-    width: 200px;
+    width: 400px;
+    padding: 0;
+    min-height: unset;
   }
 }
