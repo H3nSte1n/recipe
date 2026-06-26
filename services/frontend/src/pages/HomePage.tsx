@@ -4,6 +4,7 @@ import { useRecipes } from '../hooks/useRecipes';
 import RecipeCard from '../components/RecipeCard';
 import RecipeModal from '../components/RecipeModal';
 import AddRecipeModal from '../components/AddRecipeModal';
+import RecipeGraph from '../components/RecipeGraph';
 import SearchBar from '../components/SearchBar';
 import { getRecipeById } from '../services/recipeService';
 import '../styles/HomePage.css';
@@ -19,6 +20,7 @@ export default function HomePage({ onLogout }: HomePageProps) {
   const [serves, setServes] = useState(2);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  const [view, setView] = useState<'grid' | 'graph'>('grid');
 
   const filtered = filterRecipes(query);
 
@@ -41,12 +43,48 @@ export default function HomePage({ onLogout }: HomePageProps) {
     setSelectedRecipe(null);
   }
 
+  async function handleGraphNodeClick(recipe: Recipe) {
+    try {
+      const full = await getRecipeById(recipe.id);
+      setSelectedRecipe(full);
+      setServes(full.servings ?? 2);
+    } catch {
+      setSelectedRecipe(recipe);
+      setServes(recipe.servings ?? 2);
+    }
+  }
+
   return (
-    <div className="home-page">
+    <div className={`home-page${view === 'graph' ? ' home-page--graph' : ''}`}>
       <header className="home-page__header">
         <div className="home-page__header-content">
           <SearchBar value={query} onChange={setQuery} />
           <div className="home-page__header-actions">
+            <button
+              className={`home-page__view-btn${view === 'graph' ? ' home-page__view-btn--active' : ''}`}
+              type="button"
+              aria-label="Toggle graph view"
+              onClick={() => setView(v => v === 'grid' ? 'graph' : 'grid')}
+            >
+              {view === 'grid' ? (
+                /* graph icon */
+                <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
+                  <circle cx={5} cy={12} r={2} />
+                  <circle cx={19} cy={5} r={2} />
+                  <circle cx={19} cy={19} r={2} />
+                  <line x1={7} y1={11} x2={17} y2={6} />
+                  <line x1={7} y1={13} x2={17} y2={18} />
+                </svg>
+              ) : (
+                /* grid icon */
+                <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
+                  <rect x={3} y={3} width={7} height={7} rx={1} />
+                  <rect x={14} y={3} width={7} height={7} rx={1} />
+                  <rect x={3} y={14} width={7} height={7} rx={1} />
+                  <rect x={14} y={14} width={7} height={7} rx={1} />
+                </svg>
+              )}
+            </button>
             <button
               className="home-page__add-btn"
               type="button"
@@ -73,42 +111,48 @@ export default function HomePage({ onLogout }: HomePageProps) {
           </div>
         </div>
       </header>
-      <main className="home-page__main">
-        {isLoading && <div className="home-page__loading">Loading…</div>}
-        {error && !isLoading && <div className="home-page__error">Failed to load recipes.</div>}
-        {!isLoading && !error && filtered.length === 0 && (
-          <div className="home-page__empty">
-            <span>Nothing here 😋</span>
-            <button
-              className="home-page__empty-add-btn"
-              type="button"
-              onClick={() => setShowAddModal(true)}
-            >
-              Add recipe
-            </button>
-          </div>
-        )}
-        {!isLoading && !error && filtered.length > 0 && (
-          <div className="home-page__grid">
-            {filtered.map((r) => (
-              <RecipeCard
-                key={r.id}
-                recipe={r}
-                onClick={() => {
-                  void (async () => {
-                    try {
-                      const full = await getRecipeById(r.id);
-                      setSelectedRecipe(full);
-                      setServes(full.servings ?? 2);
-                    } catch {
-                      setSelectedRecipe(r);
-                      setServes(r.servings ?? 2);
-                    }
-                  })();
-                }}
-              />
-            ))}
-          </div>
+      <main className={`home-page__main${view === 'graph' ? ' home-page__main--graph' : ''}`}>
+        {view === 'graph' ? (
+          <RecipeGraph recipes={recipes} usedIn={usedIn} onRecipeClick={(r) => void handleGraphNodeClick(r)} />
+        ) : (
+          <>
+            {isLoading && <div className="home-page__loading">Loading…</div>}
+            {error && !isLoading && <div className="home-page__error">Failed to load recipes.</div>}
+            {!isLoading && !error && filtered.length === 0 && (
+              <div className="home-page__empty">
+                <span>Nothing here 😋</span>
+                <button
+                  className="home-page__empty-add-btn"
+                  type="button"
+                  onClick={() => setShowAddModal(true)}
+                >
+                  Add recipe
+                </button>
+              </div>
+            )}
+            {!isLoading && !error && filtered.length > 0 && (
+              <div className="home-page__grid">
+                {filtered.map((r) => (
+                  <RecipeCard
+                    key={r.id}
+                    recipe={r}
+                    onClick={() => {
+                      void (async () => {
+                        try {
+                          const full = await getRecipeById(r.id);
+                          setSelectedRecipe(full);
+                          setServes(full.servings ?? 2);
+                        } catch {
+                          setSelectedRecipe(r);
+                          setServes(r.servings ?? 2);
+                        }
+                      })();
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </main>
       {selectedRecipe && (

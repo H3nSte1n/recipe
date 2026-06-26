@@ -27,6 +27,40 @@
   gap: 4px;
 }
 
+.home-page--graph {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.home-page__main--graph {
+  flex: 1;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+}
+
+.home-page__view-btn {
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: var(--meta);
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+  padding: 4px;
+}
+
+.home-page__view-btn:hover {
+  opacity: 1;
+}
+
+.home-page__view-btn--active {
+  opacity: 1;
+  color: var(--ink);
+}
+
 .home-page__add-btn,
 .home-page__logout-btn {
   cursor: pointer;

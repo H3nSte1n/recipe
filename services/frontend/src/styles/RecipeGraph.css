@@ -1,0 +1,82 @@
+.recipe-graph {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  background: var(--bg);
+  user-select: none;
+}
+
+.recipe-graph:active {
+  cursor: grabbing;
+}
+
+.recipe-graph__canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+.recipe-graph__svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.recipe-graph__node {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 12px;
+  padding: 8px 14px 8px 8px;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.recipe-graph__node:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+.recipe-graph__node-img {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.recipe-graph__node-img--placeholder {
+  background: var(--bg);
+}
+
+.recipe-graph__node-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.recipe-graph__node-title {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--text-base);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.recipe-graph__node-meta {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--meta);
+}
