@@ -56,6 +56,7 @@ function recycleCard(card: Card): void {
   card.distance = 0;
   card.x = 0;
   card.y = 0;
+  card.size = 120 + Math.random() * 80;
   card.scale = 0.05;
   card.opacity = 0;
   card.speedMult = 1.0;
