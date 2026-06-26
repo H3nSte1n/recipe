@@ -10,12 +10,12 @@ export interface TunnelParams {
 
 export function createDefaultTunnelParams(): TunnelParams {
   return {
-    speed: 0.8,
-    portalRadius: 220,
+    speed: 0.60,
+    portalRadius: 200,
     fadeBand: 60,
-    parallaxStrength: 160,
-    scrollSensitivity: 0.003,
-    scaleDistance: 600,
-    hoverSpeedMult: 0.6,
+    parallaxStrength: 30,
+    scrollSensitivity: 0.012,
+    scaleDistance: 750,
+    hoverSpeedMult: 0.30,
   };
 }
