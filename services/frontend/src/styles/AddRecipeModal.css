@@ -147,6 +147,7 @@
   gap: 0 8px;
   row-gap: 4px;
   align-items: baseline;
+  align-self: flex-start;
 }
 
 .add-recipe-modal__nutrition-label {
@@ -177,10 +178,12 @@
 }
 
 .add-recipe-modal__stepper {
+  position: absolute;
+  bottom: 40px;
+  left: 42px;
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 12px;
 }
 
 .add-recipe-modal__serves-label {
