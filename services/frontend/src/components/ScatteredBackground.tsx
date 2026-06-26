@@ -239,7 +239,7 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
       if (params.current.focusMode && !prevFocusModeRef.current) {
         const angleStep = (2 * Math.PI) / CARD_COUNT;
         const jitterRad = (params.current.focusAngleJitter * Math.PI) / 180;
-        const maxRotation = 30 * Math.PI / 180;
+        const maxRotation = 15 * Math.PI / 180;
         const slots = Array.from({ length: CARD_COUNT }, (_, k) =>
           k * angleStep + (Math.random() * 2 - 1) * jitterRad
         );
