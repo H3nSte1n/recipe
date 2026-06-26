@@ -23,7 +23,7 @@ const TUNNEL_SLIDERS: SliderConfig[] = [
   { label: 'Portal radius',  field: 'portalRadius',      min: 50,   max: 450,   step: 10,     description: 'Radius of the center zone where cards are invisible' },
   { label: 'Fade band',      field: 'fadeBand',          min: 10,   max: 150,   step: 5,      description: 'Width of the fade-in zone as cards emerge from the portal' },
   { label: 'Parallax',       field: 'parallaxStrength',  min: 0,    max: 320,   step: 10,     description: 'Max vanishing-point shift in px when moving the mouse to the edge' },
-  { label: 'Scroll power',   field: 'scrollSensitivity', min: 0,    max: 0.05,  step: 0.001,  description: 'How much a scroll or swipe boosts card speed' },
+  { label: 'Scroll power',   field: 'scrollSensitivity', min: 0,    max: 0.5,   step: 0.005,  description: 'How much a scroll or swipe boosts card speed' },
   { label: 'Scale distance', field: 'scaleDistance',     min: 100,  max: 1200,  step: 50,     description: 'Distance in px at which cards grow to their full size' },
   { label: 'Hover slow',     field: 'hoverSpeedMult',    min: 0.1,  max: 1.0,   step: 0.05,   description: 'Speed multiplier applied to a card while the cursor is over it' },
 ];
