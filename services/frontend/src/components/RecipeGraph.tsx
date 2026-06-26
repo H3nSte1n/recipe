@@ -107,14 +107,21 @@ export default function RecipeGraph({ recipes, usedIn, onRecipeClick }: RecipeGr
 
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    setTransform(prev => {
-      const scale = Math.min(3, Math.max(0.2, prev.scale * (e.deltaY < 0 ? 1.1 : 0.9)));
-      return { scale, x: mx - (mx - prev.x) * (scale / prev.scale), y: my - (my - prev.y) * (scale / prev.scale) };
-    });
+    if (e.ctrlKey) {
+      // pinch-to-zoom or Ctrl+scroll → zoom around cursor
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      setTransform(prev => {
+        const factor = Math.exp(-e.deltaY / 300);
+        const scale = Math.min(3, Math.max(0.2, prev.scale * factor));
+        return { scale, x: mx - (mx - prev.x) * (scale / prev.scale), y: my - (my - prev.y) * (scale / prev.scale) };
+      });
+    } else {
+      // two-finger scroll → pan
+      setTransform(prev => ({ ...prev, x: prev.x - e.deltaX, y: prev.y - e.deltaY }));
+    }
   }, []);
 
   useEffect(() => {
