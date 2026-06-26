@@ -172,26 +172,26 @@ export default function ScatteredBackground({ paramsRef }: ScatteredBackgroundPr
     cardsRef.current = cards;
     nodeMapRef.current = nodeMap;
 
-    // Stagger initial spawn: 800ms initial delay, then 150ms between each card
+    // Stagger initial spawn: short initial delay, then 80ms between cards.
+    // Head start is beyond the portal+fade zone so cards are visible immediately.
     for (let i = 0; i < CARD_COUNT; i++) {
       const tid = setTimeout(() => {
         const c = cards[i];
-        // Reset to a proper spawned state (keep quadrant assigned at creation)
-        // Random head start so cards are already mid-journey on first appearance
-        c.distance = Math.random() * params.current.portalRadius;
+        const p = params.current;
+        // Spawn cards already past the portal so they're visible (or fading in) on first frame
+        c.distance = p.portalRadius + Math.random() * (p.fadeBand + 80);
         c.angle = angleForQuadrant(c.quadrant);
         c.size = 120 + Math.random() * 80;
         c.scale = 0.05;
         c.opacity = 0;
         c.speedMult = 1.0;
-        // Resize DOM node and set image
         const n = nodeMap.get(i);
         if (n) {
           n.style.width = `${c.size}px`;
           n.style.height = `${c.size}px`;
           applyCardBackground(n, c.imageIndex);
         }
-      }, 800 + i * 150);
+      }, 100 + i * 80);
       timeoutIdsRef.current.push(tid);
     }
 
