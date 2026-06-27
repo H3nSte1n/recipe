@@ -15,8 +15,15 @@ type Config struct {
 	SMTP     SMTPConfig     `mapstructure:"smtp"`
 	Storage  StorageConfig  `mapstructure:"storage"`
 	AI       AIConfig       `mapstructure:"ai"`
+	Security SecurityConfig `mapstructure:"security"`
 	CORS     CORSConfig     `mapstructure:"cors"`
 	LogLevel string         `mapstructure:"log_level"`
+}
+
+type SecurityConfig struct {
+	// EncryptionKey is the application-layer secret used to encrypt sensitive
+	// columns at rest (e.g. user AI API keys). Inject via SECURITY_ENCRYPTION_KEY.
+	EncryptionKey string `mapstructure:"encryption_key"`
 }
 
 type CORSConfig struct {
@@ -85,6 +92,24 @@ func LoadConfig(env string) (config Config, err error) {
 
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	// Explicitly bind secrets to environment variables so they can be injected at
+	// deploy time (e.g. DB_PASSWORD, JWT_SECRET, SECURITY_ENCRYPTION_KEY) and
+	// override the committed YAML placeholders. viper's AutomaticEnv alone does not
+	// reliably override fields populated via Unmarshal, so each key is bound here.
+	secretKeys := []string{
+		"db.password",
+		"jwt.secret",
+		"smtp.password",
+		"ai.openai_api_key",
+		"ai.anthropic_api_key",
+		"storage.aws.access_key_id",
+		"storage.aws.secret_access_key",
+		"security.encryption_key",
+	}
+	for _, key := range secretKeys {
+		_ = v.BindEnv(key)
+	}
 
 	if err := v.ReadInConfig(); err != nil {
 		return config, fmt.Errorf("error reading config file: %w", err)

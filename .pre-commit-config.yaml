@@ -1,0 +1,10 @@
+# Secret-scanning pre-commit hook. Install once per clone:
+#   pip install pre-commit   # or: brew install pre-commit
+#   pre-commit install
+# Run against the whole repo on demand:
+#   pre-commit run --all-files
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks

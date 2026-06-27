@@ -7,6 +7,7 @@ import (
 	"github.com/H3nSte1n/recipe/internal/service"
 	"github.com/H3nSte1n/recipe/pkg/ai"
 	"github.com/H3nSte1n/recipe/pkg/config"
+	"github.com/H3nSte1n/recipe/pkg/crypto"
 	"github.com/H3nSte1n/recipe/pkg/database"
 	"github.com/H3nSte1n/recipe/pkg/storage"
 	"github.com/gin-gonic/gin"
@@ -51,9 +52,15 @@ func main() {
 
 	aiModelFactory := ai.NewModelFactory(&cfg, logger)
 
+	// Fail closed: secrets at rest (user AI API keys) require an encryption key.
+	cipher, err := crypto.NewCipher(cfg.Security.EncryptionKey)
+	if err != nil {
+		logger.Fatal("Failed to initialize encryption (set SECURITY_ENCRYPTION_KEY):", zap.Error(err))
+	}
+
 	repos := repository.NewRepositories(db)
 
-	services := service.NewServices(repos, cfg, fileStore, logger, *aiModelFactory)
+	services := service.NewServices(repos, cfg, fileStore, logger, *aiModelFactory, cipher)
 
 	handlers := handler.NewHandlers(services, logger)
 
