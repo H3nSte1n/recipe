@@ -8,6 +8,10 @@ import (
 	"net/http"
 )
 
+// maxResponseBytes caps how much of a fetched page we read into memory, bounding
+// memory use against a hostile or accidentally huge response.
+const maxResponseBytes = 5 << 20 // 5 MiB
+
 type ContentFetcher interface {
 	Fetch(ctx context.Context, url string) (string, error)
 }
@@ -47,9 +51,14 @@ func (f *contentFetcher) Fetch(ctx context.Context, urlStr string) (string, erro
 		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	content, err := io.ReadAll(resp.Body)
+	// Read at most maxResponseBytes+1 so we can distinguish "exactly at the cap"
+	// from "over the cap" and reject oversized responses.
+	content, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes+1))
 	if err != nil {
 		return "", fmt.Errorf("failed to read content: %w", err)
+	}
+	if len(content) > maxResponseBytes {
+		return "", fmt.Errorf("response body exceeds %d byte limit", maxResponseBytes)
 	}
 
 	return string(content), nil

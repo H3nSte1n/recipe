@@ -6,6 +6,12 @@ import (
 	"github.com/H3nSte1n/recipe/pkg/ai"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
+)
+
+const (
+	// requestTimeout bounds the entire URL-import request (connect + redirects + read).
+	requestTimeout = 15 * time.Second
 )
 
 type Service interface {
@@ -20,8 +26,19 @@ type service struct {
 }
 
 func NewService(logger *zap.Logger) Service {
+	// Transport whose every dial (including redirect hops) is forced through the
+	// SSRF guard, with timeouts so a slow or stalling host cannot hang the request.
+	transport := &http.Transport{
+		DialContext:           safeDialContext,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+
 	client := &http.Client{
 		CheckRedirect: defaultRedirectPolicy,
+		Transport:     transport,
+		Timeout:       requestTimeout,
 	}
 
 	return &service{
@@ -33,8 +50,22 @@ func NewService(logger *zap.Logger) Service {
 }
 
 func (s *service) Parse(ctx context.Context, urlStr string, aiModel ai.AIModel) (*domain.Recipe, error) {
+	// Reject non-public destinations early (scheme + resolved-IP check). The
+	// per-dial safeDialContext is the authoritative TOCTOU-safe guard; this gives
+	// a fast, clear rejection before any connection is attempted.
+	if _, err := validatePublicURL(ctx, urlStr); err != nil {
+		s.logger.Warn("rejected URL import destination",
+			zap.String("url", urlStr),
+			zap.Error(err))
+		return nil, err
+	}
+
+	// Bound the fetch independently of any caller deadline.
+	fetchCtx, cancel := context.WithTimeout(ctx, requestTimeout)
+	defer cancel()
+
 	// Fetch raw content
-	content, err := s.fetcher.Fetch(ctx, urlStr)
+	content, err := s.fetcher.Fetch(fetchCtx, urlStr)
 	if err != nil {
 		s.logger.Error("failed to fetch content",
 			zap.String("url", urlStr),
