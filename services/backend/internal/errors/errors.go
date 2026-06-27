@@ -1,6 +1,11 @@
 package errors
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+
+	"gorm.io/gorm"
+)
 
 type AppError struct {
 	Code    string
@@ -38,7 +43,11 @@ func New(message string, code ...string) *AppError {
 }
 
 func IsNotFound(err error) bool {
-	if appErr, ok := err.(*AppError); ok {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return true
+	}
+	var appErr *AppError
+	if errors.As(err, &appErr) {
 		return appErr.Code == "NOT_FOUND"
 	}
 	return false

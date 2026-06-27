@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 	"testing"
 	"time"
 )
@@ -126,6 +127,15 @@ func TestUserService_Register(t *testing.T) {
 			name: "continues registration when GetByEmail returns ErrNotFound",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, apperrors.ErrNotFound).Once()
+				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("Create", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("CreateProfile", mock.Anything, mock.Anything).Return(nil).Once()
+			},
+		},
+		{
+			name: "continues registration when GetByEmail returns gorm.ErrRecordNotFound",
+			mockMethod: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, gorm.ErrRecordNotFound).Once()
 				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("Create", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("CreateProfile", mock.Anything, mock.Anything).Return(nil).Once()
