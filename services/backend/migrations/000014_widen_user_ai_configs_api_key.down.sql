@@ -1,0 +1,1 @@
+ALTER TABLE user_ai_configs ALTER COLUMN api_key TYPE VARCHAR(255);

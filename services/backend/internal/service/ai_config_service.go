@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	apperrors "github.com/H3nSte1n/recipe/internal/errors"
+	"go.uber.org/zap"
 )
 
 type aiConfigRepository interface {
@@ -32,18 +33,27 @@ type AIConfigService interface {
 
 type aiConfigService struct {
 	aiConfigRepo aiConfigRepository
+	cipher       APIKeyCipher
+	logger       *zap.Logger
 }
 
-func NewAIConfigService(aiConfigRepo aiConfigRepository) AIConfigService {
+func NewAIConfigService(aiConfigRepo aiConfigRepository, cipher APIKeyCipher, logger *zap.Logger) AIConfigService {
 	return &aiConfigService{
 		aiConfigRepo: aiConfigRepo,
+		cipher:       cipher,
+		logger:       logger,
 	}
 }
 
 func (s *aiConfigService) Create(ctx context.Context, userID string, req *domain.CreateUserAIConfigRequest) (*domain.UserAIConfig, error) {
 	var configID string
 
-	err := s.aiConfigRepo.RunTx(ctx, func() error {
+	encryptedKey, err := s.cipher.Encrypt(req.APIKey)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.aiConfigRepo.RunTx(ctx, func() error {
 		if req.IsDefault {
 			if err := s.aiConfigRepo.ClearDefaultByUserID(ctx, userID); err != nil {
 				return err
@@ -53,7 +63,7 @@ func (s *aiConfigService) Create(ctx context.Context, userID string, req *domain
 		config := &domain.UserAIConfig{
 			UserID:    userID,
 			AIModelID: req.AIModelID,
-			APIKey:    req.APIKey,
+			APIKey:    encryptedKey,
 			IsDefault: req.IsDefault,
 			Settings:  req.Settings,
 		}
@@ -69,7 +79,8 @@ func (s *aiConfigService) Create(ctx context.Context, userID string, req *domain
 		return nil, err
 	}
 
-	return s.aiConfigRepo.GetByID(ctx, configID)
+	// Return via the service read path so the API key is decrypted for the caller.
+	return s.GetByID(ctx, userID, configID)
 }
 
 func (s *aiConfigService) Update(ctx context.Context, userID string, configID string, req *domain.UpdateUserAIConfigRequest) (*domain.UserAIConfig, error) {
@@ -95,6 +106,14 @@ func (s *aiConfigService) Update(ctx context.Context, userID string, configID st
 			config.Settings = req.Settings
 		}
 
+		// config.APIKey is plaintext here (GetByID decrypts on read); encrypt before
+		// persisting. This also re-encrypts any legacy plaintext row on next update.
+		encryptedKey, err := s.cipher.Encrypt(config.APIKey)
+		if err != nil {
+			return err
+		}
+		config.APIKey = encryptedKey
+
 		return s.aiConfigRepo.Update(ctx, config)
 	})
 
@@ -102,7 +121,8 @@ func (s *aiConfigService) Update(ctx context.Context, userID string, configID st
 		return nil, err
 	}
 
-	return s.aiConfigRepo.GetByID(ctx, configID)
+	// Return via the service read path so the API key is decrypted for the caller.
+	return s.GetByID(ctx, userID, configID)
 }
 
 func (s *aiConfigService) GetByID(ctx context.Context, userID string, configID string) (*domain.UserAIConfig, error) {
@@ -115,11 +135,20 @@ func (s *aiConfigService) GetByID(ctx context.Context, userID string, configID s
 		return nil, apperrors.ErrUnauthorized
 	}
 
+	config.APIKey = decryptAPIKey(s.cipher, s.logger, config.APIKey)
 	return config, nil
 }
 
 func (s *aiConfigService) List(ctx context.Context, userID string) ([]domain.UserAIConfig, error) {
-	return s.aiConfigRepo.ListByUserID(ctx, userID)
+	configs, err := s.aiConfigRepo.ListByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range configs {
+		configs[i].APIKey = decryptAPIKey(s.cipher, s.logger, configs[i].APIKey)
+	}
+	return configs, nil
 }
 
 func (s *aiConfigService) Delete(ctx context.Context, userID string, configID string) error {
@@ -157,5 +186,6 @@ func (s *aiConfigService) GetDefaultConfig(ctx context.Context, userID string) (
 		return nil, err
 	}
 
+	config.APIKey = decryptAPIKey(s.cipher, s.logger, config.APIKey)
 	return config, nil
 }

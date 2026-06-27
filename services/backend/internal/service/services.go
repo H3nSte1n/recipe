@@ -20,7 +20,7 @@ type Services struct {
 	StoreChainService   StoreChainService
 }
 
-func NewServices(repos *repository.Repositories, config config.Config, fileStorage storage.FileStore, logger *zap.Logger, factory ai.ModelFactory) *Services {
+func NewServices(repos *repository.Repositories, config config.Config, fileStorage storage.FileStore, logger *zap.Logger, factory ai.ModelFactory, cipher APIKeyCipher) *Services {
 	pdfParserService := pdfparser.NewService(logger)
 	urlParserService := urlparser.NewService(logger)
 
@@ -37,8 +37,8 @@ func NewServices(repos *repository.Repositories, config config.Config, fileStora
 	return &Services{
 		UserService:         NewUserService(repos.UserRepository, config.JWT.Secret, config, emailSvc, logger),
 		ProfileService:      NewProfileService(repos.ProfileRepository),
-		AIConfigService:     NewAIConfigService(repos.AIConfigRepository),
-		RecipeService:       NewRecipeService(repos.RecipeRepository, repos.UserRepository, repos.AIConfigRepository, fileStorage, logger, &factory, urlParserService, pdfParserService),
+		AIConfigService:     NewAIConfigService(repos.AIConfigRepository, cipher, logger),
+		RecipeService:       NewRecipeService(repos.RecipeRepository, repos.UserRepository, repos.AIConfigRepository, fileStorage, logger, &factory, urlParserService, pdfParserService, cipher),
 		ShoppingListService: NewShoppingListService(repos.ShoppingListRepository, repos.RecipeRepository, storeChainService, aiModel, logger),
 		StoreChainService:   storeChainService,
 	}

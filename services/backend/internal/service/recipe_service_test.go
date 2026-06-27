@@ -10,6 +10,7 @@ import (
 	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/H3nSte1n/recipe/pkg/ai"
 	"github.com/H3nSte1n/recipe/pkg/config"
+	"github.com/H3nSte1n/recipe/pkg/crypto"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -123,7 +124,8 @@ func newTestRecipeService(
 	pdfParser *mockPDFParser,
 ) RecipeService {
 	modelFactory := ai.NewModelFactory(&config.Config{}, zap.NewNop())
-	return NewRecipeService(recipeRepo, userRepo, aiConfigRepo, fileStore, zap.NewNop(), modelFactory, urlParser, pdfParser)
+	cipher, _ := crypto.NewCipher("test-encryption-key")
+	return NewRecipeService(recipeRepo, userRepo, aiConfigRepo, fileStore, zap.NewNop(), modelFactory, urlParser, pdfParser, cipher)
 }
 
 func TestRecipeService_GetByID_Success(t *testing.T) {

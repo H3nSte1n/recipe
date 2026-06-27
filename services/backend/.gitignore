@@ -6,8 +6,9 @@ bin/
 *.so
 *.dylib
 
-# Environment variables
-env.development.yaml
+# Environment variables (all real env files; keep the committed *.sample templates)
+env.*.yaml
+!env.*.yaml.sample
 
 # IDE specific files
 .idea/

@@ -203,12 +203,30 @@ ai:
   openai_api_key: your_openai_api_key
   anthropic_api_key: your_anthropic_api_key
 
+security:
+  encryption_key: change-me-to-a-long-random-secret  # Required — see below
+
 storage:
   type: local  # or 's3'
   aws:
     access_key_id: your-aws-key
     secret_access_key: your-aws-secret
 ```
+
+#### Secrets & at-rest encryption
+
+- **`security.encryption_key` is required** — the server fails to start without it.
+  It encrypts user AI API keys at rest (AES-256-GCM). Any non-empty passphrase is
+  accepted (it is hashed to a 32-byte key). Rotating this key makes existing
+  encrypted keys unreadable; they are treated as legacy values and must be re-entered.
+- **Inject secrets via environment variables in production** instead of committing
+  them. The following keys are environment-bindable and override the YAML:
+  `DB_PASSWORD`, `JWT_SECRET`, `SMTP_PASSWORD`, `AI_OPENAI_API_KEY`,
+  `AI_ANTHROPIC_API_KEY`, `STORAGE_AWS_ACCESS_KEY_ID`,
+  `STORAGE_AWS_SECRET_ACCESS_KEY`, `SECURITY_ENCRYPTION_KEY`.
+- **`env.*.yaml` files are gitignored** (only `*.sample` templates are committed).
+  A [gitleaks](https://github.com/gitleaks/gitleaks) pre-commit hook is configured
+  at the repo root — enable it once with `pip install pre-commit && pre-commit install`.
 
 #### 3. Start with Docker Compose
 ```bash

@@ -51,6 +51,7 @@ type recipeService struct {
 	modelFactory *ai.ModelFactory
 	urlParser    urlparser.Service
 	pdfParser    pdfparser.Service
+	cipher       APIKeyCipher
 }
 
 func NewRecipeService(
@@ -62,6 +63,7 @@ func NewRecipeService(
 	modelFactory *ai.ModelFactory,
 	urlParser urlparser.Service,
 	pdfParser pdfparser.Service,
+	cipher APIKeyCipher,
 ) RecipeService {
 	return &recipeService{
 		recipeRepo:   recipeRepo,
@@ -72,6 +74,7 @@ func NewRecipeService(
 		modelFactory: modelFactory,
 		urlParser:    urlParser,
 		pdfParser:    pdfParser,
+		cipher:       cipher,
 	}
 }
 
@@ -432,7 +435,7 @@ func (s *recipeService) getUserAIPreferences(ctx context.Context, userID string)
 
 	return &ai.UserAIPreferences{
 		ModelType: modelType,
-		APIKey:    userAIConfig.APIKey,
+		APIKey:    decryptAPIKey(s.cipher, s.logger, userAIConfig.APIKey),
 	}, nil
 }
 
