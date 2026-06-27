@@ -7,9 +7,15 @@ import (
 	"strings"
 )
 
+// defaultRedirectPolicy bounds the redirect chain and rejects any hop that is
+// not http/https. The resolved-IP check for each hop is enforced authoritatively
+// by safeDialContext, which runs on every dial including redirects.
 func defaultRedirectPolicy(req *http.Request, via []*http.Request) error {
 	if len(via) >= 10 {
 		return fmt.Errorf("too many redirects")
+	}
+	if req.URL.Scheme != "http" && req.URL.Scheme != "https" {
+		return fmt.Errorf("redirect to unsupported scheme %q", req.URL.Scheme)
 	}
 	return nil
 }

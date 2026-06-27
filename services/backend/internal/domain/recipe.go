@@ -147,7 +147,9 @@ type SubRecipeRequest struct {
 }
 
 type ImportURLRequest struct {
-	URL       string `json:"url" binding:"required,url"`
+	// http_url restricts the scheme to http/https at request validation; the
+	// urlparser enforces the resolved-IP SSRF checks on top of this.
+	URL       string `json:"url" binding:"required,http_url"`
 	IsPrivate bool   `json:"is_private"`
 }
 
