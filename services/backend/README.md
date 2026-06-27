@@ -193,7 +193,7 @@ nano env.development.yaml
 **Key configurations to update:**
 ```yaml
 jwt:
-  secret: your-super-secret-key-here  # Change this!
+  secret: CHANGE_ME  # Required: random, >= 32 bytes. Server refuses to boot otherwise.
 
 smtp:
   user: your-email@gmail.com

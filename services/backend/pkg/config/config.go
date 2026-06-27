@@ -121,3 +121,33 @@ func LoadConfig(env string) (config Config, err error) {
 
 	return config, nil
 }
+
+const minJWTSecretBytes = 32
+
+// knownWeakJWTSecrets are placeholder values shipped in sample configs. Using
+// one in a real deployment means the secret was never set, so it is rejected.
+var knownWeakJWTSecrets = map[string]bool{
+	"your-super-secret-key-here": true,
+	"change_me":                  true,
+	"change-me":                  true,
+	"changeme":                   true,
+	"secret":                     true,
+}
+
+// Validate enforces fail-closed checks that must hold before the server boots.
+// It currently guards the JWT signing secret: a weak or default secret lets an
+// attacker forge tokens for any user, so an empty, placeholder, or too-short
+// secret aborts startup. Inject a strong secret via the JWT_SECRET env var.
+func (c *Config) Validate() error {
+	secret := c.JWT.Secret
+	if strings.TrimSpace(secret) == "" {
+		return fmt.Errorf("jwt.secret is not set; inject a strong secret via JWT_SECRET")
+	}
+	if knownWeakJWTSecrets[strings.ToLower(strings.TrimSpace(secret))] {
+		return fmt.Errorf("jwt.secret is a known placeholder value; set a strong random secret (>= %d bytes) via JWT_SECRET", minJWTSecretBytes)
+	}
+	if len(secret) < minJWTSecretBytes {
+		return fmt.Errorf("jwt.secret must be at least %d bytes, got %d; inject a strong secret via JWT_SECRET", minJWTSecretBytes, len(secret))
+	}
+	return nil
+}
