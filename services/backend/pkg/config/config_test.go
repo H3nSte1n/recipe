@@ -69,6 +69,7 @@ func TestConfig_Validate_JWTSecret(t *testing.T) {
 		{"known placeholder", "your-super-secret-key-here", true},
 		{"placeholder case-insensitive", "CHANGE_ME", true},
 		{"too short", "short-secret", true},
+		{"whitespace-padded short secret", strings.Repeat(" ", 32) + "x", true},
 		{"exactly 31 bytes", strings.Repeat("a", 31), true},
 		{"exactly 32 bytes", strings.Repeat("a", 32), false},
 		{"strong secret", strong, false},

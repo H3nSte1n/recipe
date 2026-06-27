@@ -139,11 +139,13 @@ var knownWeakJWTSecrets = map[string]bool{
 // attacker forge tokens for any user, so an empty, placeholder, or too-short
 // secret aborts startup. Inject a strong secret via the JWT_SECRET env var.
 func (c *Config) Validate() error {
-	secret := c.JWT.Secret
-	if strings.TrimSpace(secret) == "" {
+	// Validate the trimmed secret so a whitespace-padded value can't pass the
+	// length check on padding alone.
+	secret := strings.TrimSpace(c.JWT.Secret)
+	if secret == "" {
 		return fmt.Errorf("jwt.secret is not set; inject a strong secret via JWT_SECRET")
 	}
-	if knownWeakJWTSecrets[strings.ToLower(strings.TrimSpace(secret))] {
+	if knownWeakJWTSecrets[strings.ToLower(secret)] {
 		return fmt.Errorf("jwt.secret is a known placeholder value; set a strong random secret (>= %d bytes) via JWT_SECRET", minJWTSecretBytes)
 	}
 	if len(secret) < minJWTSecretBytes {
