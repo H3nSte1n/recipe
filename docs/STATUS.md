@@ -22,3 +22,4 @@ Phase 6 (security-review): Consolidated Report — DONE — 2026-06-27T16:24:21Z
 
 Phase 1 (remediation-with-vpn): Incident response & secret hygiene — DONE — 2026-06-27T22:00:00Z
 Phase 2 (remediation-with-vpn): SSRF egress hardening — DONE — 2026-06-28T00:30:00Z
+Phase 3 (remediation-with-vpn): JWT signing-secret fail-closed — DONE — 2026-06-28T00:55:00Z
