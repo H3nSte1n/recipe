@@ -27,6 +27,11 @@ func main() {
 		log.Fatal("Cannot load config:", err)
 	}
 
+	// Fail closed on a weak/default/missing JWT signing secret.
+	if err := cfg.Validate(); err != nil {
+		log.Fatal("Invalid configuration: ", err)
+	}
+
 	if err := database.MigrateDB(&cfg); err != nil {
 		log.Fatal("Could not migrate database:", err)
 	}
