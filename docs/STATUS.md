@@ -19,3 +19,5 @@ Phase 3 (security-review): Backend Code-Quality Review — DONE — 2026-06-27T1
 Phase 4 (security-review): Frontend Security Review — DONE — 2026-06-27T15:51:07Z
 Phase 5 (security-review): Frontend Code-Quality Review — DONE — 2026-06-27T16:03:56Z
 Phase 6 (security-review): Consolidated Report — DONE — 2026-06-27T16:24:21Z
+
+Phase 1 (remediation-with-vpn): Incident response & secret hygiene — DONE — 2026-06-27T22:00:00Z
