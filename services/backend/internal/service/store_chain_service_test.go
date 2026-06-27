@@ -152,9 +152,9 @@ func TestStoreChainService_OrganizeShoppingList(t *testing.T) {
 			},
 		},
 		{
-			name:        "unknown category sorts with order 0",
+			name:        "unknown categories sort to the end of the list",
 			items:       []domain.ShoppingListItem{{Category: domain.CategoryBakery}, {Category: domain.CategoryProduce}, {Category: domain.CategoryBakery}, {Category: domain.CategoryBeverages}, {Category: domain.CategoryDairy}},
-			sortedItems: []domain.ShoppingListItem{{Category: domain.CategoryBeverages}, {Category: domain.CategoryDairy}, {Category: domain.CategoryProduce}, {Category: domain.CategoryBakery}, {Category: domain.CategoryBakery}},
+			sortedItems: []domain.ShoppingListItem{{Category: domain.CategoryBeverages}, {Category: domain.CategoryProduce}, {Category: domain.CategoryBakery}, {Category: domain.CategoryBakery}, {Category: domain.CategoryDairy}},
 			mockMethod: func(m *mockStoreChainRepo) {
 				m.On("GetChain", mock.Anything, chainID).Return(&storeChain, nil).Once()
 			},

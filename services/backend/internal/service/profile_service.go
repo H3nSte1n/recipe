@@ -29,7 +29,10 @@ func NewProfileService(profileRepo profileRepository) ProfileService {
 func (s *profileService) UpdateProfile(ctx context.Context, userID string, req *domain.UpdateProfileRequest) (*domain.Profile, error) {
 	profile, err := s.profileRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return nil, errors.ErrNotFound.Wrap("profile not found")
+		if errors.IsNotFound(err) {
+			return nil, errors.ErrNotFound.Wrap("profile not found")
+		}
+		return nil, err
 	}
 
 	if req.Bio != nil {
@@ -46,7 +49,7 @@ func (s *profileService) UpdateProfile(ctx context.Context, userID string, req *
 		return nil, err
 	}
 
-	return profile, nil
+	return s.profileRepo.GetByUserID(ctx, userID)
 }
 
 func (s *profileService) GetProfile(ctx context.Context, userID string) (*domain.Profile, error) {

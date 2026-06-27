@@ -144,13 +144,13 @@ func TestRecipeService_GetByID_Success(t *testing.T) {
 
 func TestRecipeService_GetByID_NotFound(t *testing.T) {
 	recipeRepo := new(mockRecipeRepo)
-	recipeRepo.On("GetByID", mock.Anything, "recipe-1", domain.NutritionDetailBase).Return(nil, errors.New("not found")).Once()
+	recipeRepo.On("GetByID", mock.Anything, "recipe-1", domain.NutritionDetailBase).Return(nil, apperrors.ErrNotFound).Once()
 
 	srv := newTestRecipeService(recipeRepo, new(mockRecipeUserRepo), new(mockRecipeAIConfigRepo), new(mockFileStore), new(mockURLParser), new(mockPDFParser))
 	result, err := srv.GetByID(context.Background(), "user-1", "recipe-1", domain.NutritionDetailBase)
 
 	require.Nil(t, result)
-	require.Error(t, err)
+	require.ErrorIs(t, err, apperrors.ErrNotFound)
 	recipeRepo.AssertExpectations(t)
 }
 
@@ -165,7 +165,7 @@ func TestRecipeService_GetByID_PrivateUnauthorized(t *testing.T) {
 	result, err := srv.GetByID(context.Background(), "user-1", recipeID, domain.NutritionDetailBase)
 
 	require.Nil(t, result)
-	require.Error(t, err)
+	require.ErrorIs(t, err, apperrors.ErrUnauthorized)
 	recipeRepo.AssertExpectations(t)
 }
 
@@ -182,6 +182,7 @@ func TestRecipeService_Create_Success(t *testing.T) {
 	recipeRepo := new(mockRecipeRepo)
 	userRepo := new(mockRecipeUserRepo)
 	userRepo.On("GetByID", mock.Anything, userID).Return(&domain.User{ID: userID}, nil).Once()
+	recipeRepo.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
 	recipeRepo.On("Create", mock.Anything, mock.MatchedBy(func(r *domain.Recipe) bool {
 		return r.UserID == userID && r.Title == "Test Recipe"
 	})).Return(nil).Once()
@@ -198,13 +199,13 @@ func TestRecipeService_Create_Success(t *testing.T) {
 
 func TestRecipeService_Create_UserNotFound(t *testing.T) {
 	userRepo := new(mockRecipeUserRepo)
-	userRepo.On("GetByID", mock.Anything, "user-1").Return(nil, errors.New("not found")).Once()
+	userRepo.On("GetByID", mock.Anything, "user-1").Return(nil, apperrors.ErrNotFound).Once()
 
 	srv := newTestRecipeService(new(mockRecipeRepo), userRepo, new(mockRecipeAIConfigRepo), new(mockFileStore), new(mockURLParser), new(mockPDFParser))
 	result, err := srv.Create(context.Background(), "user-1", &domain.CreateRecipeRequest{})
 
 	require.Nil(t, result)
-	require.Error(t, err)
+	require.ErrorIs(t, err, apperrors.ErrNotFound)
 	userRepo.AssertExpectations(t)
 }
 
@@ -214,6 +215,7 @@ func TestRecipeService_Create_RepoError(t *testing.T) {
 	userRepo.On("GetByID", mock.Anything, userID).Return(&domain.User{ID: userID}, nil).Once()
 
 	recipeRepo := new(mockRecipeRepo)
+	recipeRepo.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
 	recipeRepo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error")).Once()
 
 	srv := newTestRecipeService(recipeRepo, userRepo, new(mockRecipeAIConfigRepo), new(mockFileStore), new(mockURLParser), new(mockPDFParser))
@@ -248,7 +250,7 @@ func TestRecipeService_Update_Success(t *testing.T) {
 
 func TestRecipeService_Update_NotFound(t *testing.T) {
 	recipeRepo := new(mockRecipeRepo)
-	recipeRepo.On("GetByID", mock.Anything, "recipe-1", domain.NutritionDetailBase).Return(nil, errors.New("not found")).Once()
+	recipeRepo.On("GetByID", mock.Anything, "recipe-1", domain.NutritionDetailBase).Return(nil, apperrors.ErrNotFound).Once()
 
 	srv := newTestRecipeService(recipeRepo, new(mockRecipeUserRepo), new(mockRecipeAIConfigRepo), new(mockFileStore), new(mockURLParser), new(mockPDFParser))
 	result, err := srv.Update(context.Background(), "user-1", "recipe-1", &domain.CreateRecipeRequest{})
@@ -290,7 +292,7 @@ func TestRecipeService_Delete_Success(t *testing.T) {
 
 func TestRecipeService_Delete_NotFound(t *testing.T) {
 	recipeRepo := new(mockRecipeRepo)
-	recipeRepo.On("GetByID", mock.Anything, "recipe-1", domain.NutritionDetailBase).Return(nil, errors.New("not found")).Once()
+	recipeRepo.On("GetByID", mock.Anything, "recipe-1", domain.NutritionDetailBase).Return(nil, apperrors.ErrNotFound).Once()
 
 	srv := newTestRecipeService(recipeRepo, new(mockRecipeUserRepo), new(mockRecipeAIConfigRepo), new(mockFileStore), new(mockURLParser), new(mockPDFParser))
 	err := srv.Delete(context.Background(), "user-1", "recipe-1")
@@ -367,9 +369,239 @@ func TestRecipeService_ListPublicRecipes_Error(t *testing.T) {
 	recipeRepo.AssertExpectations(t)
 }
 
+func TestRecipeService_Create_SubRecipeNotFound(t *testing.T) {
+	userID := "user-1"
+	req := &domain.CreateRecipeRequest{
+		SubRecipes: []domain.SubRecipeRequest{{RecipeID: "sub-1", ServingFactor: 1}},
+	}
+
+	userRepo := new(mockRecipeUserRepo)
+	userRepo.On("GetByID", mock.Anything, userID).Return(&domain.User{ID: userID}, nil).Once()
+
+	recipeRepo := new(mockRecipeRepo)
+	recipeRepo.On("GetByID", mock.Anything, "sub-1", domain.NutritionDetailBase).Return(nil, apperrors.ErrNotFound).Once()
+
+	srv := newTestRecipeService(recipeRepo, userRepo, new(mockRecipeAIConfigRepo), new(mockFileStore), new(mockURLParser), new(mockPDFParser))
+	result, err := srv.Create(context.Background(), userID, req)
+
+	require.Nil(t, result)
+	require.ErrorIs(t, err, apperrors.ErrNotFound)
+	recipeRepo.AssertExpectations(t)
+	userRepo.AssertExpectations(t)
+}
+
+func TestRecipeService_Create_SubRecipeUnauthorized(t *testing.T) {
+	userID := "user-1"
+	req := &domain.CreateRecipeRequest{
+		SubRecipes: []domain.SubRecipeRequest{{RecipeID: "sub-1", ServingFactor: 1}},
+	}
+
+	userRepo := new(mockRecipeUserRepo)
+	userRepo.On("GetByID", mock.Anything, userID).Return(&domain.User{ID: userID}, nil).Once()
+
+	recipeRepo := new(mockRecipeRepo)
+	recipeRepo.On("GetByID", mock.Anything, "sub-1", domain.NutritionDetailBase).
+		Return(&domain.Recipe{ID: "sub-1", UserID: "other-user", IsPrivate: true}, nil).Once()
+
+	srv := newTestRecipeService(recipeRepo, userRepo, new(mockRecipeAIConfigRepo), new(mockFileStore), new(mockURLParser), new(mockPDFParser))
+	result, err := srv.Create(context.Background(), userID, req)
+
+	require.Nil(t, result)
+	require.ErrorIs(t, err, apperrors.ErrUnauthorized)
+	recipeRepo.AssertExpectations(t)
+	userRepo.AssertExpectations(t)
+}
+
+func TestRecipeService_Create_ImageCleanedUpOnTxFailure(t *testing.T) {
+	userID := "user-1"
+	fileHeader := &multipart.FileHeader{Filename: "img.jpg"}
+	req := &domain.CreateRecipeRequest{Image: fileHeader}
+
+	userRepo := new(mockRecipeUserRepo)
+	userRepo.On("GetByID", mock.Anything, userID).Return(&domain.User{ID: userID}, nil).Once()
+
+	fileStore := new(mockFileStore)
+	fileStore.On("UploadFile", mock.Anything, fileHeader).Return("https://storage/img.jpg", nil).Once()
+	fileStore.On("DeleteFile", mock.Anything, "https://storage/img.jpg").Return(nil).Once()
+
+	recipeRepo := new(mockRecipeRepo)
+	recipeRepo.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+	recipeRepo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error")).Once()
+
+	srv := newTestRecipeService(recipeRepo, userRepo, new(mockRecipeAIConfigRepo), fileStore, new(mockURLParser), new(mockPDFParser))
+	result, err := srv.Create(context.Background(), userID, req)
+
+	require.Nil(t, result)
+	require.Error(t, err)
+	fileStore.AssertExpectations(t) // ensures DeleteFile was called
+	recipeRepo.AssertExpectations(t)
+}
+
+func TestRecipeService_Create_SubRecipeValidationDoesNotUploadImage(t *testing.T) {
+	userID := "user-1"
+	fileHeader := &multipart.FileHeader{Filename: "img.jpg"}
+	req := &domain.CreateRecipeRequest{
+		Image:      fileHeader,
+		SubRecipes: []domain.SubRecipeRequest{{RecipeID: "sub-1", ServingFactor: 1}},
+	}
+
+	userRepo := new(mockRecipeUserRepo)
+	userRepo.On("GetByID", mock.Anything, userID).Return(&domain.User{ID: userID}, nil).Once()
+
+	recipeRepo := new(mockRecipeRepo)
+	recipeRepo.On("GetByID", mock.Anything, "sub-1", domain.NutritionDetailBase).Return(nil, apperrors.ErrNotFound).Once()
+
+	fileStore := new(mockFileStore) // UploadFile must NOT be called
+
+	srv := newTestRecipeService(recipeRepo, userRepo, new(mockRecipeAIConfigRepo), fileStore, new(mockURLParser), new(mockPDFParser))
+	result, err := srv.Create(context.Background(), userID, req)
+
+	require.Nil(t, result)
+	require.ErrorIs(t, err, apperrors.ErrNotFound)
+	fileStore.AssertNotCalled(t, "UploadFile", mock.Anything, mock.Anything)
+	recipeRepo.AssertExpectations(t)
+}
+
+func TestRecipeService_Update_SelfReferencingSubRecipe(t *testing.T) {
+	recipeID := "recipe-1"
+	userID := "user-1"
+	req := &domain.CreateRecipeRequest{
+		SubRecipes: []domain.SubRecipeRequest{{RecipeID: recipeID, ServingFactor: 1}},
+	}
+
+	recipeRepo := new(mockRecipeRepo)
+	recipeRepo.On("GetByID", mock.Anything, recipeID, domain.NutritionDetailBase).
+		Return(&domain.Recipe{ID: recipeID, UserID: userID}, nil).Once()
+
+	srv := newTestRecipeService(recipeRepo, new(mockRecipeUserRepo), new(mockRecipeAIConfigRepo), new(mockFileStore), new(mockURLParser), new(mockPDFParser))
+	result, err := srv.Update(context.Background(), userID, recipeID, req)
+
+	require.Nil(t, result)
+	require.Error(t, err)
+	appErr, ok := err.(*apperrors.AppError)
+	require.True(t, ok)
+	require.Equal(t, "INVALID_INPUT", appErr.Code)
+	recipeRepo.AssertExpectations(t)
+}
+
+func TestRecipeService_Update_SubRecipeValidationDoesNotUploadImage(t *testing.T) {
+	recipeID := "recipe-1"
+	userID := "user-1"
+	fileHeader := &multipart.FileHeader{Filename: "img.jpg"}
+	req := &domain.CreateRecipeRequest{
+		Image:      fileHeader,
+		SubRecipes: []domain.SubRecipeRequest{{RecipeID: "sub-1", ServingFactor: 1}},
+	}
+
+	recipeRepo := new(mockRecipeRepo)
+	recipeRepo.On("GetByID", mock.Anything, recipeID, domain.NutritionDetailBase).
+		Return(&domain.Recipe{ID: recipeID, UserID: userID}, nil).Once()
+	recipeRepo.On("GetByID", mock.Anything, "sub-1", domain.NutritionDetailBase).
+		Return(nil, apperrors.ErrNotFound).Once()
+
+	fileStore := new(mockFileStore) // UploadFile must NOT be called
+
+	srv := newTestRecipeService(recipeRepo, new(mockRecipeUserRepo), new(mockRecipeAIConfigRepo), fileStore, new(mockURLParser), new(mockPDFParser))
+	result, err := srv.Update(context.Background(), userID, recipeID, req)
+
+	require.Nil(t, result)
+	require.ErrorIs(t, err, apperrors.ErrNotFound)
+	fileStore.AssertNotCalled(t, "UploadFile", mock.Anything, mock.Anything)
+	recipeRepo.AssertExpectations(t)
+}
+
+func TestRecipeService_Update_NewImageCleanedUpOnTxFailure(t *testing.T) {
+	recipeID := "recipe-1"
+	userID := "user-1"
+	fileHeader := &multipart.FileHeader{Filename: "new.jpg"}
+	req := &domain.CreateRecipeRequest{Image: fileHeader, Title: "Updated"}
+	existing := &domain.Recipe{ID: recipeID, UserID: userID, ImageURL: "https://storage/old.jpg"}
+
+	recipeRepo := new(mockRecipeRepo)
+	recipeRepo.On("GetByID", mock.Anything, recipeID, domain.NutritionDetailBase).Return(existing, nil).Once()
+	recipeRepo.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+	recipeRepo.On("Update", mock.Anything, mock.Anything).Return(errors.New("db error")).Once()
+
+	fileStore := new(mockFileStore)
+	fileStore.On("UploadFile", mock.Anything, fileHeader).Return("https://storage/new.jpg", nil).Once()
+	fileStore.On("DeleteFile", mock.Anything, "https://storage/old.jpg").Return(nil).Once() // old deleted after upload
+	fileStore.On("DeleteFile", mock.Anything, "https://storage/new.jpg").Return(nil).Once() // new cleaned up after tx failure
+
+	srv := newTestRecipeService(recipeRepo, new(mockRecipeUserRepo), new(mockRecipeAIConfigRepo), fileStore, new(mockURLParser), new(mockPDFParser))
+	result, err := srv.Update(context.Background(), userID, recipeID, req)
+
+	require.Nil(t, result)
+	require.Error(t, err)
+	fileStore.AssertExpectations(t)
+	recipeRepo.AssertExpectations(t)
+}
+
+func TestRecipeService_Update_SubRecipeNotFound(t *testing.T) {
+	recipeID := "recipe-1"
+	userID := "user-1"
+	req := &domain.CreateRecipeRequest{
+		SubRecipes: []domain.SubRecipeRequest{{RecipeID: "sub-1", ServingFactor: 1}},
+	}
+
+	recipeRepo := new(mockRecipeRepo)
+	recipeRepo.On("GetByID", mock.Anything, recipeID, domain.NutritionDetailBase).
+		Return(&domain.Recipe{ID: recipeID, UserID: userID}, nil).Once()
+	recipeRepo.On("GetByID", mock.Anything, "sub-1", domain.NutritionDetailBase).
+		Return(nil, apperrors.ErrNotFound).Once()
+
+	srv := newTestRecipeService(recipeRepo, new(mockRecipeUserRepo), new(mockRecipeAIConfigRepo), new(mockFileStore), new(mockURLParser), new(mockPDFParser))
+	result, err := srv.Update(context.Background(), userID, recipeID, req)
+
+	require.Nil(t, result)
+	require.ErrorIs(t, err, apperrors.ErrNotFound)
+	recipeRepo.AssertExpectations(t)
+}
+
+func TestRecipeService_Update_SubRecipeUnauthorized(t *testing.T) {
+	recipeID := "recipe-1"
+	userID := "user-1"
+	req := &domain.CreateRecipeRequest{
+		SubRecipes: []domain.SubRecipeRequest{{RecipeID: "sub-1", ServingFactor: 1}},
+	}
+
+	recipeRepo := new(mockRecipeRepo)
+	recipeRepo.On("GetByID", mock.Anything, recipeID, domain.NutritionDetailBase).
+		Return(&domain.Recipe{ID: recipeID, UserID: userID}, nil).Once()
+	recipeRepo.On("GetByID", mock.Anything, "sub-1", domain.NutritionDetailBase).
+		Return(&domain.Recipe{ID: "sub-1", UserID: "other-user", IsPrivate: true}, nil).Once()
+
+	srv := newTestRecipeService(recipeRepo, new(mockRecipeUserRepo), new(mockRecipeAIConfigRepo), new(mockFileStore), new(mockURLParser), new(mockPDFParser))
+	result, err := srv.Update(context.Background(), userID, recipeID, req)
+
+	require.Nil(t, result)
+	require.ErrorIs(t, err, apperrors.ErrUnauthorized)
+	recipeRepo.AssertExpectations(t)
+}
+
+func TestRecipeService_Delete_ImageDeletedOnSuccess(t *testing.T) {
+	userID := "user-1"
+	recipeID := "recipe-1"
+	recipe := &domain.Recipe{ID: recipeID, UserID: userID, ImageURL: "https://storage/img.jpg"}
+
+	recipeRepo := new(mockRecipeRepo)
+	recipeRepo.On("GetByID", mock.Anything, recipeID, domain.NutritionDetailBase).Return(recipe, nil).Once()
+	recipeRepo.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+	recipeRepo.On("Delete", mock.Anything, recipeID).Return(nil).Once()
+
+	fileStore := new(mockFileStore)
+	fileStore.On("DeleteFile", mock.Anything, "https://storage/img.jpg").Return(nil).Once()
+
+	srv := newTestRecipeService(recipeRepo, new(mockRecipeUserRepo), new(mockRecipeAIConfigRepo), fileStore, new(mockURLParser), new(mockPDFParser))
+	err := srv.Delete(context.Background(), userID, recipeID)
+
+	require.NoError(t, err)
+	fileStore.AssertExpectations(t)
+	recipeRepo.AssertExpectations(t)
+}
+
 func TestRecipeService_ImportFromURL_Success(t *testing.T) {
 	userID := "user-1"
-	req := &domain.ImportURLRequest{URL: "https://example.com/recipe"}
+	req := &domain.ImportURLRequest{URL: "https://example.com/recipe", IsPrivate: false}
 	parsedRecipe := &domain.Recipe{ID: "recipe-1", Title: "Imported Recipe"}
 
 	aiConfigRepo := new(mockRecipeAIConfigRepo)
@@ -383,6 +615,26 @@ func TestRecipeService_ImportFromURL_Success(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, parsedRecipe, result)
+	require.False(t, result.IsPrivate)
+	urlParser.AssertExpectations(t)
+}
+
+func TestRecipeService_ImportFromURL_SetsIsPrivate(t *testing.T) {
+	userID := "user-1"
+	req := &domain.ImportURLRequest{URL: "https://example.com/recipe", IsPrivate: true}
+	parsedRecipe := &domain.Recipe{ID: "recipe-1", Title: "Imported Recipe"}
+
+	aiConfigRepo := new(mockRecipeAIConfigRepo)
+	aiConfigRepo.On("GetDefaultConfig", mock.Anything, userID).Return(nil, errors.New("no config")).Once()
+
+	urlParser := new(mockURLParser)
+	urlParser.On("Parse", mock.Anything, req.URL, mock.Anything).Return(parsedRecipe, nil).Once()
+
+	srv := newTestRecipeService(new(mockRecipeRepo), new(mockRecipeUserRepo), aiConfigRepo, new(mockFileStore), urlParser, new(mockPDFParser))
+	result, err := srv.ImportFromURL(context.Background(), userID, req)
+
+	require.NoError(t, err)
+	require.True(t, result.IsPrivate)
 	urlParser.AssertExpectations(t)
 }
 
@@ -406,7 +658,7 @@ func TestRecipeService_ImportFromURL_ParseError(t *testing.T) {
 
 func TestRecipeService_ImportFromPDF_Success(t *testing.T) {
 	userID := "user-1"
-	req := &domain.ImportPDFRequest{}
+	req := &domain.ImportPDFRequest{IsPrivate: false}
 	fileData := []byte("pdf data")
 	parsedRecipe := &domain.Recipe{ID: "recipe-1", Title: "PDF Recipe"}
 
@@ -421,6 +673,27 @@ func TestRecipeService_ImportFromPDF_Success(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, parsedRecipe, result)
+	require.False(t, result.IsPrivate)
+	pdfParser.AssertExpectations(t)
+}
+
+func TestRecipeService_ImportFromPDF_SetsIsPrivate(t *testing.T) {
+	userID := "user-1"
+	req := &domain.ImportPDFRequest{IsPrivate: true}
+	fileData := []byte("pdf data")
+	parsedRecipe := &domain.Recipe{ID: "recipe-1", Title: "PDF Recipe"}
+
+	aiConfigRepo := new(mockRecipeAIConfigRepo)
+	aiConfigRepo.On("GetDefaultConfig", mock.Anything, userID).Return(nil, errors.New("no config")).Once()
+
+	pdfParser := new(mockPDFParser)
+	pdfParser.On("Parse", mock.Anything, fileData, mock.Anything).Return(parsedRecipe, nil).Once()
+
+	srv := newTestRecipeService(new(mockRecipeRepo), new(mockRecipeUserRepo), aiConfigRepo, new(mockFileStore), new(mockURLParser), pdfParser)
+	result, err := srv.ImportFromPDF(context.Background(), userID, req, fileData)
+
+	require.NoError(t, err)
+	require.True(t, result.IsPrivate)
 	pdfParser.AssertExpectations(t)
 }
 

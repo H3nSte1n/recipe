@@ -169,7 +169,6 @@ func (s *shoppingListService) GetSortedByStoreName(ctx context.Context, userID s
 		return nil, err
 	}
 
-	// Organize items according to store layout
 	if err := s.storeChainService.OrganizeShoppingList(ctx, list, chain.ID); err != nil {
 		return nil, err
 	}
@@ -193,11 +192,13 @@ func (s *shoppingListService) AddItem(ctx context.Context, userID string, listID
 
 	// Classify the item
 	category := domain.CategoryOther
-	categories, err := s.aiModel.CategorizeItems(ctx, []string{req.Name})
-	if err != nil {
-		s.logger.Warn("failed to classify item", zap.Error(err))
-	} else if cat, ok := categories[req.Name]; ok {
-		category = domain.Category(cat)
+	if s.aiModel != nil {
+		categories, err := s.aiModel.CategorizeItems(ctx, []string{req.Name})
+		if err != nil {
+			s.logger.Warn("failed to classify item", zap.Error(err))
+		} else if cat, ok := categories[req.Name]; ok {
+			category = domain.Category(cat)
+		}
 	}
 
 	item := &domain.ShoppingListItem{
@@ -290,10 +291,13 @@ func (s *shoppingListService) AddRecipeToList(ctx context.Context, userID string
 	}
 
 	// Categorize all items at once
-	categories, err := s.aiModel.CategorizeItems(ctx, itemNames)
-	if err != nil {
-		s.logger.Warn("failed to classify items", zap.Error(err))
-		categories = make(map[string]string)
+	categories := make(map[string]string)
+	if s.aiModel != nil {
+		if cats, err := s.aiModel.CategorizeItems(ctx, itemNames); err != nil {
+			s.logger.Warn("failed to classify items", zap.Error(err))
+		} else {
+			categories = cats
+		}
 	}
 
 	// Create shopping list items from recipe ingredients

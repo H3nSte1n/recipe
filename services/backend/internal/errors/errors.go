@@ -1,6 +1,11 @@
 package errors
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+
+	"gorm.io/gorm"
+)
 
 type AppError struct {
 	Code    string
@@ -13,6 +18,10 @@ func (e *AppError) Error() string {
 		return fmt.Sprintf("%s: %v", e.Message, e.Err)
 	}
 	return e.Message
+}
+
+func (e *AppError) Unwrap() error {
+	return e.Err
 }
 
 func (e *AppError) Wrap(msg string) *AppError {
@@ -31,6 +40,17 @@ func New(message string, code ...string) *AppError {
 		err.Code = code[0]
 	}
 	return err
+}
+
+func IsNotFound(err error) bool {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return true
+	}
+	var appErr *AppError
+	if errors.As(err, &appErr) {
+		return appErr.Code == "NOT_FOUND"
+	}
+	return false
 }
 
 var (

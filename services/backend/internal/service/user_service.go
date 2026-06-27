@@ -11,6 +11,7 @@ import (
 	"github.com/H3nSte1n/recipe/pkg/email"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -43,20 +44,25 @@ type userService struct {
 	jwtSecret    []byte
 	jwtDuration  time.Duration
 	emailService email.EmailService
+	logger       *zap.Logger
 }
 
-func NewUserService(userRepo userRepository, jwtSecret string, config config.Config, emailService email.EmailService) UserService {
+func NewUserService(userRepo userRepository, jwtSecret string, config config.Config, emailService email.EmailService, logger *zap.Logger) UserService {
 	return &userService{
 		userRepo:     userRepo,
 		jwtSecret:    []byte(jwtSecret),
 		jwtDuration:  config.JWT.Duration,
 		emailService: emailService,
+		logger:       logger,
 	}
 }
 
 func (s *userService) Register(ctx context.Context, req *domain.RegisterRequest) (*domain.User, error) {
 	existingUser, err := s.userRepo.GetByEmail(ctx, req.Email)
-	if err == nil && existingUser != nil {
+	if err != nil && !apperrors.IsNotFound(err) {
+		return nil, err
+	}
+	if existingUser != nil {
 		return nil, apperrors.New("email already registered")
 	}
 
@@ -122,6 +128,9 @@ func (s *userService) Login(ctx context.Context, req *domain.LoginRequest) (*dom
 func (s *userService) ForgotPassword(ctx context.Context, req *domain.ForgotPasswordRequest) error {
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
+		if !apperrors.IsNotFound(err) {
+			s.logger.Warn("failed to lookup user for password reset", zap.Error(err))
+		}
 		return nil
 	}
 
@@ -156,7 +165,7 @@ func (s *userService) ResetPassword(ctx context.Context, req *domain.ResetPasswo
 
 	user, err := s.userRepo.GetByID(ctx, resetToken.UserID)
 	if err != nil {
-		return apperrors.New("user not found")
+		return err
 	}
 
 	hashedPassword, err := domain.HashPassword(req.Password)
@@ -195,7 +204,10 @@ func (s *userService) ValidateToken(tokenString string) (*jwt.Token, error) {
 func (s *userService) Delete(ctx context.Context, userID string) error {
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		return apperrors.ErrNotFound.Wrap("user not found")
+		if apperrors.IsNotFound(err) {
+			return apperrors.ErrNotFound.Wrap("user not found")
+		}
+		return err
 	}
 	return s.userRepo.RunTx(ctx, func() error {
 		return s.userRepo.Delete(ctx, user.ID)
