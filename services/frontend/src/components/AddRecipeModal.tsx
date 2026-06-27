@@ -513,14 +513,6 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
     <div className="add-recipe-modal" onClick={onClose}>
       <div className="add-recipe-modal__card" onClick={(e) => e.stopPropagation()}>
         <div className="add-recipe-modal__floating-actions">
-          <button
-            className="add-recipe-modal__publish-btn"
-            type="button"
-            disabled={!title.trim() || isSaving}
-            onClick={handleSave}
-          >
-            {initialRecipe ? 'Update' : 'Publish'}
-          </button>
           {initialRecipe && (
             <button className="add-recipe-modal__floating-btn" type="button" aria-label="Delete recipe" onClick={handleDelete}>
               <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -530,6 +522,14 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
               </svg>
             </button>
           )}
+          <button
+            className="add-recipe-modal__publish-btn"
+            type="button"
+            disabled={!title.trim() || isSaving}
+            onClick={handleSave}
+          >
+            {initialRecipe ? 'Update' : 'Publish'}
+          </button>
           <button className="add-recipe-modal__floating-btn" type="button" aria-label="Close" onClick={onClose}>
             <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
               <line x1={6} y1={6} x2={18} y2={18} />
