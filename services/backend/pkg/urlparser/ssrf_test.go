@@ -16,23 +16,32 @@ func TestIsBlockedIP(t *testing.T) {
 		ip      string
 		blocked bool
 	}{
-		{"127.0.0.1", true},             // loopback
-		{"::1", true},                   // loopback v6
-		{"10.0.0.5", true},              // RFC1918
-		{"172.16.0.1", true},            // RFC1918
-		{"192.168.1.1", true},           // RFC1918
-		{"169.254.169.254", true},       // link-local (cloud metadata)
-		{"fe80::1", true},               // link-local v6
-		{"fc00::1", true},               // unique-local v6
-		{"100.64.0.1", true},            // CGNAT / Tailscale
-		{"100.127.255.255", true},       // CGNAT upper edge
-		{"224.0.0.1", true},             // multicast
-		{"0.0.0.0", true},               // unspecified
-		{"8.8.8.8", false},              // public
-		{"1.1.1.1", false},              // public
-		{"99.255.255.255", false},       // just below CGNAT
-		{"100.128.0.1", false},          // just above CGNAT
-		{"2606:4700:4700::1111", false}, // public v6 (Cloudflare)
+		{"127.0.0.1", true},              // loopback
+		{"::1", true},                    // loopback v6
+		{"10.0.0.5", true},               // RFC1918
+		{"172.16.0.1", true},             // RFC1918
+		{"192.168.1.1", true},            // RFC1918
+		{"169.254.169.254", true},        // link-local (cloud metadata)
+		{"fe80::1", true},                // link-local v6
+		{"fc00::1", true},                // unique-local v6
+		{"100.64.0.1", true},             // CGNAT / Tailscale
+		{"100.127.255.255", true},        // CGNAT upper edge
+		{"224.0.0.1", true},              // multicast
+		{"0.0.0.0", true},                // unspecified
+		{"0.0.0.1", true},                // 0.0.0.0/8 "this host" (Linux routes to localhost)
+		{"0.10.20.30", true},             // 0.0.0.0/8
+		{"240.0.0.1", true},              // reserved Class E
+		{"255.255.255.255", true},        // limited broadcast (in 240/4)
+		{"2002:c0a8:0101::1", true},      // 6to4 encoding 192.168.1.1
+		{"64:ff9b::a9fe:a9fe", true},     // NAT64 encoding 169.254.169.254 (metadata)
+		{"::ffff:169.254.169.254", true}, // IPv4-mapped metadata
+		{"::ffff:10.0.0.1", true},        // IPv4-mapped RFC1918
+		{"8.8.8.8", false},               // public
+		{"1.1.1.1", false},               // public
+		{"99.255.255.255", false},        // just below CGNAT
+		{"100.128.0.1", false},           // just above CGNAT
+		{"2002:0808:0808::1", false},     // 6to4 encoding public 8.8.8.8
+		{"2606:4700:4700::1111", false},  // public v6 (Cloudflare)
 	}
 
 	for _, c := range cases {

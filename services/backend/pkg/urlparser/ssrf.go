@@ -7,20 +7,41 @@ import (
 	"net/url"
 )
 
-// cgnatRange is RFC 6598 Carrier-Grade NAT space (100.64.0.0/10). Go's
-// net.IP.IsPrivate does not cover it, but Tailscale assigns tailnet peers
-// addresses in this range, so it must be blocked to stop an authenticated
-// member from reaching other tailnet nodes via URL import.
-var cgnatRange = &net.IPNet{IP: net.IPv4(100, 64, 0, 0), Mask: net.CIDRMask(10, 32)}
+// blockedV4CIDRs are special-use IPv4 ranges the stdlib net.IP predicates do not
+// cover but that must never be reachable: "this host on this network"
+// (0.0.0.0/8, which on Linux routes to localhost), CGNAT / Tailscale
+// (100.64.0.0/10 — tailnet peers live here), and reserved Class E including the
+// limited-broadcast address 255.255.255.255 (240.0.0.0/4).
+var blockedV4CIDRs = []*net.IPNet{
+	mustCIDR("0.0.0.0/8"),
+	mustCIDR("100.64.0.0/10"),
+	mustCIDR("240.0.0.0/4"),
+}
+
+func mustCIDR(s string) *net.IPNet {
+	_, n, err := net.ParseCIDR(s)
+	if err != nil {
+		panic(err)
+	}
+	return n
+}
 
 // isBlockedIP reports whether ip is anything other than a routable public
 // address. It blocks loopback, RFC1918 private + unique-local (fc00::/7),
 // link-local (incl. 169.254.0.0/16 cloud metadata and fe80::/10), CGNAT,
-// multicast, and the unspecified address.
+// multicast, the unspecified address, and the special-use IPv4 ranges in
+// blockedV4CIDRs. IPv6 transition forms (6to4, NAT64) are decoded to their
+// embedded IPv4 and re-checked so an internal IPv4 cannot be smuggled inside
+// an IPv6 literal.
 func isBlockedIP(ip net.IP) bool {
 	if ip == nil {
 		return true
 	}
+
+	if v4 := embeddedIPv4(ip); v4 != nil {
+		return isBlockedIP(v4)
+	}
+
 	if ip.IsLoopback() ||
 		ip.IsPrivate() ||
 		ip.IsLinkLocalUnicast() ||
@@ -30,10 +51,36 @@ func isBlockedIP(ip net.IP) bool {
 		ip.IsUnspecified() {
 		return true
 	}
-	if v4 := ip.To4(); v4 != nil && cgnatRange.Contains(v4) {
-		return true
+
+	if v4 := ip.To4(); v4 != nil {
+		for _, blocked := range blockedV4CIDRs {
+			if blocked.Contains(v4) {
+				return true
+			}
+		}
 	}
 	return false
+}
+
+// embeddedIPv4 returns the IPv4 address embedded in an IPv6 transition address
+// (6to4 2002::/16 or NAT64 well-known prefix 64:ff9b::/96), or nil if ip is not
+// one of those forms. The ordinary IPv4-mapped form (::ffff:a.b.c.d) is left to
+// the stdlib predicates, which already decode it via To4().
+func embeddedIPv4(ip net.IP) net.IP {
+	if len(ip) != net.IPv6len {
+		return nil
+	}
+	// 6to4 (2002:AABB:CCDD::/48): IPv4 AA.BB.CC.DD is in bytes 2..5.
+	if ip[0] == 0x20 && ip[1] == 0x02 {
+		return net.IPv4(ip[2], ip[3], ip[4], ip[5])
+	}
+	// NAT64 well-known prefix (64:ff9b::/96): IPv4 is in the last 4 bytes.
+	if ip[0] == 0x00 && ip[1] == 0x64 && ip[2] == 0xff && ip[3] == 0x9b &&
+		ip[4] == 0 && ip[5] == 0 && ip[6] == 0 && ip[7] == 0 &&
+		ip[8] == 0 && ip[9] == 0 && ip[10] == 0 && ip[11] == 0 {
+		return net.IPv4(ip[12], ip[13], ip[14], ip[15])
+	}
+	return nil
 }
 
 // validatePublicURL parses rawURL, requires an http/https scheme, resolves the
