@@ -166,6 +166,11 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onE
   }, [onClose]);
 
   useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCloseRef.current();
     };

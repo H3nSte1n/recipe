@@ -295,6 +295,10 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
   useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCloseRef.current(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
