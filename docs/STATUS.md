@@ -12,3 +12,5 @@ Phase 1 (scss-to-css-revert): Convert design-system.scss to plain CSS, remove sa
 Phase 1: State logic — DONE — 2026-06-24T16:24:43Z
 Phase 1: Core Tunnel Engine — DONE — 2026-06-26T07:26:36Z
 Phase 2: Visual Polish — DONE — 2026-06-26T07:33:07Z
+
+Phase 1 (security-review): Reconnaissance & Threat Inventory — DONE — 2026-06-27T07:49:36Z
