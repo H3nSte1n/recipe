@@ -24,3 +24,4 @@ Phase 1 (remediation-with-vpn): Incident response & secret hygiene — DONE — 
 Phase 2 (remediation-with-vpn): SSRF egress hardening — DONE — 2026-06-28T00:30:00Z
 Phase 3 (remediation-with-vpn): JWT signing-secret fail-closed — DONE — 2026-06-28T00:55:00Z
 Phase 4 (remediation-with-vpn): Upload & file-serving lockdown — DONE — 2026-06-28T01:30:00Z
+Phase 5 (remediation-with-vpn): Transactional atomicity — DONE — 2026-06-28T09:50:00Z
