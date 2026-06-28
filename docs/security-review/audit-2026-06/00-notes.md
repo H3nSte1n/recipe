@@ -27,17 +27,37 @@ and **15432** (db) via a compose override file in the session scratchpad.
 > **Internal container ports remain 8080/5432**, so the frontend→`app:8080` Vite proxy inside the
 > Docker network is unaffected. Only the *host-published* ports changed.
 
-### Exact invocation (reattach to the SAME stack)
+### Reattach / re-up the SAME stack
+
+Phase 1 used a compose override that lived in a **session-ephemeral scratchpad**
+(`/private/tmp/claude-501/.../scratchpad/compose.override.yml`) — that path does **not**
+survive into later phases' fresh sessions. The override is reproduced inline below so any
+later phase can recreate it. Save it anywhere (e.g. `/tmp/recipe-audit.override.yml`):
+
+```yaml
+# compose.override.yml — host-port remap only (internal container ports unchanged)
+services:
+  app:
+    ports: !override
+      - "18080:8080"
+  db:
+    ports: !override
+      - "15432:5432"
+  frontend:
+    ports: !override
+      - "5173:5173"
+```
+
+> The `!override` tag is required — without it, compose **appends** port lists (you'd get both
+> `5432` and `15432`, and the `5432`/`8080` bind would fail against the unrelated services).
 
 ```bash
 cd /Users/henry/dev/Projects/recipe
-docker compose \
-  -f docker-compose.yml \
-  -f /private/tmp/claude-501/-Users-henry-dev-Projects-recipe/57ec04bb-3f8f-4aa6-b125-53e381bd9aa6/scratchpad/compose.override.yml \
-  ps
+docker compose -f docker-compose.yml -f /tmp/recipe-audit.override.yml ps   # or up -d / logs / exec
 ```
 
-Use the same `-f docker-compose.yml -f <override>` pair for any `ps` / `logs` / `exec` against this stack.
+Per the plan, bring the stack up **idempotently**: first `curl` the documented URLs; if already
+healthy, do nothing. Use the same `-f docker-compose.yml -f <override>` pair for every command.
 
 ---
 
