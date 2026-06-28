@@ -30,3 +30,4 @@ Phase 7 (remediation-with-vpn): AI input & content hardening — DONE — 2026-0
 Phase 8 (remediation-with-vpn): Session-end correctness (logout) — DONE — 2026-06-28T19:20:00Z
 
 Phase 1 (post-remediation-audit): Recon, stack-up & baseline — DONE — 2026-06-28T18:45:00Z
+Phase 2 (post-remediation-audit): Verify with-vpn remediations (PRs #31-#38) — DONE — 2026-06-28T20:55:00Z
