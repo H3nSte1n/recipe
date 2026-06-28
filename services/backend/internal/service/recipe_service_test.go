@@ -8,6 +8,7 @@ import (
 
 	"github.com/H3nSte1n/recipe/internal/domain"
 	apperrors "github.com/H3nSte1n/recipe/internal/errors"
+	"github.com/H3nSte1n/recipe/internal/repository"
 	"github.com/H3nSte1n/recipe/pkg/ai"
 	"github.com/H3nSte1n/recipe/pkg/config"
 	"github.com/H3nSte1n/recipe/pkg/crypto"
@@ -53,10 +54,15 @@ func (m *mockRecipeRepo) ListPublic(ctx context.Context, page, pageSize int) ([]
 	return v, args.Get(1).(int64), args.Error(2)
 }
 
-func (m *mockRecipeRepo) RunTx(ctx context.Context, fn func() error) error {
+func (m *mockRecipeRepo) Exists(ctx context.Context, id string) (bool, error) {
+	args := m.Called(ctx, id)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *mockRecipeRepo) WithTypedTransaction(ctx context.Context, fn func(repository.RecipeRepository) error) error {
 	args := m.Called(ctx, fn)
 	if args.Get(0) == nil {
-		return fn()
+		return fn(m)
 	}
 	return args.Error(0)
 }
@@ -184,7 +190,7 @@ func TestRecipeService_Create_Success(t *testing.T) {
 	recipeRepo := new(mockRecipeRepo)
 	userRepo := new(mockRecipeUserRepo)
 	userRepo.On("GetByID", mock.Anything, userID).Return(&domain.User{ID: userID}, nil).Once()
-	recipeRepo.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+	recipeRepo.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 	recipeRepo.On("Create", mock.Anything, mock.MatchedBy(func(r *domain.Recipe) bool {
 		return r.UserID == userID && r.Title == "Test Recipe"
 	})).Return(nil).Once()
@@ -217,7 +223,7 @@ func TestRecipeService_Create_RepoError(t *testing.T) {
 	userRepo.On("GetByID", mock.Anything, userID).Return(&domain.User{ID: userID}, nil).Once()
 
 	recipeRepo := new(mockRecipeRepo)
-	recipeRepo.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+	recipeRepo.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 	recipeRepo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error")).Once()
 
 	srv := newTestRecipeService(recipeRepo, userRepo, new(mockRecipeAIConfigRepo), new(mockFileStore), new(mockURLParser), new(mockPDFParser))
@@ -238,7 +244,7 @@ func TestRecipeService_Update_Success(t *testing.T) {
 
 	recipeRepo := new(mockRecipeRepo)
 	recipeRepo.On("GetByID", mock.Anything, recipeID, domain.NutritionDetailBase).Return(existingRecipe, nil).Once()
-	recipeRepo.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+	recipeRepo.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 	recipeRepo.On("Update", mock.Anything, mock.Anything).Return(nil).Once()
 	recipeRepo.On("GetByID", mock.Anything, recipeID, domain.NutritionDetailBase).Return(updatedRecipe, nil).Once()
 
@@ -282,7 +288,7 @@ func TestRecipeService_Delete_Success(t *testing.T) {
 
 	recipeRepo := new(mockRecipeRepo)
 	recipeRepo.On("GetByID", mock.Anything, recipeID, domain.NutritionDetailBase).Return(recipe, nil).Once()
-	recipeRepo.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+	recipeRepo.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 	recipeRepo.On("Delete", mock.Anything, recipeID).Return(nil).Once()
 
 	srv := newTestRecipeService(recipeRepo, new(mockRecipeUserRepo), new(mockRecipeAIConfigRepo), new(mockFileStore), new(mockURLParser), new(mockPDFParser))
@@ -427,7 +433,7 @@ func TestRecipeService_Create_ImageCleanedUpOnTxFailure(t *testing.T) {
 	fileStore.On("DeleteFile", mock.Anything, "https://storage/img.jpg").Return(nil).Once()
 
 	recipeRepo := new(mockRecipeRepo)
-	recipeRepo.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+	recipeRepo.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 	recipeRepo.On("Create", mock.Anything, mock.Anything).Return(errors.New("db error")).Once()
 
 	srv := newTestRecipeService(recipeRepo, userRepo, new(mockRecipeAIConfigRepo), fileStore, new(mockURLParser), new(mockPDFParser))
@@ -521,7 +527,7 @@ func TestRecipeService_Update_NewImageCleanedUpOnTxFailure(t *testing.T) {
 
 	recipeRepo := new(mockRecipeRepo)
 	recipeRepo.On("GetByID", mock.Anything, recipeID, domain.NutritionDetailBase).Return(existing, nil).Once()
-	recipeRepo.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+	recipeRepo.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 	recipeRepo.On("Update", mock.Anything, mock.Anything).Return(errors.New("db error")).Once()
 
 	fileStore := new(mockFileStore)
@@ -587,7 +593,7 @@ func TestRecipeService_Delete_ImageDeletedOnSuccess(t *testing.T) {
 
 	recipeRepo := new(mockRecipeRepo)
 	recipeRepo.On("GetByID", mock.Anything, recipeID, domain.NutritionDetailBase).Return(recipe, nil).Once()
-	recipeRepo.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+	recipeRepo.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 	recipeRepo.On("Delete", mock.Anything, recipeID).Return(nil).Once()
 
 	fileStore := new(mockFileStore)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"github.com/H3nSte1n/recipe/internal/errors"
+	"github.com/H3nSte1n/recipe/internal/repository"
 	"github.com/H3nSte1n/recipe/pkg/ai"
 	"go.uber.org/zap"
 	"sort"
@@ -19,6 +20,7 @@ type shoppingListRepository interface {
 	AddItems(ctx context.Context, items []domain.ShoppingListItem) error
 	UpdateItem(ctx context.Context, item *domain.ShoppingListItem) error
 	DeleteItem(ctx context.Context, id string) error
+	WithTypedTransaction(ctx context.Context, fn func(repository.ShoppingListRepository) error) error
 }
 
 type shoppingListRecipeRepository interface {
@@ -71,31 +73,39 @@ func (s *shoppingListService) Create(ctx context.Context, userID string, req *do
 		list.StoreChainID = &req.StoreChainID
 	}
 
-	if err := s.shoppingListRepo.Create(ctx, list); err != nil {
-		return nil, err
-	}
+	// Write the list and its initial items atomically so a failure adding items
+	// cannot leave an orphaned empty list behind.
+	err := s.shoppingListRepo.WithTypedTransaction(ctx, func(txRepo repository.ShoppingListRepository) error {
+		if err := txRepo.Create(ctx, list); err != nil {
+			return err
+		}
 
-	if list.ID == "" {
-		return nil, errors.New("failed to retrieve generated list ID after creation", "INTERNAL")
-	}
+		if list.ID == "" {
+			return errors.New("failed to retrieve generated list ID after creation", "INTERNAL")
+		}
 
-	// Add initial items if provided
-	if len(req.Items) > 0 {
-		items := make([]domain.ShoppingListItem, len(req.Items))
-		for i, itemReq := range req.Items {
-			items[i] = domain.ShoppingListItem{
-				ListID:   list.ID,
-				Name:     itemReq.Name,
-				Amount:   itemReq.Amount,
-				Unit:     itemReq.Unit,
-				Category: itemReq.Category,
-				Notes:    itemReq.Notes,
+		if len(req.Items) > 0 {
+			items := make([]domain.ShoppingListItem, len(req.Items))
+			for i, itemReq := range req.Items {
+				items[i] = domain.ShoppingListItem{
+					ListID:   list.ID,
+					Name:     itemReq.Name,
+					Amount:   itemReq.Amount,
+					Unit:     itemReq.Unit,
+					Category: itemReq.Category,
+					Notes:    itemReq.Notes,
+				}
+			}
+
+			if err := txRepo.AddItems(ctx, items); err != nil {
+				return err
 			}
 		}
 
-		if err := s.shoppingListRepo.AddItems(ctx, items); err != nil {
-			return nil, err
-		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return s.shoppingListRepo.GetByID(ctx, list.ID)

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	internalErr "github.com/H3nSte1n/recipe/internal/errors"
+	"github.com/H3nSte1n/recipe/internal/repository"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -69,6 +70,12 @@ func (m *mockShoppingListRepository) UpdateItem(ctx context.Context, item *domai
 func (m *mockShoppingListRepository) DeleteItem(ctx context.Context, id string) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
+}
+
+// WithTypedTransaction runs the closure against the mock itself so the inner
+// Create/AddItems expectations fire exactly as before the tx wrapping.
+func (m *mockShoppingListRepository) WithTypedTransaction(ctx context.Context, fn func(repository.ShoppingListRepository) error) error {
+	return fn(m)
 }
 
 type mockShoppingListRecipeRepository struct {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"github.com/H3nSte1n/recipe/internal/errors"
+	"github.com/H3nSte1n/recipe/internal/repository"
 	"github.com/H3nSte1n/recipe/pkg/ai"
 	"github.com/H3nSte1n/recipe/pkg/pdfparser"
 	"github.com/H3nSte1n/recipe/pkg/storage"
@@ -19,7 +20,7 @@ type recipeRepository interface {
 	GetByID(ctx context.Context, id string, nutritionLevel domain.NutritionDetailLevel) (*domain.Recipe, error)
 	ListByUserID(ctx context.Context, userID string, includePrivate bool) ([]domain.Recipe, error)
 	ListPublic(ctx context.Context, page, pageSize int) ([]domain.Recipe, int64, error)
-	RunTx(ctx context.Context, fn func() error) error
+	WithTypedTransaction(ctx context.Context, fn func(repository.RecipeRepository) error) error
 }
 
 type recipeUserRepository interface {
@@ -138,8 +139,8 @@ func (s *recipeService) Create(ctx context.Context, userID string, req *domain.C
 		Nutrition:    req.Nutrition,
 	}
 
-	if err := s.recipeRepo.RunTx(ctx, func() error {
-		if err := s.recipeRepo.Create(ctx, recipe); err != nil {
+	if err := s.recipeRepo.WithTypedTransaction(ctx, func(txRepo repository.RecipeRepository) error {
+		if err := txRepo.Create(ctx, recipe); err != nil {
 			s.logger.Error("failed to create recipe",
 				zap.String("user_id", userID),
 				zap.Error(err))
@@ -155,7 +156,7 @@ func (s *recipeService) Create(ctx context.Context, userID string, req *domain.C
 					ServingFactor: sr.ServingFactor,
 				}
 			}
-			if err := s.recipeRepo.Update(ctx, recipe); err != nil {
+			if err := txRepo.Update(ctx, recipe); err != nil {
 				s.logger.Error("failed to add sub-recipes",
 					zap.String("recipe_id", recipe.ID),
 					zap.Error(err))
@@ -237,7 +238,7 @@ func (s *recipeService) Update(ctx context.Context, userID string, recipeID stri
 		imageURL = newImageURL
 	}
 
-	err = s.recipeRepo.RunTx(ctx, func() error {
+	err = s.recipeRepo.WithTypedTransaction(ctx, func(txRepo repository.RecipeRepository) error {
 		recipe := &domain.Recipe{
 			ID:           recipeID,
 			UserID:       userID,
@@ -259,7 +260,7 @@ func (s *recipeService) Update(ctx context.Context, userID string, recipeID stri
 			Nutrition:    req.Nutrition,
 		}
 
-		if err := s.recipeRepo.Update(ctx, recipe); err != nil {
+		if err := txRepo.Update(ctx, recipe); err != nil {
 			return err
 		}
 
@@ -272,7 +273,7 @@ func (s *recipeService) Update(ctx context.Context, userID string, recipeID stri
 					ServingFactor: sr.ServingFactor,
 				}
 			}
-			if err := s.recipeRepo.Update(ctx, recipe); err != nil {
+			if err := txRepo.Update(ctx, recipe); err != nil {
 				return err
 			}
 		}
@@ -315,8 +316,8 @@ func (s *recipeService) Delete(ctx context.Context, userID string, recipeID stri
 		return errors.ErrUnauthorized
 	}
 
-	return s.recipeRepo.RunTx(ctx, func() error {
-		if err := s.recipeRepo.Delete(ctx, recipeID); err != nil {
+	return s.recipeRepo.WithTypedTransaction(ctx, func(txRepo repository.RecipeRepository) error {
+		if err := txRepo.Delete(ctx, recipeID); err != nil {
 			return err
 		}
 

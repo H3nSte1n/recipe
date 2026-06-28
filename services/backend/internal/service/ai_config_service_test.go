@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/H3nSte1n/recipe/internal/domain"
+	"github.com/H3nSte1n/recipe/internal/repository"
 	"github.com/H3nSte1n/recipe/pkg/crypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -75,7 +76,13 @@ func (r *fakeAIConfigRepo) ClearDefaultByUserID(_ context.Context, _ string, _ .
 	return nil
 }
 
-func (r *fakeAIConfigRepo) RunTx(_ context.Context, fn func() error) error { return fn() }
+func (r *fakeAIConfigRepo) WithTypedTransaction(_ context.Context, fn func(repository.AIConfigRepository) error) error {
+	return fn(r)
+}
+
+func (r *fakeAIConfigRepo) GetByUserAndModel(_ context.Context, _, _ string) (*domain.UserAIConfig, error) {
+	return nil, nil
+}
 
 // rawStoredKey returns the API key exactly as persisted (still encrypted).
 func (r *fakeAIConfigRepo) rawStoredKey(id string) string {
