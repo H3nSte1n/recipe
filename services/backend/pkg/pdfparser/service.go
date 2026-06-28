@@ -10,6 +10,11 @@ import (
 	"go.uber.org/zap"
 )
 
+// maxExtractedTextChars bounds how much text we accumulate from a PDF, so a
+// document with a huge or pathologically repetitive text layer cannot exhaust
+// memory. The AI layer caps content again before building a prompt.
+const maxExtractedTextChars = 200_000
+
 type Service interface {
 	Parse(ctx context.Context, pdfData []byte, aiModel ai.AIModel) (*domain.Recipe, error)
 }
@@ -56,6 +61,9 @@ func (s *service) extractText(pdfData []byte) (string, error) {
 		content, err := page.GetPlainText(nil)
 		if err == nil {
 			text += content
+			if len(text) >= maxExtractedTextChars {
+				break // bound memory; the AI layer rune-safely caps the final size
+			}
 		}
 	}
 
