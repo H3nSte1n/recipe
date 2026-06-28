@@ -27,3 +27,4 @@ Phase 4 (remediation-with-vpn): Upload & file-serving lockdown — DONE — 2026
 Phase 5 (remediation-with-vpn): Transactional atomicity — DONE — 2026-06-28T09:50:00Z
 Phase 6 (remediation-with-vpn): Account-level authorization — DONE — 2026-06-28T10:15:00Z
 Phase 7 (remediation-with-vpn): AI input & content hardening — DONE — 2026-06-28T10:40:00Z
+Phase 8 (remediation-with-vpn): Session-end correctness (logout) — DONE — 2026-06-28T19:20:00Z
