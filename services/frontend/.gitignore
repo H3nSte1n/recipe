@@ -25,3 +25,7 @@ dist-ssr
 .env.local
 .env.*.local
 
+
+# Build artifacts from tsc compiling vite.config.ts
+vite.config.js
+vite.config.d.ts
