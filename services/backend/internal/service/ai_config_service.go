@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	apperrors "github.com/H3nSte1n/recipe/internal/errors"
+	"github.com/H3nSte1n/recipe/internal/repository"
 	"go.uber.org/zap"
 )
 
@@ -17,7 +18,7 @@ type aiConfigRepository interface {
 	GetDefaultConfig(ctx context.Context, userID string) (*domain.UserAIConfig, error)
 	SetDefault(ctx context.Context, userID, configID string) error
 	ClearDefaultByUserID(ctx context.Context, userID string, excludeIDs ...string) error
-	RunTx(ctx context.Context, fn func() error) error
+	WithTypedTransaction(ctx context.Context, fn func(repository.AIConfigRepository) error) error
 }
 
 type AIConfigService interface {
@@ -53,9 +54,9 @@ func (s *aiConfigService) Create(ctx context.Context, userID string, req *domain
 		return nil, err
 	}
 
-	err = s.aiConfigRepo.RunTx(ctx, func() error {
+	err = s.aiConfigRepo.WithTypedTransaction(ctx, func(txRepo repository.AIConfigRepository) error {
 		if req.IsDefault {
-			if err := s.aiConfigRepo.ClearDefaultByUserID(ctx, userID); err != nil {
+			if err := txRepo.ClearDefaultByUserID(ctx, userID); err != nil {
 				return err
 			}
 		}
@@ -68,7 +69,7 @@ func (s *aiConfigService) Create(ctx context.Context, userID string, req *domain
 			Settings:  req.Settings,
 		}
 
-		if err := s.aiConfigRepo.Create(ctx, config); err != nil {
+		if err := txRepo.Create(ctx, config); err != nil {
 			return err
 		}
 		configID = config.ID
@@ -89,9 +90,9 @@ func (s *aiConfigService) Update(ctx context.Context, userID string, configID st
 		return nil, err
 	}
 
-	err = s.aiConfigRepo.RunTx(ctx, func() error {
+	err = s.aiConfigRepo.WithTypedTransaction(ctx, func(txRepo repository.AIConfigRepository) error {
 		if req.IsDefault != nil && *req.IsDefault {
-			if err := s.aiConfigRepo.ClearDefaultByUserID(ctx, userID, configID); err != nil {
+			if err := txRepo.ClearDefaultByUserID(ctx, userID, configID); err != nil {
 				return err
 			}
 		}
@@ -114,7 +115,7 @@ func (s *aiConfigService) Update(ctx context.Context, userID string, configID st
 		}
 		config.APIKey = encryptedKey
 
-		return s.aiConfigRepo.Update(ctx, config)
+		return txRepo.Update(ctx, config)
 	})
 
 	if err != nil {

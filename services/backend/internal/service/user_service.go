@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	apperrors "github.com/H3nSte1n/recipe/internal/errors"
+	"github.com/H3nSte1n/recipe/internal/repository"
 	"github.com/H3nSte1n/recipe/pkg/config"
 	"github.com/H3nSte1n/recipe/pkg/email"
 	"github.com/golang-jwt/jwt/v5"
@@ -26,7 +27,7 @@ type userRepository interface {
 	CreateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
 	GetResetTokenByToken(ctx context.Context, token string) (*domain.PasswordResetToken, error)
 	MarkResetTokenUsed(ctx context.Context, tokenID string) error
-	RunTx(ctx context.Context, fn func() error) error
+	WithTypedTransaction(ctx context.Context, fn func(repository.UserRepository) error) error
 }
 
 type UserService interface {
@@ -67,7 +68,7 @@ func (s *userService) Register(ctx context.Context, req *domain.RegisterRequest)
 	}
 
 	var user *domain.User
-	err = s.userRepo.RunTx(ctx, func() error {
+	err = s.userRepo.WithTypedTransaction(ctx, func(txRepo repository.UserRepository) error {
 		hashedPassword, err := domain.HashPassword(req.Password)
 		if err != nil {
 			return err
@@ -81,7 +82,7 @@ func (s *userService) Register(ctx context.Context, req *domain.RegisterRequest)
 			LastName:     req.LastName,
 		}
 
-		if err := s.userRepo.Create(ctx, user); err != nil {
+		if err := txRepo.Create(ctx, user); err != nil {
 			return err
 		}
 
@@ -94,7 +95,7 @@ func (s *userService) Register(ctx context.Context, req *domain.RegisterRequest)
 			UpdatedAt: time.Now(),
 		}
 
-		return s.userRepo.CreateProfile(ctx, profile)
+		return txRepo.CreateProfile(ctx, profile)
 	})
 
 	if err != nil {
@@ -173,11 +174,11 @@ func (s *userService) ResetPassword(ctx context.Context, req *domain.ResetPasswo
 		return err
 	}
 
-	return s.userRepo.RunTx(ctx, func() error {
-		if err := s.userRepo.UpdatePassword(ctx, user.ID, hashedPassword); err != nil {
+	return s.userRepo.WithTypedTransaction(ctx, func(txRepo repository.UserRepository) error {
+		if err := txRepo.UpdatePassword(ctx, user.ID, hashedPassword); err != nil {
 			return err
 		}
-		return s.userRepo.MarkResetTokenUsed(ctx, resetToken.ID)
+		return txRepo.MarkResetTokenUsed(ctx, resetToken.ID)
 	})
 }
 
@@ -209,8 +210,8 @@ func (s *userService) Delete(ctx context.Context, userID string) error {
 		}
 		return err
 	}
-	return s.userRepo.RunTx(ctx, func() error {
-		return s.userRepo.Delete(ctx, user.ID)
+	return s.userRepo.WithTypedTransaction(ctx, func(txRepo repository.UserRepository) error {
+		return txRepo.Delete(ctx, user.ID)
 	})
 }
 

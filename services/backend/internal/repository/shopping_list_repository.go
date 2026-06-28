@@ -16,6 +16,7 @@ type ShoppingListRepository interface {
 	AddItems(ctx context.Context, items []domain.ShoppingListItem) error
 	UpdateItem(ctx context.Context, item *domain.ShoppingListItem) error
 	DeleteItem(ctx context.Context, id string) error
+	WithTypedTransaction(ctx context.Context, fn func(ShoppingListRepository) error) error
 }
 
 type ShoppingListRepositoryImpl struct {
@@ -26,6 +27,13 @@ func NewShoppingListRepository(db *gorm.DB) ShoppingListRepository {
 	return &ShoppingListRepositoryImpl{
 		BaseRepository: NewBaseRepository(db),
 	}
+}
+
+func (r *ShoppingListRepositoryImpl) WithTypedTransaction(ctx context.Context, fn func(ShoppingListRepository) error) error {
+	return r.RunInTransaction(ctx, func(tx *gorm.DB) error {
+		txRepo := &ShoppingListRepositoryImpl{BaseRepository: NewBaseRepository(tx)}
+		return fn(txRepo)
+	})
 }
 
 func (r *ShoppingListRepositoryImpl) GetByID(ctx context.Context, listID string) (*domain.ShoppingList, error) {

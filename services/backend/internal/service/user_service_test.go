@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	apperrors "github.com/H3nSte1n/recipe/internal/errors"
+	"github.com/H3nSte1n/recipe/internal/repository"
 	"github.com/H3nSte1n/recipe/pkg/config"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -74,12 +75,22 @@ func (m *mockUserRepository) MarkResetTokenUsed(ctx context.Context, tokenID str
 	return args.Error(0)
 }
 
-func (m *mockUserRepository) RunTx(ctx context.Context, fn func() error) error {
+func (m *mockUserRepository) Update(ctx context.Context, user *domain.User) error {
+	args := m.Called(ctx, user)
+	return args.Error(0)
+}
+
+func (m *mockUserRepository) UpdateResetToken(ctx context.Context, token *domain.PasswordResetToken) error {
+	args := m.Called(ctx, token)
+	return args.Error(0)
+}
+
+func (m *mockUserRepository) WithTypedTransaction(ctx context.Context, fn func(repository.UserRepository) error) error {
 	args := m.Called(ctx, fn)
 	if args.Error(0) != nil {
 		return args.Error(0)
 	}
-	return fn()
+	return fn(m)
 }
 
 type mockEmailService struct {
@@ -111,7 +122,7 @@ func TestUserService_Register(t *testing.T) {
 			name: "continues registration when email is not found",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, nil).Once()
-				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("Create", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("CreateProfile", mock.Anything, mock.Anything).Return(nil).Once()
 			},
@@ -127,7 +138,7 @@ func TestUserService_Register(t *testing.T) {
 			name: "continues registration when GetByEmail returns ErrNotFound",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, apperrors.ErrNotFound).Once()
-				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("Create", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("CreateProfile", mock.Anything, mock.Anything).Return(nil).Once()
 			},
@@ -136,7 +147,7 @@ func TestUserService_Register(t *testing.T) {
 			name: "continues registration when GetByEmail returns gorm.ErrRecordNotFound",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, gorm.ErrRecordNotFound).Once()
-				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("Create", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("CreateProfile", mock.Anything, mock.Anything).Return(nil).Once()
 			},
@@ -146,7 +157,7 @@ func TestUserService_Register(t *testing.T) {
 			expectedErr: "repo create error",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, nil).Once()
-				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("Create", mock.Anything, mock.Anything).Return(errors.New("repo create error")).Once()
 			},
 		},
@@ -155,7 +166,7 @@ func TestUserService_Register(t *testing.T) {
 			expectedErr: "repo createProfile error",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, nil).Once()
-				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("Create", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("CreateProfile", mock.Anything, mock.Anything).Return(errors.New("repo createProfile error")).Once()
 			},
@@ -165,14 +176,14 @@ func TestUserService_Register(t *testing.T) {
 			expectedErr: "tx error",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, nil).Once()
-				m.On("RunTx", mock.Anything, mock.Anything).Return(errors.New("tx error")).Once()
+				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(errors.New("tx error")).Once()
 			},
 		},
 		{
 			name: "creates user and profile and returns user when request is successfully",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByEmail", mock.Anything, req.Email).Return(nil, nil).Once()
-				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("Create", mock.Anything, mock.MatchedBy(func(userReq *domain.User) bool {
 					createdUser = userReq
 					return userReq.Email == user.Email && userReq.FirstName == user.FirstName && userReq.LastName == user.LastName && userReq.ID != ""
@@ -406,7 +417,7 @@ func TestUserService_ResetPassword(t *testing.T) {
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetResetTokenByToken", mock.Anything, req.Token).Return(&resetTokenValid, nil).Once()
 				m.On("GetByID", mock.Anything, resetTokenValid.UserID).Return(&user, nil).Once()
-				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("UpdatePassword", mock.Anything, user.ID, mock.AnythingOfType("string")).Return(errors.New("user password update failed")).Once()
 			},
 		},
@@ -416,7 +427,7 @@ func TestUserService_ResetPassword(t *testing.T) {
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetResetTokenByToken", mock.Anything, req.Token).Return(&resetTokenValid, nil).Once()
 				m.On("GetByID", mock.Anything, resetTokenValid.UserID).Return(&user, nil).Once()
-				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("UpdatePassword", mock.Anything, user.ID, mock.AnythingOfType("string")).Return(nil).Once()
 				m.On("MarkResetTokenUsed", mock.Anything, resetTokenValid.ID).Return(errors.New("mark reset token as used failed")).Once()
 			},
@@ -427,7 +438,7 @@ func TestUserService_ResetPassword(t *testing.T) {
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetResetTokenByToken", mock.Anything, req.Token).Return(&resetTokenValid, nil).Once()
 				m.On("GetByID", mock.Anything, resetTokenValid.UserID).Return(&user, nil).Once()
-				m.On("RunTx", mock.Anything, mock.Anything).Return(errors.New("tx error occurred")).Once()
+				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(errors.New("tx error occurred")).Once()
 			},
 		},
 		{
@@ -435,7 +446,7 @@ func TestUserService_ResetPassword(t *testing.T) {
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetResetTokenByToken", mock.Anything, req.Token).Return(&resetTokenValid, nil).Once()
 				m.On("GetByID", mock.Anything, resetTokenValid.UserID).Return(&user, nil).Once()
-				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("UpdatePassword", mock.Anything, user.ID, mock.AnythingOfType("string")).Return(nil).Once()
 				m.On("MarkResetTokenUsed", mock.Anything, resetTokenValid.ID).Return(nil).Once()
 			},
@@ -479,7 +490,7 @@ func TestUserService_Delete(t *testing.T) {
 			expectedErr: "delete failed",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByID", mock.Anything, user.ID).Return(&user, nil).Once()
-				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("Delete", mock.Anything, user.ID).Return(errors.New("delete failed")).Once()
 			},
 		},
@@ -488,14 +499,14 @@ func TestUserService_Delete(t *testing.T) {
 			expectedErr: "tx error",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByID", mock.Anything, user.ID).Return(&user, nil).Once()
-				m.On("RunTx", mock.Anything, mock.Anything).Return(errors.New("tx error")).Once()
+				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(errors.New("tx error")).Once()
 			},
 		},
 		{
 			name: "returns nil when user is deleted successfully",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByID", mock.Anything, user.ID).Return(&user, nil).Once()
-				m.On("RunTx", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("Delete", mock.Anything, user.ID).Return(nil).Once()
 			},
 		},

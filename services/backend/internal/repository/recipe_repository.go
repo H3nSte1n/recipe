@@ -16,7 +16,6 @@ type RecipeRepository interface {
 	ListPublic(ctx context.Context, page, pageSize int) ([]domain.Recipe, int64, error)
 	Exists(ctx context.Context, id string) (bool, error)
 	WithTypedTransaction(ctx context.Context, fn func(RecipeRepository) error) error
-	RunTx(ctx context.Context, fn func() error) error
 }
 
 type RecipeRepositoryImpl struct {
@@ -33,12 +32,6 @@ func (r *RecipeRepositoryImpl) WithTypedTransaction(ctx context.Context, fn func
 	return r.RunInTransaction(ctx, func(tx *gorm.DB) error {
 		txRepo := &RecipeRepositoryImpl{BaseRepository: NewBaseRepository(tx)}
 		return fn(txRepo)
-	})
-}
-
-func (r *RecipeRepositoryImpl) RunTx(ctx context.Context, fn func() error) error {
-	return r.DB.WithContext(ctx).Transaction(func(_ *gorm.DB) error {
-		return fn()
 	})
 }
 
