@@ -281,6 +281,12 @@ func (s *shoppingListService) AddRecipeToList(ctx context.Context, userID string
 		return err
 	}
 
+	// Don't let a member pull another member's private recipe into their list
+	// (mirrors the sub-recipe ownership guard in recipeService).
+	if recipe.IsPrivate && recipe.UserID != userID {
+		return errors.ErrUnauthorized
+	}
+
 	// Guard against divide by zero
 	if recipe.Servings == 0 {
 		return errors.New("recipe has no servings defined", "INVALID_INPUT")

@@ -15,6 +15,15 @@ type User struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
+// UserSummary is a non-PII projection of a user used by list endpoints. It omits
+// email and timestamps so an authenticated member cannot enumerate everyone's
+// email address.
+type UserSummary struct {
+	ID        string `json:"id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+}
+
 type RegisterRequest struct {
 	Email     string `json:"email" binding:"required,email"`
 	Password  string `json:"password" binding:"required,min=8"`

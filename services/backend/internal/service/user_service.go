@@ -37,7 +37,7 @@ type UserService interface {
 	ForgotPassword(ctx context.Context, req *domain.ForgotPasswordRequest) error
 	ResetPassword(ctx context.Context, req *domain.ResetPasswordRequest) error
 	Delete(ctx context.Context, userID string) error
-	ListAll(ctx context.Context) ([]domain.User, error)
+	ListAll(ctx context.Context) ([]domain.UserSummary, error)
 }
 
 type userService struct {
@@ -215,6 +215,21 @@ func (s *userService) Delete(ctx context.Context, userID string) error {
 	})
 }
 
-func (s *userService) ListAll(ctx context.Context) ([]domain.User, error) {
-	return s.userRepo.ListAll(ctx)
+func (s *userService) ListAll(ctx context.Context) ([]domain.UserSummary, error) {
+	users, err := s.userRepo.ListAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Project to a non-PII summary so the list endpoint cannot be used to
+	// enumerate every member's email address.
+	summaries := make([]domain.UserSummary, len(users))
+	for i, u := range users {
+		summaries[i] = domain.UserSummary{
+			ID:        u.ID,
+			FirstName: u.FirstName,
+			LastName:  u.LastName,
+		}
+	}
+	return summaries, nil
 }
