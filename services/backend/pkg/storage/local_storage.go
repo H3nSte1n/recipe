@@ -27,16 +27,21 @@ func NewLocalFileStore(uploadDir, baseURL string) (FileStore, error) {
 }
 
 func (s *localFileStore) UploadFile(ctx context.Context, file *multipart.FileHeader) (string, error) {
-	ext := filepath.Ext(file.Filename)
-	filename := fmt.Sprintf("%s%s", uuid.New().String(), ext)
-
-	filePath := filepath.Join(s.uploadDir, filename)
-
 	src, err := file.Open()
 	if err != nil {
 		return "", fmt.Errorf("failed to open source file: %w", err)
 	}
 	defer src.Close()
+
+	// Validate by sniffed content, not the client-supplied extension, and store
+	// under the extension matching the detected type.
+	_, ext, err := DetectImageType(src)
+	if err != nil {
+		return "", err
+	}
+
+	filename := fmt.Sprintf("%s%s", uuid.New().String(), ext)
+	filePath := filepath.Join(s.uploadDir, filename)
 
 	dst, err := os.Create(filePath)
 	if err != nil {

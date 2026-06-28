@@ -6,6 +6,7 @@ import (
 	"github.com/H3nSte1n/recipe/pkg/config"
 	"github.com/H3nSte1n/recipe/pkg/email"
 	"github.com/H3nSte1n/recipe/pkg/pdfparser"
+	"github.com/H3nSte1n/recipe/pkg/signedurl"
 	"github.com/H3nSte1n/recipe/pkg/storage"
 	"github.com/H3nSte1n/recipe/pkg/urlparser"
 	"go.uber.org/zap"
@@ -30,6 +31,13 @@ func NewServices(repos *repository.Repositories, config config.Config, fileStora
 		logger.Warn("failed to create AI model for shopping list service", zap.Error(err))
 	}
 
+	// Sign local upload URLs so the file handler can serve them; for non-local
+	// storage (e.g. S3) URLs are returned unchanged (nil signer).
+	var imageSigner ImageURLSigner
+	if config.Storage.Type == "local" {
+		imageSigner = signedurl.NewSigner(config.JWT.Secret, signedurl.DefaultTTL)
+	}
+
 	// Initialize store chain service first since shopping list service depends on it
 	storeChainService := NewStoreChainService(repos.StoreChainRepository, logger)
 	emailSvc := email.NewEmailService(config.SMTP.From, config.SMTP.Password, config.SMTP.Host, config.SMTP.Port, config.Frontend.Url)
@@ -38,7 +46,7 @@ func NewServices(repos *repository.Repositories, config config.Config, fileStora
 		UserService:         NewUserService(repos.UserRepository, config.JWT.Secret, config, emailSvc, logger),
 		ProfileService:      NewProfileService(repos.ProfileRepository),
 		AIConfigService:     NewAIConfigService(repos.AIConfigRepository, cipher, logger),
-		RecipeService:       NewRecipeService(repos.RecipeRepository, repos.UserRepository, repos.AIConfigRepository, fileStorage, logger, &factory, urlParserService, pdfParserService, cipher),
+		RecipeService:       NewRecipeService(repos.RecipeRepository, repos.UserRepository, repos.AIConfigRepository, fileStorage, logger, &factory, urlParserService, pdfParserService, cipher, imageSigner),
 		ShoppingListService: NewShoppingListService(repos.ShoppingListRepository, repos.RecipeRepository, storeChainService, aiModel, logger),
 		StoreChainService:   storeChainService,
 	}
