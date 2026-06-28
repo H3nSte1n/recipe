@@ -6,6 +6,7 @@ import (
 	"github.com/H3nSte1n/recipe/pkg/config"
 	"github.com/H3nSte1n/recipe/pkg/signedurl"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type Router struct {
@@ -13,9 +14,10 @@ type Router struct {
 	handlers *handler.Handlers
 	auth     *middleware.AuthMiddleware
 	config   config.Config
+	logger   *zap.Logger
 }
 
-func NewRouter(handlers *handler.Handlers, config config.Config) *Router {
+func NewRouter(handlers *handler.Handlers, config config.Config, logger *zap.Logger) *Router {
 	engine := gin.Default()
 
 	// Bound the in-memory portion of multipart parsing; larger parts spill to
@@ -29,6 +31,7 @@ func NewRouter(handlers *handler.Handlers, config config.Config) *Router {
 		handlers: handlers,
 		auth:     middleware.NewAuthMiddleware(config.JWT.Secret),
 		config:   config,
+		logger:   logger,
 	}
 }
 
@@ -41,7 +44,7 @@ func (r *Router) SetupRoutes() *gin.Engine {
 		// mount) so files require a valid short-lived link and are sent with
 		// nosniff + attachment.
 		signer := signedurl.NewSigner(r.config.JWT.Secret, signedurl.DefaultTTL)
-		uploads := handler.NewUploadsHandler(r.config.Storage.LocalPath, signer)
+		uploads := handler.NewUploadsHandler(r.config.Storage.LocalPath, signer, r.logger)
 		r.engine.GET("/uploads/:filename", uploads.Serve)
 	}
 

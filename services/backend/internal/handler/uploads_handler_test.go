@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func setupUploadsTest(t *testing.T) (*gin.Engine, *signedurl.Signer, string) {
@@ -25,7 +26,7 @@ func setupUploadsTest(t *testing.T) (*gin.Engine, *signedurl.Signer, string) {
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "abc.png"), pngBytes, 0o600))
 
 	signer := signedurl.NewSigner("test-secret", time.Hour)
-	h := NewUploadsHandler(dir, signer)
+	h := NewUploadsHandler(dir, signer, zap.NewNop())
 
 	r := gin.New()
 	r.GET("/uploads/:filename", h.Serve)

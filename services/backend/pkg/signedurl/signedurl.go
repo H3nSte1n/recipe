@@ -63,7 +63,7 @@ func (s *Signer) Verify(filename, expStr, sig string) error {
 	if err != nil {
 		return fmt.Errorf("invalid expiry")
 	}
-	if time.Now().Unix() > exp {
+	if time.Now().Unix() >= exp {
 		return fmt.Errorf("signature expired")
 	}
 	expected := s.compute(filename, exp)
