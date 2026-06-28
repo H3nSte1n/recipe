@@ -7,6 +7,46 @@ import (
 	"strings"
 )
 
+// validCategories is the allowlist the LLM's categorization output is checked
+// against. Anything outside it (including an injected value) is normalized to
+// OTHER rather than trusted verbatim.
+var validCategories = map[domain.Category]bool{
+	domain.CategoryProduce:   true,
+	domain.CategoryMeat:      true,
+	domain.CategoryDairy:     true,
+	domain.CategoryBakery:    true,
+	domain.CategoryPantry:    true,
+	domain.CategoryFrozen:    true,
+	domain.CategoryBeverages: true,
+	domain.CategoryHousehold: true,
+	domain.CategoryOther:     true,
+}
+
+// normalizeCategory upper-cases and validates a category string against the
+// allowlist, falling back to OTHER (matching the CategoryOther fallback used
+// when adding recipe items to a shopping list).
+func normalizeCategory(raw string) string {
+	c := domain.Category(strings.ToUpper(strings.TrimSpace(raw)))
+	if validCategories[c] {
+		return string(c)
+	}
+	return string(domain.CategoryOther)
+}
+
+// clampNonNegative bounds an LLM-supplied integer so an injected negative or
+// absurd value cannot flow into the domain model. The upper bound is generous so
+// legitimately large recipes are unaffected.
+func clampNonNegative(v int) int {
+	const maxReasonable = 1_000_000
+	if v < 0 {
+		return 0
+	}
+	if v > maxReasonable {
+		return maxReasonable
+	}
+	return v
+}
+
 func parseAIResponse(response string) (*domain.Recipe, error) {
 	startIndex := strings.Index(response, "{")
 	endIndex := strings.LastIndex(response, "}")
@@ -25,9 +65,9 @@ func parseAIResponse(response string) (*domain.Recipe, error) {
 	recipe := &domain.Recipe{
 		Title:       aiResponse.Title,
 		Description: aiResponse.Description,
-		Servings:    aiResponse.Servings,
-		PrepTime:    aiResponse.PrepTime,
-		CookTime:    aiResponse.CookTime,
+		Servings:    clampNonNegative(aiResponse.Servings),
+		PrepTime:    clampNonNegative(aiResponse.PrepTime),
+		CookTime:    clampNonNegative(aiResponse.CookTime),
 		Notes:       aiResponse.Notes,
 		Status:      "draft",
 	}
@@ -128,6 +168,12 @@ func parseCategorizeItemsResponse(content string) (map[string]string, error) {
 	var result map[string]string
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON response: %w", err)
+	}
+
+	// Validate every category against the allowlist so an injected/unknown value
+	// cannot reach the domain model.
+	for item, category := range result {
+		result[item] = normalizeCategory(category)
 	}
 
 	return result, nil

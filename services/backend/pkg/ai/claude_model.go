@@ -24,21 +24,20 @@ func NewClaudeModel(modelVersion string, apiKey string, logger *zap.Logger) *Cla
 }
 
 func (m *ClaudeModel) Parse(ctx context.Context, content string, contentType string) (*domain.Recipe, error) {
-	prompt := createPrompt(content, contentType)
+	system, user := buildRecipePrompt(content, contentType)
 
 	message, err := m.client.Messages.New(ctx, anthropic.MessageNewParams{
 		Model:     anthropic.F(anthropic.Model(m.modelVersion)),
 		MaxTokens: anthropic.F(int64(2000)),
+		System:    anthropic.F([]anthropic.TextBlockParam{anthropic.NewTextBlock(system)}),
 		Messages: anthropic.F([]anthropic.MessageParam{
-			anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)),
+			anthropic.NewUserMessage(anthropic.NewTextBlock(user)),
 		}),
 	})
 
 	if err != nil {
 		return nil, fmt.Errorf("Claude API error: %w", err)
 	}
-
-	fmt.Print(message)
 
 	if len(message.Content) > 0 {
 		return parseAIResponse(message.Content[0].Text)
@@ -48,13 +47,14 @@ func (m *ClaudeModel) Parse(ctx context.Context, content string, contentType str
 }
 
 func (m *ClaudeModel) ParseInstructions(ctx context.Context, content string) (*[]domain.RecipeInstruction, error) {
-	prompt := createParseInstructionsPrompt(content)
+	system, user := buildInstructionsPrompt(content)
 
 	message, err := m.client.Messages.New(ctx, anthropic.MessageNewParams{
 		Model:     anthropic.F(anthropic.Model(m.modelVersion)),
 		MaxTokens: anthropic.F(int64(2000)),
+		System:    anthropic.F([]anthropic.TextBlockParam{anthropic.NewTextBlock(system)}),
 		Messages: anthropic.F([]anthropic.MessageParam{
-			anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)),
+			anthropic.NewUserMessage(anthropic.NewTextBlock(user)),
 		}),
 	})
 
@@ -70,13 +70,14 @@ func (m *ClaudeModel) ParseInstructions(ctx context.Context, content string) (*[
 }
 
 func (m *ClaudeModel) CategorizeItems(ctx context.Context, items []string) (map[string]string, error) {
-	prompt := createPromptToCategorizeShoppingListItems(items)
+	system, user := buildCategorizePrompt(items)
 
 	message, err := m.client.Messages.New(ctx, anthropic.MessageNewParams{
 		Model:     anthropic.F(anthropic.Model(m.modelVersion)),
 		MaxTokens: anthropic.F(int64(2000)),
+		System:    anthropic.F([]anthropic.TextBlockParam{anthropic.NewTextBlock(system)}),
 		Messages: anthropic.F([]anthropic.MessageParam{
-			anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)),
+			anthropic.NewUserMessage(anthropic.NewTextBlock(user)),
 		}),
 	})
 

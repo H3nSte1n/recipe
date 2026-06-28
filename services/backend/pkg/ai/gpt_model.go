@@ -23,11 +23,14 @@ func NewGPTModel(modelType ModelType, apiKey string, logger *zap.Logger) *GPTMod
 }
 
 func (m *GPTModel) Parse(ctx context.Context, content string, contentType string) (*domain.Recipe, error) {
-	prompt := createPrompt(content, contentType)
+	system, user := buildRecipePrompt(content, contentType)
 
 	resp, err := m.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model:     string(m.modelType),
-		Messages:  []openai.ChatCompletionMessage{{Role: "user", Content: prompt}},
+		Model: string(m.modelType),
+		Messages: []openai.ChatCompletionMessage{
+			{Role: "system", Content: system},
+			{Role: "user", Content: user},
+		},
 		MaxTokens: 2000,
 	})
 	if err != nil {
@@ -38,11 +41,14 @@ func (m *GPTModel) Parse(ctx context.Context, content string, contentType string
 }
 
 func (m *GPTModel) ParseInstructions(ctx context.Context, content string) (*[]domain.RecipeInstruction, error) {
-	prompt := createParseInstructionsPrompt(content)
+	system, user := buildInstructionsPrompt(content)
 
 	resp, err := m.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model:     string(m.modelType),
-		Messages:  []openai.ChatCompletionMessage{{Role: "user", Content: prompt}},
+		Model: string(m.modelType),
+		Messages: []openai.ChatCompletionMessage{
+			{Role: "system", Content: system},
+			{Role: "user", Content: user},
+		},
 		MaxTokens: 2000,
 	})
 
@@ -54,11 +60,14 @@ func (m *GPTModel) ParseInstructions(ctx context.Context, content string) (*[]do
 }
 
 func (m *GPTModel) CategorizeItems(ctx context.Context, content []string) (map[string]string, error) {
-	prompt := createPromptToCategorizeShoppingListItems(content)
+	system, user := buildCategorizePrompt(content)
 
 	resp, err := m.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model:     string(m.modelType),
-		Messages:  []openai.ChatCompletionMessage{{Role: "user", Content: prompt}},
+		Model: string(m.modelType),
+		Messages: []openai.ChatCompletionMessage{
+			{Role: "system", Content: system},
+			{Role: "user", Content: user},
+		},
 		MaxTokens: 2000,
 	})
 
