@@ -1157,6 +1157,18 @@ func TestShoppingListService_AddRecipeToList(t *testing.T) {
 			},
 		},
 		{
+			name:        "returns ErrUnauthorized when adding another member's private recipe",
+			userID:      list.UserID, // owns the list, but not the recipe
+			expectedErr: internalErr.ErrUnauthorized,
+			mockShoppingListRepoFunc: func(m *mockShoppingListRepository) {
+				m.On("GetByID", mock.Anything, list.ID).Return(&domain.ShoppingList{ID: list.ID, UserID: list.UserID}, nil).Once()
+			},
+			mockRecipeRepoFunc: func(m *mockShoppingListRecipeRepository) {
+				privateRecipe := domain.Recipe{ID: recipe.ID, Servings: 2, IsPrivate: true, UserID: "other-member", Ingredients: recipe.Ingredients}
+				m.On("GetByID", mock.Anything, recipe.ID, domain.NutritionDetailBase).Return(&privateRecipe, nil).Once()
+			},
+		},
+		{
 			name:           "returns error when recipe has zero servings",
 			userID:         list.UserID,
 			expectedErrMsg: "recipe has no servings defined",

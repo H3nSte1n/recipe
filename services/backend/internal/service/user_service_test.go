@@ -531,8 +531,11 @@ func TestUserService_Delete(t *testing.T) {
 }
 
 func TestUserService_ListAll(t *testing.T) {
-	t.Run("returns users when users are fetched successfully", func(t *testing.T) {
-		users := []domain.User{{ID: "1_foo"}, {ID: "2_foo"}}
+	t.Run("returns non-PII summaries when users are fetched successfully", func(t *testing.T) {
+		users := []domain.User{
+			{ID: "1_foo", Email: "a@b.com", FirstName: "A", LastName: "B"},
+			{ID: "2_foo", Email: "c@d.com", FirstName: "C", LastName: "D"},
+		}
 		m := new(mockUserRepository)
 		m.On("ListAll", mock.Anything).Return(users, nil).Once()
 
@@ -540,7 +543,11 @@ func TestUserService_ListAll(t *testing.T) {
 		userList, err := srv.ListAll(context.Background())
 
 		require.NoError(t, err)
-		require.Equal(t, users, userList)
+		// Service projects to summaries that carry no email.
+		require.Equal(t, []domain.UserSummary{
+			{ID: "1_foo", FirstName: "A", LastName: "B"},
+			{ID: "2_foo", FirstName: "C", LastName: "D"},
+		}, userList)
 		m.AssertExpectations(t)
 	})
 

@@ -53,9 +53,9 @@ func (m *mockUserService) Delete(ctx context.Context, userID string) error {
 	return args.Error(0)
 }
 
-func (m *mockUserService) ListAll(ctx context.Context) ([]domain.User, error) {
+func (m *mockUserService) ListAll(ctx context.Context) ([]domain.UserSummary, error) {
 	args := m.Called(ctx)
-	v, _ := args.Get(0).([]domain.User)
+	v, _ := args.Get(0).([]domain.UserSummary)
 	return v, args.Error(1)
 }
 
@@ -429,9 +429,9 @@ func Test_UserHandler_DeleteAccount(t *testing.T) {
 }
 
 func Test_UserHandler_ListAll(t *testing.T) {
-	users := []domain.User{
-		{ID: "1", Email: "foo@bar.com", FirstName: "Foo", LastName: "Bar"},
-		{ID: "2", Email: "baz@bar.com", FirstName: "Baz", LastName: "Qux"},
+	users := []domain.UserSummary{
+		{ID: "1", FirstName: "Foo", LastName: "Bar"},
+		{ID: "2", FirstName: "Baz", LastName: "Qux"},
 	}
 	jsonUsers := mustJson(t, users)
 
@@ -442,7 +442,7 @@ func Test_UserHandler_ListAll(t *testing.T) {
 		mockMethod           func(m *mockUserService)
 	}{
 		{
-			name:                 "returns 200 with all users when request is successful",
+			name:                 "returns 200 with non-PII user summaries when request is successful",
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: string(jsonUsers),
 			mockMethod: func(m *mockUserService) {
