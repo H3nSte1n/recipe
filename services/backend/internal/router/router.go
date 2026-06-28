@@ -4,6 +4,7 @@ import (
 	"github.com/H3nSte1n/recipe/internal/handler"
 	"github.com/H3nSte1n/recipe/internal/middleware"
 	"github.com/H3nSte1n/recipe/pkg/config"
+	"github.com/H3nSte1n/recipe/pkg/signedurl"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,6 +17,10 @@ type Router struct {
 
 func NewRouter(handlers *handler.Handlers, config config.Config) *Router {
 	engine := gin.Default()
+
+	// Bound the in-memory portion of multipart parsing; larger parts spill to
+	// temp files and per-handler MaxBytesReader enforces hard size limits.
+	engine.MaxMultipartMemory = 10 << 20 // 10 MiB
 
 	engine.Use(middleware.CORS(config.CORS.AllowedOrigins))
 
@@ -32,7 +37,12 @@ func (r *Router) SetupRoutes() *gin.Engine {
 	v1 := r.engine.Group("/api/v1")
 
 	if r.config.Storage.Type == "local" {
-		r.engine.Static("/uploads", r.config.Storage.LocalPath)
+		// Serve uploads through a signature-checked handler (not a public static
+		// mount) so files require a valid short-lived link and are sent with
+		// nosniff + attachment.
+		signer := signedurl.NewSigner(r.config.JWT.Secret, signedurl.DefaultTTL)
+		uploads := handler.NewUploadsHandler(r.config.Storage.LocalPath, signer)
+		r.engine.GET("/uploads/:filename", uploads.Serve)
 	}
 
 	// Public routes (no authentication required)

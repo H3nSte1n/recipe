@@ -52,6 +52,7 @@ type recipeService struct {
 	urlParser    urlparser.Service
 	pdfParser    pdfparser.Service
 	cipher       APIKeyCipher
+	imageSigner  ImageURLSigner
 }
 
 func NewRecipeService(
@@ -64,6 +65,7 @@ func NewRecipeService(
 	urlParser urlparser.Service,
 	pdfParser pdfparser.Service,
 	cipher APIKeyCipher,
+	imageSigner ImageURLSigner,
 ) RecipeService {
 	return &recipeService{
 		recipeRepo:   recipeRepo,
@@ -75,6 +77,7 @@ func NewRecipeService(
 		urlParser:    urlParser,
 		pdfParser:    pdfParser,
 		cipher:       cipher,
+		imageSigner:  imageSigner,
 	}
 }
 
@@ -172,7 +175,12 @@ func (s *recipeService) Create(ctx context.Context, userID string, req *domain.C
 		return nil, err
 	}
 
-	return s.recipeRepo.GetByID(ctx, recipe.ID, domain.NutritionDetailBase)
+	created, err := s.recipeRepo.GetByID(ctx, recipe.ID, domain.NutritionDetailBase)
+	if err != nil {
+		return nil, err
+	}
+	s.signRecipeImages(created)
+	return created, nil
 }
 
 func (s *recipeService) Update(ctx context.Context, userID string, recipeID string, req *domain.CreateRecipeRequest) (*domain.Recipe, error) {
@@ -287,7 +295,12 @@ func (s *recipeService) Update(ctx context.Context, userID string, recipeID stri
 		return nil, err
 	}
 
-	return s.recipeRepo.GetByID(ctx, recipeID, domain.NutritionDetailBase)
+	updated, err := s.recipeRepo.GetByID(ctx, recipeID, domain.NutritionDetailBase)
+	if err != nil {
+		return nil, err
+	}
+	s.signRecipeImages(updated)
+	return updated, nil
 }
 
 func (s *recipeService) Delete(ctx context.Context, userID string, recipeID string) error {
@@ -332,15 +345,26 @@ func (s *recipeService) GetByID(ctx context.Context, userID string, recipeID str
 		return nil, errors.ErrUnauthorized
 	}
 
+	s.signRecipeImages(recipe)
 	return recipe, nil
 }
 
 func (s *recipeService) ListUserRecipes(ctx context.Context, userID string) ([]domain.Recipe, error) {
-	return s.recipeRepo.ListByUserID(ctx, userID, true)
+	recipes, err := s.recipeRepo.ListByUserID(ctx, userID, true)
+	if err != nil {
+		return nil, err
+	}
+	s.signRecipeList(recipes)
+	return recipes, nil
 }
 
 func (s *recipeService) ListPublicRecipes(ctx context.Context, page, pageSize int) ([]domain.Recipe, int64, error) {
-	return s.recipeRepo.ListPublic(ctx, page, pageSize)
+	recipes, total, err := s.recipeRepo.ListPublic(ctx, page, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	s.signRecipeList(recipes)
+	return recipes, total, nil
 }
 
 func (s *recipeService) ImportFromURL(ctx context.Context, userID string, req *domain.ImportURLRequest) (*domain.Recipe, error) {
@@ -364,6 +388,7 @@ func (s *recipeService) ImportFromURL(ctx context.Context, userID string, req *d
 	}
 
 	parsedRecipe.IsPrivate = req.IsPrivate
+	s.signRecipeImages(parsedRecipe)
 	return parsedRecipe, nil
 }
 
@@ -386,6 +411,7 @@ func (s *recipeService) ImportFromPDF(ctx context.Context, userID string, req *d
 	}
 
 	parsedRecipe.IsPrivate = req.IsPrivate
+	s.signRecipeImages(parsedRecipe)
 	return parsedRecipe, nil
 }
 

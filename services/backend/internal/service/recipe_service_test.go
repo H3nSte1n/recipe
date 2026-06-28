@@ -125,7 +125,7 @@ func newTestRecipeService(
 ) RecipeService {
 	modelFactory := ai.NewModelFactory(&config.Config{}, zap.NewNop())
 	cipher, _ := crypto.NewCipher("test-encryption-key")
-	return NewRecipeService(recipeRepo, userRepo, aiConfigRepo, fileStore, zap.NewNop(), modelFactory, urlParser, pdfParser, cipher)
+	return NewRecipeService(recipeRepo, userRepo, aiConfigRepo, fileStore, zap.NewNop(), modelFactory, urlParser, pdfParser, cipher, nil)
 }
 
 func TestRecipeService_GetByID_Success(t *testing.T) {

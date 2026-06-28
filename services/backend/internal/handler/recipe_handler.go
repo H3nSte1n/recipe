@@ -2,15 +2,61 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"strconv"
+	"strings"
+
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"github.com/H3nSte1n/recipe/internal/middleware"
 	"github.com/H3nSte1n/recipe/internal/service"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"go.uber.org/zap"
-	"net/http"
-	"strconv"
-	"strings"
 )
+
+const (
+	// maxImageUploadBytes caps a recipe image upload; maxPDFUploadBytes caps an
+	// imported PDF. Both bound memory/disk use against upload-DoS.
+	maxImageUploadBytes = 10 << 20 // 10 MiB
+	maxPDFUploadBytes   = 20 << 20 // 20 MiB
+)
+
+// parseRecipeMultipart enforces a body-size limit, parses the multipart form,
+// unmarshals the JSON "recipe" part, runs its binding validators (json.Unmarshal
+// alone skips them), and attaches the optional image. It writes the appropriate
+// error response and returns false on failure.
+func (h *RecipeHandler) parseRecipeMultipart(c *gin.Context, req *domain.CreateRecipeRequest) bool {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxImageUploadBytes)
+	if err := c.Request.ParseMultipartForm(maxImageUploadBytes); err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "upload too large"})
+			return false
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid multipart form"})
+		return false
+	}
+
+	if err := json.Unmarshal([]byte(c.Request.FormValue("recipe")), req); err != nil {
+		h.logger.Error("failed to parse recipe json", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return false
+	}
+
+	// json.Unmarshal bypasses the struct `binding:` validators that ShouldBindJSON
+	// would run, so validate explicitly.
+	if err := binding.Validator.ValidateStruct(req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return false
+	}
+
+	if file, err := c.FormFile("image"); err == nil {
+		req.Image = file
+	}
+	return true
+}
 
 type RecipeHandler struct {
 	recipeService service.RecipeService
@@ -30,15 +76,8 @@ func (h *RecipeHandler) Create(c *gin.Context) {
 	contentType := c.GetHeader("Content-Type")
 
 	if strings.Contains(contentType, "multipart/form-data") {
-		recipeJSON := c.PostForm("recipe")
-		if err := json.Unmarshal([]byte(recipeJSON), &req); err != nil {
-			h.logger.Error("failed to parse recipe json", zap.Error(err))
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !h.parseRecipeMultipart(c, &req) {
 			return
-		}
-
-		if file, err := c.FormFile("image"); err == nil {
-			req.Image = file
 		}
 	} else {
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -68,14 +107,8 @@ func (h *RecipeHandler) Update(c *gin.Context) {
 
 	contentType := c.GetHeader("Content-Type")
 	if strings.Contains(contentType, "multipart/form-data") {
-		recipeJSON := c.PostForm("recipe")
-		if err := json.Unmarshal([]byte(recipeJSON), &req); err != nil {
-			h.logger.Error("failed to parse recipe json", zap.Error(err))
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if !h.parseRecipeMultipart(c, &req) {
 			return
-		}
-		if file, err := c.FormFile("image"); err == nil {
-			req.Image = file
 		}
 	} else {
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -204,9 +237,26 @@ func (h *RecipeHandler) ImportFromURL(c *gin.Context) {
 }
 
 func (h *RecipeHandler) ImportFromPDF(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxPDFUploadBytes)
+
 	file, err := c.FormFile("file")
 	if err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "PDF too large"})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no file provided"})
+		return
+	}
+	if file.Size > maxPDFUploadBytes {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "PDF too large"})
 		return
 	}
 
@@ -217,9 +267,15 @@ func (h *RecipeHandler) ImportFromPDF(c *gin.Context) {
 	}
 	defer f.Close()
 
-	fileBytes := make([]byte, file.Size)
-	if _, err := f.Read(fileBytes); err != nil {
+	// io.ReadAll reads the whole file (fixing the previous single Read that could
+	// short-read), and the LimitReader caps it to defend against oversized input.
+	fileBytes, err := io.ReadAll(io.LimitReader(f, maxPDFUploadBytes+1))
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read file"})
+		return
+	}
+	if len(fileBytes) > maxPDFUploadBytes {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "PDF too large"})
 		return
 	}
 
@@ -229,7 +285,6 @@ func (h *RecipeHandler) ImportFromPDF(c *gin.Context) {
 		return
 	}
 
-	userID := middleware.GetUserID(c)
 	recipe, err := h.recipeService.ImportFromPDF(c.Request.Context(), userID, &req, fileBytes)
 	if err != nil {
 		h.logger.Error("failed to import recipe from PDF", zap.Error(err))
