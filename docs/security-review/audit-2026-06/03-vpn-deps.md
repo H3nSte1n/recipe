@@ -60,15 +60,38 @@ the VPN still present) vs `BEFORE-VPN-REMOVAL` (only a hole once publicly reacha
 - **Recommended control:** Terminate TLS at a reverse proxy / load balancer in front of the app before public exposure; serve the SPA and API over HTTPS; set `base_url`/origins to `https://`. Add HSTS (see Finding 7).
 - **INCONCLUSIVE caveat:** This is conditional on the deployment topology — see "Inconclusive items" below. The repo ships no reverse-proxy/TLS manifest, so if production fronts the app with an HTTPS terminator this is already mitigated at the edge.
 
-## Finding 5 — `GET /users/list` returns all users' PII to any authenticated caller
+## Finding 5 — `GET /users/list` lets any authenticated caller enumerate all members' names/IDs (email leak already remediated)
 
-- **Severity (post-VPN context):** MEDIUM
+- **Severity (post-VPN context):** LOW *(corrected during this audit's Phase 3 — see below;
+  originally logged here as MEDIUM/email-enumeration, which is now stale)*
 - **Classification:** `BEFORE-VPN-REMOVAL`
-- **Evidence:**
-  - `internal/router/router.go:81` — `users.GET("/list", r.handlers.UserHandler.ListAll)` inside the JWT-protected group, with no role/admin gate.
-  - Cross-referenced in `docs/security-review/REPORT.md` (Low #15) as authenticated email enumeration.
-- **Why the VPN masks it:** "Any authenticated user" today means "a trusted tailnet member," so member-to-member visibility of the small known group is low-impact and defensible. On the public internet, any self-registered account (Finding 3) becomes an authenticated caller that can harvest every user's email address — a spam/credential-stuffing/enumeration feed. The network membership was the de-facto authorization.
-- **Recommended control:** Restrict to an admin role, or return a minimal non-PII projection. Re-evaluated in `03-idor.md` for the authorization angle; here it is flagged specifically as a perimeter-dependent exposure.
+- **Correction:** This finding originally cited `docs/security-review/REPORT.md` (Low #15), which
+  described `/users/list` as leaking every member's **email address**. Re-reading the current code
+  during Phase 3's fresh auth review (`03-auth.md`) shows this is **already fixed**:
+  `internal/service/user_service.go:218-235` (`ListAll`) explicitly projects to
+  `domain.UserSummary{ID, FirstName, LastName}` — no email field — with an in-code comment stating
+  the intent ("non-PII summary so the list endpoint cannot be used to enumerate every member's
+  email address"). The "harvest every user's email address" claim below is **stale/incorrect** and
+  should not be carried into the Phase 7 consolidated report as a live finding.
+- **Evidence (current, corrected):**
+  - `internal/router/router.go:81` — `users.GET("/list", r.handlers.UserHandler.ListAll)` inside
+    the JWT-protected group, with no role/admin gate (this part is still accurate).
+  - `internal/service/user_service.go:218-235` — response is a non-PII `UserSummary` projection
+    (`id`, `first_name`, `last_name` only); no email, password hash, or other PII is returned.
+- **Residual issue (downgraded, not eliminated):** any authenticated caller can still enumerate
+  every member's **name and internal user ID** with no role/admin gate. This is real but
+  lower-impact than the original email-enumeration claim — names/IDs alone are a much weaker
+  target for spam/credential-stuffing than emails, though ID enumeration could still assist an
+  attacker chaining it with another endpoint that accepts a user ID.
+- **Why the VPN masks the residual issue:** "Any authenticated user" today means "a trusted tailnet
+  member," so member-to-member name/ID visibility within the small known group is low-impact and
+  defensible. On the public internet, any self-registered account (Finding 3) becomes an
+  authenticated caller that can enumerate every member's name and ID — the network membership was
+  the de-facto authorization for even this reduced exposure.
+- **Recommended control:** Restrict to an admin role, or remove the endpoint if it has no current
+  product use, now that the higher-severity email leak is already closed. Re-evaluated in
+  `03-idor.md` for the authorization angle; here it is flagged specifically as a
+  perimeter-dependent exposure.
 
 ## Finding 6 — `gin.Default()` trusts all proxies: the future IP-scoped rate limiter (the VPN's replacement control) is spoofable on day one
 
