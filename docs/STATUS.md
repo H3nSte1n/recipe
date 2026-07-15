@@ -34,3 +34,4 @@ Phase 2 (post-remediation-audit): Verify with-vpn remediations (PRs #31-#38) —
 Phase 3 (post-remediation-audit): Fresh backend pentest (independent re-review) — DONE — 2026-07-15T20:55:00Z
 Phase 4 (post-remediation-audit): Fresh frontend pentest (independent re-review) — DONE — 2026-07-15T21:40:00Z
 Phase 5 (post-remediation-audit): Triage the two not-started plans against current code — DONE — 2026-07-15T22:10:00Z
+Phase 6 (post-remediation-audit): Live functional & dependency verification — DONE — 2026-07-15T22:45:00Z
