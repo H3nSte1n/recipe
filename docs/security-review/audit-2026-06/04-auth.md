@@ -16,10 +16,21 @@ shape against the running backend.
 - **Severity:** HIGH (functional correctness, not directly a security vulnerability, but it means
   the "does registration update `isAuthenticated`" question is moot — registration cannot succeed
   at all)
+- **Correction (caught during this audit's Phase 5 cross-check):** the first version of this
+  finding cited `src/pages/RegisterPage.tsx` as the live code path. That file is actually **dead
+  code** — `App.tsx` never imports it, and `LandingPage.tsx` does not use it either. The real,
+  live, user-reachable registration form is the **inline `RegisterView` function defined directly
+  inside `LandingPage.tsx`** (`LandingPage.tsx:74-111`). Both implementations independently have
+  the *same* bug (they were evidently forked/copy-pasted from one another), so the live-reproduced
+  400 below is unaffected — but the evidence citation is corrected here to point at the code path
+  that actually runs. The dead-code duplication itself is called out separately below and in
+  `05-quality-triage.md` (it maps to an existing item in
+  `~/.claude/plans/recipe-remediation-code-quality.md`).
 - **Evidence:**
-  - `src/pages/RegisterPage.tsx:12,41-49` — the form collects a single `"Name"` text field
-    (`name`), with no separate first/last name inputs.
-  - `src/services/authService.ts:29-31` — `register()` POSTs
+  - `src/pages/LandingPage.tsx:75,100` — the live `RegisterView` form collects a single `"Name"`
+    text field (`name`), with no separate first/last name inputs.
+  - `src/pages/LandingPage.tsx:86` — `handleSubmit` calls
+    `registerUser(name, email, password)` → `src/services/authService.ts:29-31`, which POSTs
     `{ name, email, password }` to `/api/v1/auth/register`.
   - Backend `RegisterRequest` (`services/backend/internal/domain/user.go`, confirmed via
     `00-notes.md`'s documented schema) requires `email`, `password`, `first_name`, `last_name` —
@@ -29,22 +40,28 @@ shape against the running backend.
     POST /api/v1/auth/register {"name":"Test User","email":"...","password":"..."}
     -> 400 {"error":"Key: 'RegisterRequest.FirstName' Error:Field validation for 'FirstName' failed on the 'required' tag\nKey: 'RegisterRequest.LastName' ... 'required' tag"}
     ```
-  - This isn't dead/unreachable code: `RegisterPage` is wired live from `LandingPage.tsx`'s
-    `RegisterView` (`onRegister={() => switchView('register')}`) which `App.tsx` mounts as the
-    landing screen's register flow (`App.tsx:25`, `onRegister={() => setScreen('home')}`) — any
-    real visitor clicking "Create an account" hits this broken path today.
+  - `LandingPage.tsx`'s `RegisterView` is wired live: `App.tsx:25`
+    (`onRegister={() => setScreen('home')}`) is passed down through `LandingPage`'s own
+    `onRegister` prop to `RegisterView`'s `onSuccess` (`LandingPage.tsx:158`) — any real visitor
+    clicking "Create an account" on the landing page hits this broken path today.
+  - **Separately, dead duplicate code exists**: `src/pages/RegisterPage.tsx` and (per the
+    code-quality plan) `src/pages/LoginPage.tsx` are unreferenced from `App.tsx`/`LandingPage.tsx`
+    and implement the same forms a second time (with the identical bug in `RegisterPage.tsx`'s
+    case) — see the "minor observation" below and `05-quality-triage.md`.
 - **Why it matters:** No user can self-register through the UI at all right now — every attempt
-  fails with a raw validation error (`RegisterPage.tsx:25-26` catches it and shows a generic
+  fails with a raw validation error (`LandingPage.tsx:88-89` catches it and shows a generic
   "Registration failed. Please try again.", so the user doesn't even see *why*). This is a
   pre-existing functional bug (independent of the VPN/security threat model) that happens to also
   answer this subtask's specific question: registration cannot update `isAuthenticated`/`screen`
-  state because `register()` always throws before `onRegister()` is called
-  (`RegisterPage.tsx:23-24`) — the app never reaches the "swap to home screen" step by this path.
+  state because `registerUser()` always throws before `onSuccess()` is called
+  (`LandingPage.tsx:86-87`) — the app never reaches the "swap to home screen" step by this path.
   Flagging as HIGH functional severity so it lands in the Phase 5 quality triage rather than being
   lost in a security-only framing.
 - **Recommended control:** Either split the form into first/last name inputs and send
   `first_name`/`last_name`, or (simpler) have the frontend split the single `name` field on the
-  first space before sending. Add an integration/E2E test for the register flow so this class of
+  first space before sending. Fix it in `LandingPage.tsx`'s live `RegisterView` (and either delete
+  the dead `RegisterPage.tsx`/`LoginPage.tsx` duplicates or fix them too if they're kept/consolidated
+  per the code-quality plan). Add an integration/E2E test for the register flow so this class of
   drift is caught before merge.
 
 ## Token storage & 401 handling — as previously documented, no regressions found
@@ -90,7 +107,9 @@ shape against the running backend.
 3. Read `src/services/recipeService.ts` (the only frontend service issuing authenticated calls)
    to confirm every call attaches `getAuthHeaders()` and routes through `apiFetch`.
 4. Read `src/pages/RegisterPage.tsx` and traced its field shape against the backend's
-   `RegisterRequest` binding tags.
+   `RegisterRequest` binding tags; then confirmed via `App.tsx`/`LandingPage.tsx` import tracing
+   that this file is unreferenced dead code and re-traced the same bug in the actually-live
+   `RegisterView` inline in `LandingPage.tsx:74-111`.
 5. Live-tested the actual registration request shape against the running backend
    (`http://localhost:18080/api/v1/auth/register`) to confirm the mismatch is a real, reproducible
    400 rather than a hypothetical concern.
