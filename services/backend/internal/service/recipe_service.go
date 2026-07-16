@@ -476,14 +476,12 @@ func (s *recipeService) mapAIModelToModelType(model *domain.AIModel) (ai.ModelTy
 		return ai.ModelGPT4Turbo, nil
 	case "openai-gpt-3.5-turbo":
 		return ai.ModelGPT35, nil
-	case "anthropic-claude-3-5-sonnet-20241022":
-		return ai.ModelClaude35Sonnet, nil
-	case "anthropic-claude-3-opus-20240229":
-		return ai.ModelClaude3Opus, nil
-	case "anthropic-claude-3-sonnet-20240229":
-		return ai.ModelClaude3Sonnet, nil
-	case "anthropic-claude-3-haiku-20240307":
-		return ai.ModelClaude3Haiku, nil
+	case "anthropic-claude-sonnet-5":
+		return ai.ModelClaudeSonnet5, nil
+	case "anthropic-claude-opus-4-8":
+		return ai.ModelClaudeOpus48, nil
+	case "anthropic-claude-haiku-4-5":
+		return ai.ModelClaudeHaiku45, nil
 	default:
 		return "", errors.New(fmt.Sprintf("unsupported model: %s", key), "INVALID_INPUT")
 	}

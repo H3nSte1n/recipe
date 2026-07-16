@@ -36,3 +36,4 @@ Phase 4 (post-remediation-audit): Fresh frontend pentest (independent re-review)
 Phase 5 (post-remediation-audit): Triage the two not-started plans against current code — DONE — 2026-07-15T22:10:00Z
 Phase 6 (post-remediation-audit): Live functional & dependency verification — DONE — 2026-07-15T22:45:00Z
 Phase 7 (post-remediation-audit): Consolidated report & go-live blockers plan — DONE — 2026-07-15T23:50:00Z
+Phase 8 (post-remediation-audit): Go-live blocker remediation (DB exposure, registration, model IDs; key rotation left for owner) — DONE — 2026-07-16T20:05:00Z
