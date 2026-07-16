@@ -1,0 +1,5 @@
+.env
+
+# Bruno API-client exports routinely capture live request/response bodies
+# (including secrets) — never commit these.
+doc/recipe-api/

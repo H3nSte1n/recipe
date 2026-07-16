@@ -23,7 +23,7 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=postgres
-      - DB_PASSWORD=your_password
+      - DB_PASSWORD=${DB_PASSWORD:?set DB_PASSWORD in .env, see .env.sample}
       - DB_NAME=recipe_db
       - DB_SSL_MODE=disable
     volumes:
@@ -32,11 +32,14 @@ services:
 
   db:
     image: postgres:18-alpine
-    ports:
-      - "5432:5432"
+    # No host port published: the app reaches Postgres over the internal
+    # Docker network via DB_HOST=db. Uncomment below only for a one-off local
+    # psql session, and bind to loopback so it's never tailnet/internet reachable.
+    # ports:
+    #   - "127.0.0.1:5432:5432"
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=your_password
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?set DB_PASSWORD in .env, see .env.sample}
       - POSTGRES_DB=recipe_db
       - PGDATA=/var/lib/postgresql/data
     volumes:

@@ -15,12 +15,11 @@ const (
 	ModelGPT4Turbo ModelType = "gpt-4-turbo-preview"
 	ModelGPT35     ModelType = "gpt-3.5-turbo"
 
-	ModelClaude35Sonnet ModelType = "claude-3-5-sonnet-20241022"
-	ModelClaude3Opus    ModelType = "claude-3-opus-20240229"
-	ModelClaude3Sonnet  ModelType = "claude-3-sonnet-20240229"
-	ModelClaude3Haiku   ModelType = "claude-3-haiku-20240307"
+	ModelClaudeSonnet5 ModelType = "claude-sonnet-5"
+	ModelClaudeOpus48  ModelType = "claude-opus-4-8"
+	ModelClaudeHaiku45 ModelType = "claude-haiku-4-5"
 
-	ModelDefault ModelType = ModelClaude3Haiku
+	ModelDefault ModelType = ModelClaudeHaiku45
 )
 
 type AIModel interface {
@@ -49,7 +48,7 @@ func (f *ModelFactory) CreateModel(modelType ModelType, apiKey string) (AIModel,
 			key = f.config.AI.OpenAIAPIKey
 		}
 		return NewGPTModel(modelType, key, f.logger), nil
-	case ModelClaude35Sonnet, ModelClaude3Opus, ModelClaude3Sonnet, ModelClaude3Haiku:
+	case ModelClaudeSonnet5, ModelClaudeOpus48, ModelClaudeHaiku45:
 		key := apiKey
 		if key == "" {
 			key = f.config.AI.AnthropicAPIKey

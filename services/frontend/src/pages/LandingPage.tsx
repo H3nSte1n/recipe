@@ -72,7 +72,8 @@ function LoginView({ onSuccess, onBack, onRegister }: { onSuccess: () => void; o
 }
 
 function RegisterView({ onSuccess, onBack, onLogin }: { onSuccess: () => void; onBack: () => void; onLogin: () => void }) {
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -83,7 +84,7 @@ function RegisterView({ onSuccess, onBack, onLogin }: { onSuccess: () => void; o
     setError('');
     setLoading(true);
     try {
-      await registerUser(name, email, password);
+      await registerUser(firstName, lastName, email, password);
       onSuccess();
     } catch {
       setError('Registration failed. Please try again.');
@@ -97,7 +98,8 @@ function RegisterView({ onSuccess, onBack, onLogin }: { onSuccess: () => void; o
       <button className="landing-page__back" onClick={onBack} type="button" aria-label="Back">←</button>
       <p className="landing-page__form-title">Create account</p>
       <form className="landing-page__form" onSubmit={handleSubmit}>
-        <input className="landing-page__input" type="text" placeholder="Name" value={name} onChange={e => setName(e.target.value)} required autoComplete="name" />
+        <input className="landing-page__input" type="text" placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required autoComplete="given-name" />
+        <input className="landing-page__input" type="text" placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} required autoComplete="family-name" />
         <input className="landing-page__input" type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
         <input className="landing-page__input" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="new-password" />
         {error && <p className="landing-page__form-error">{error}</p>}
