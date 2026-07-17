@@ -31,13 +31,20 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:?set DB_PASSWORD in .env, see .env.sample}
       - DB_NAME=recipe_db
       - DB_SSL_MODE=disable
-      # Only trust X-Forwarded-For/X-Real-IP from the frontend's fixed
-      # address on app_net (the sole reverse proxy in front of this
-      # service). In production, host nginx proxies to the frontend
-      # container's own nginx (services/frontend/nginx.conf), which is
-      # what actually connects to this service — so this stays the
-      # frontend's fixed docker IP, not 127.0.0.1, in both environments.
-      - TRUSTED_PROXIES=172.30.0.10
+      # Trust the whole app_net subnet, not just the frontend's fixed IP.
+      # Verified empirically in production (2026-07-18): a request that
+      # nginx correctly logs with the real Tailscale client IP arrives at
+      # this service claiming the client is 172.30.0.1 — Docker NAT rewrites
+      # the source IP of connections into a published port (host nginx ->
+      # frontend's 127.0.0.1:3200) to the app_net gateway address, so the
+      # frontend's own nginx appends *that* IP to X-Forwarded-For, not host
+      # nginx's identity. Trusting only 172.30.0.10 made Gin stop at the
+      # untrusted gateway IP and misreport every client as 172.30.0.1.
+      # Trusting the subnet lets it walk one entry further left to the real
+      # client IP recorded by host nginx. app_net is a private, isolated
+      # network joined only by frontend/app/db, so this doesn't extend trust
+      # beyond the proxies already implied by the network topology.
+      - TRUSTED_PROXIES=172.30.0.0/24
     volumes:
       - ./services/backend:/app
       - ./uploads:/app/uploads
