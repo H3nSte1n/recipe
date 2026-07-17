@@ -199,10 +199,14 @@ func Test_UserHandler_Login(t *testing.T) {
 			},
 		},
 		{
-			name:                 "locked account returns 423 with a generic message",
-			expectedStatusCode:   http.StatusLocked,
+			// A locked account must get the same response as any other login failure --
+			// a distinct status would let a caller who already has a candidate email
+			// confirm it's registered by driving it into lockout and observing the
+			// difference (see the account-existence-oracle fix in this handler).
+			name:                 "locked account returns the same generic 401 as any other failure",
+			expectedStatusCode:   http.StatusUnauthorized,
 			body:                 string(jsonRequest),
-			expectedBodyContains: "temporarily locked",
+			expectedBodyContains: "invalid credentials",
 			shouldCallService:    true,
 			mockMethod: func(m *mockUserService) {
 				m.On("Login", mock.Anything, mock.Anything).Return(nil, apperrors.ErrAccountLocked).Once()
@@ -476,10 +480,14 @@ func Test_UserHandler_ResendVerification(t *testing.T) {
 			mockMethod:         func(m *mockUserService) {},
 		},
 		{
-			name:                 "service error",
+			// Regression test: the handler must return the same generic 200 whether the
+			// service succeeds or fails internally (it never surfaces a service error) —
+			// otherwise the response itself would leak which case occurred, defeating the
+			// service's own non-enumeration design (see ResendVerification's doc comment).
+			name:                 "returns the same generic response even when the service reports an internal error",
 			body:                 string(jsonRequest),
-			expectedStatusCode:   http.StatusTooManyRequests,
-			expectedBodyContains: "service error",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "if the email exists and is unverified",
 			shouldCallService:    true,
 			mockMethod: func(m *mockUserService) {
 				m.On("ResendVerification", mock.Anything, mock.Anything).Return(errors.New("service error")).Once()

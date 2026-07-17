@@ -23,7 +23,7 @@ type UserRepository interface {
 	UpdateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
 	GetResetTokenByToken(ctx context.Context, token string) (*domain.PasswordResetToken, error)
 	MarkResetTokenUsed(ctx context.Context, tokenID string) error
-	SetLoginLockoutState(ctx context.Context, userID string, failedAttempts int, lockedUntil *time.Time) error
+	RecordFailedLogin(ctx context.Context, userID string, maxAttempts int, lockUntil time.Time) (int, *time.Time, error)
 	ResetLoginLockout(ctx context.Context, userID string) error
 	// SetTokenRevocation records that all JWTs issued for userID before
 	// revokedAt must be rejected. Upserts so repeated calls (e.g. reset then
@@ -192,20 +192,40 @@ func (r *UserRepositoryImpl) ListAll(ctx context.Context) ([]domain.User, error)
 	return users, nil
 }
 
-// SetLoginLockoutState persists the failed-login counter and, once the caller has decided the
-// account should be locked, the cooldown expiry. Pass a nil lockedUntil to leave the account
-// unlocked while still recording the attempt count.
-func (r *UserRepositoryImpl) SetLoginLockoutState(ctx context.Context, userID string, failedAttempts int, lockedUntil *time.Time) error {
-	return r.DB.WithContext(ctx).Model(&domain.User{}).
-		Where("id = ?", userID).
-		Updates(map[string]interface{}{
-			"failed_login_attempts": failedAttempts,
-			"locked_until":          lockedUntil,
-		}).Error
-}
-
 // ResetLoginLockout clears the failed-login counter and any lockout, called after a successful
 // login so past failures don't carry forward.
 func (r *UserRepositoryImpl) ResetLoginLockout(ctx context.Context, userID string) error {
-	return r.SetLoginLockoutState(ctx, userID, 0, nil)
+	return r.DB.WithContext(ctx).Model(&domain.User{}).
+		Where("id = ?", userID).
+		Updates(map[string]interface{}{
+			"failed_login_attempts": 0,
+			"locked_until":          nil,
+		}).Error
+}
+
+// RecordFailedLogin atomically increments the failed-login counter for userID and, if the
+// resulting count reaches maxAttempts, sets locked_until to lockUntil in the same statement.
+// This must be a single UPDATE (not a read of the current count followed by a separate write):
+// two concurrent failed-login requests that each read the same stale count and write back
+// count+1 would lose one of the increments, letting an attacker bypass the lockout entirely by
+// firing attempts in parallel. `failed_login_attempts + 1` here is evaluated by the database
+// against the row's current value at write time, so concurrent increments for the same user
+// serialize correctly instead of racing. Returns the post-increment attempt count and lock
+// expiry (nil if not locked) so the caller doesn't need a follow-up read.
+func (r *UserRepositoryImpl) RecordFailedLogin(ctx context.Context, userID string, maxAttempts int, lockUntil time.Time) (int, *time.Time, error) {
+	var result struct {
+		FailedLoginAttempts int
+		LockedUntil         *time.Time
+	}
+	err := r.DB.WithContext(ctx).Raw(`
+		UPDATE users
+		SET failed_login_attempts = failed_login_attempts + 1,
+		    locked_until = CASE WHEN failed_login_attempts + 1 >= ? THEN ? ELSE locked_until END
+		WHERE id = ?
+		RETURNING failed_login_attempts, locked_until
+	`, maxAttempts, lockUntil, userID).Scan(&result).Error
+	if err != nil {
+		return 0, nil, err
+	}
+	return result.FailedLoginAttempts, result.LockedUntil, nil
 }

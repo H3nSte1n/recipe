@@ -60,10 +60,26 @@ func TestBodySizeLimit(t *testing.T) {
 		w := httptest.NewRecorder()
 		engine.ServeHTTP(w, req)
 
-		// The handler itself (recipe image/PDF upload) is responsible for the multipart
-		// size cap via its own http.MaxBytesReader call; this middleware must not
-		// double-clamp it to the smaller JSON limit.
+		// The handler itself (recipe image/PDF upload) is responsible for its own,
+		// smaller http.MaxBytesReader call for its specific limit; this middleware
+		// must not double-clamp a legitimate multipart upload to the JSON limit.
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, "1000", w.Body.String())
+	})
+
+	t.Run("still bounds an oversized body that only claims to be multipart", func(t *testing.T) {
+		// Regression test: a request to a JSON route (e.g. /auth/login, which binds via
+		// ShouldBindJSON regardless of declared Content-Type) with a spoofed multipart
+		// Content-Type must not bypass size limiting entirely -- it should fall back to
+		// the maxMultipartBodyBytes backstop rather than reading an unbounded body.
+		engine := newEngine(10)
+		oversized := strings.Repeat("x", maxMultipartBodyBytes+1)
+		req := httptest.NewRequest(http.MethodPost, "/echo", strings.NewReader(oversized))
+		req.Header.Set("Content-Type", "multipart/form-data; boundary=xyz")
+
+		w := httptest.NewRecorder()
+		engine.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusRequestEntityTooLarge, w.Code)
 	})
 }

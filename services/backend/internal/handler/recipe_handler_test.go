@@ -387,13 +387,16 @@ func TestRecipeHandler_Get(t *testing.T) {
 			},
 		},
 		{
-			name:                 "returns 403 forbidden for a cross-tenant private recipe (not 500)",
+			// A cross-tenant private recipe must respond identically to a genuinely missing
+			// one (404, not 403/500) -- a 403 would confirm the ID exists, letting a caller
+			// enumerate valid recipe IDs by observing 403 vs 404.
+			name:                 "returns 404 not found for a cross-tenant private recipe (indistinguishable from missing)",
 			setUserID:            true,
 			url:                  fmt.Sprintf("/api/v1/recipes/%v", recipe.ID),
-			expectedStatusCode:   http.StatusForbidden,
-			expectedBodyContains: "unauthorized",
+			expectedStatusCode:   http.StatusNotFound,
+			expectedBodyContains: "resource not found",
 			mockMethod: func(m *mockRecipeService) {
-				m.On("GetByID", mock.Anything, userID, recipe.ID, domain.NutritionDetailBase).Return(nil, apperrors.ErrUnauthorized).Once()
+				m.On("GetByID", mock.Anything, userID, recipe.ID, domain.NutritionDetailBase).Return(nil, apperrors.ErrNotFound).Once()
 			},
 		},
 		{

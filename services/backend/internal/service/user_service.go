@@ -27,7 +27,7 @@ type userRepository interface {
 	CreateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
 	GetResetTokenByToken(ctx context.Context, token string) (*domain.PasswordResetToken, error)
 	MarkResetTokenUsed(ctx context.Context, tokenID string) error
-	SetLoginLockoutState(ctx context.Context, userID string, failedAttempts int, lockedUntil *time.Time) error
+	RecordFailedLogin(ctx context.Context, userID string, maxAttempts int, lockUntil time.Time) (int, *time.Time, error)
 	ResetLoginLockout(ctx context.Context, userID string) error
 	SetTokenRevocation(ctx context.Context, userID string, revokedAt time.Time) error
 	CreateVerificationToken(ctx context.Context, token *domain.EmailVerificationToken) error
@@ -218,19 +218,15 @@ func (s *userService) Login(ctx context.Context, req *domain.LoginRequest) (*dom
 }
 
 // recordFailedLogin increments the account's failed-login counter and, once
-// maxFailedLoginAttempts is reached, sets a locked-until cooldown. Persistence failures are
-// logged but not surfaced to the caller — Login already returns "invalid credentials" for the
-// bad password itself, and a lockout-bookkeeping error shouldn't turn into a 500 on top of that.
+// maxFailedLoginAttempts is reached, sets a locked-until cooldown. The increment happens
+// atomically in the repository (a single UPDATE, not a read-then-write here) so concurrent
+// failed attempts for the same account can't race past each other and evade the lock — see
+// RecordFailedLogin's doc comment. Persistence failures are logged but not surfaced to the
+// caller — Login already returns "invalid credentials" for the bad password itself, and a
+// lockout-bookkeeping error shouldn't turn into a 500 on top of that.
 func (s *userService) recordFailedLogin(ctx context.Context, user *domain.User) {
-	attempts := user.FailedLoginAttempts + 1
-
-	var lockedUntil *time.Time
-	if attempts >= maxFailedLoginAttempts {
-		until := time.Now().Add(accountLockDuration)
-		lockedUntil = &until
-	}
-
-	if err := s.userRepo.SetLoginLockoutState(ctx, user.ID, attempts, lockedUntil); err != nil {
+	lockUntil := time.Now().Add(accountLockDuration)
+	if _, _, err := s.userRepo.RecordFailedLogin(ctx, user.ID, maxFailedLoginAttempts, lockUntil); err != nil {
 		s.logger.Warn("failed to record failed login attempt", zap.Error(err))
 	}
 }
@@ -345,10 +341,19 @@ func (s *userService) ResendVerification(ctx context.Context, req *domain.Resend
 
 	tokenString, err := s.createVerificationToken(ctx, user.ID)
 	if err != nil {
-		return err
+		// Logged, not returned: an error here is a token-creation/DB failure, not the
+		// caller's fault, and returning it would let the handler's response distinguish
+		// "registered, unverified, eligible to resend" from the three nil-returning cases
+		// above — exactly the enumeration signal this function otherwise avoids. The client
+		// gets the same generic "if eligible, an email will be sent" outcome either way.
+		s.logger.Warn("failed to create verification token for resend", zap.String("user_id", user.ID), zap.Error(err))
+		return nil
 	}
 
-	return s.emailService.SendVerificationEmail(user.Email, tokenString)
+	if err := s.emailService.SendVerificationEmail(user.Email, tokenString); err != nil {
+		s.logger.Warn("failed to send verification email for resend", zap.String("user_id", user.ID), zap.Error(err))
+	}
+	return nil
 }
 
 // IsEmailVerified is used by the RequireVerified middleware to gate

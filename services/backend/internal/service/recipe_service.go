@@ -343,7 +343,11 @@ func (s *recipeService) GetByID(ctx context.Context, userID string, recipeID str
 	}
 
 	if recipe.IsPrivate && recipe.UserID != userID {
-		return nil, errors.ErrUnauthorized
+		// Deliberately ErrNotFound, not ErrUnauthorized: a 403 here would tell an
+		// unauthorized caller "this recipe ID exists, it's just private," letting them
+		// enumerate valid IDs by observing 403 vs 404. Reads must be indistinguishable
+		// from a genuinely missing recipe.
+		return nil, errors.ErrNotFound
 	}
 
 	s.signRecipeImages(recipe)

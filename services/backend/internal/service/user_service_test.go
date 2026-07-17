@@ -128,9 +128,11 @@ func (m *mockUserRepository) UpdateResetToken(ctx context.Context, token *domain
 	return args.Error(0)
 }
 
-func (m *mockUserRepository) SetLoginLockoutState(ctx context.Context, userID string, failedAttempts int, lockedUntil *time.Time) error {
-	args := m.Called(ctx, userID, failedAttempts, lockedUntil)
-	return args.Error(0)
+func (m *mockUserRepository) RecordFailedLogin(ctx context.Context, userID string, maxAttempts int, lockUntil time.Time) (int, *time.Time, error) {
+	args := m.Called(ctx, userID, maxAttempts, lockUntil)
+	attempts, _ := args.Get(0).(int)
+	lockedUntil, _ := args.Get(1).(*time.Time)
+	return attempts, lockedUntil, args.Error(2)
 }
 
 func (m *mockUserRepository) ResetLoginLockout(ctx context.Context, userID string) error {
@@ -357,7 +359,8 @@ func TestUserService_Login(t *testing.T) {
 			expectedErr: "invalid credentials",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByEmail", mock.Anything, req.Email).Return(&invalidUser, nil).Once()
-				m.On("SetLoginLockoutState", mock.Anything, invalidUser.ID, 1, (*time.Time)(nil)).Return(nil).Once()
+				m.On("RecordFailedLogin", mock.Anything, invalidUser.ID, maxFailedLoginAttempts, mock.AnythingOfType("time.Time")).
+					Return(1, (*time.Time)(nil), nil).Once()
 			},
 		},
 		{
@@ -382,10 +385,10 @@ func TestUserService_Login(t *testing.T) {
 			mockMethod: func(m *mockUserRepository) {
 				almostLockedUser := invalidUser
 				almostLockedUser.FailedLoginAttempts = maxFailedLoginAttempts - 1
+				lockedUntil := time.Now().Add(accountLockDuration)
 				m.On("GetByEmail", mock.Anything, req.Email).Return(&almostLockedUser, nil).Once()
-				m.On("SetLoginLockoutState", mock.Anything, almostLockedUser.ID, maxFailedLoginAttempts, mock.MatchedBy(func(lockedUntil *time.Time) bool {
-					return lockedUntil != nil && lockedUntil.After(time.Now())
-				})).Return(nil).Once()
+				m.On("RecordFailedLogin", mock.Anything, almostLockedUser.ID, maxFailedLoginAttempts, mock.AnythingOfType("time.Time")).
+					Return(maxFailedLoginAttempts, &lockedUntil, nil).Once()
 			},
 		},
 		{
@@ -815,6 +818,7 @@ func TestUserService_ResendVerification(t *testing.T) {
 		name            string
 		expectedErr     string
 		shouldSendEmail bool
+		sendEmailErr    error
 		mockRepo        func(m *mockUserRepository)
 	}{
 		{
@@ -848,6 +852,30 @@ func TestUserService_ResendVerification(t *testing.T) {
 				m.On("CreateVerificationToken", mock.Anything, mock.Anything).Return(nil).Once()
 			},
 		},
+		{
+			// Regression test: a token-creation failure must not surface as an error —
+			// doing so would let the handler's response distinguish this case (registered,
+			// unverified, eligible) from the nil-returning "unknown email"/"already
+			// verified"/"in cooldown" cases above, defeating the non-enumeration design.
+			name: "swallows a token-creation failure instead of returning it",
+			mockRepo: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(&unverifiedUser, nil).Once()
+				m.On("GetLatestVerificationToken", mock.Anything, unverifiedUser.ID).Return(&staleToken, nil).Once()
+				m.On("CreateVerificationToken", mock.Anything, mock.Anything).Return(errors.New("db write failed")).Once()
+			},
+		},
+		{
+			// Same non-enumeration requirement for an SMTP failure: the client must see the
+			// same generic outcome whether the send succeeded or a mail-provider outage hit.
+			name:            "swallows a send failure instead of returning it",
+			shouldSendEmail: true,
+			sendEmailErr:    errors.New("smtp: connection refused"),
+			mockRepo: func(m *mockUserRepository) {
+				m.On("GetByEmail", mock.Anything, req.Email).Return(&unverifiedUser, nil).Once()
+				m.On("GetLatestVerificationToken", mock.Anything, unverifiedUser.ID).Return(&staleToken, nil).Once()
+				m.On("CreateVerificationToken", mock.Anything, mock.Anything).Return(nil).Once()
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -856,7 +884,7 @@ func TestUserService_ResendVerification(t *testing.T) {
 			mEmail := new(mockEmailService)
 			tt.mockRepo(mRepo)
 			if tt.shouldSendEmail {
-				mEmail.On("SendVerificationEmail", req.Email, mock.AnythingOfType("string")).Return(nil).Once()
+				mEmail.On("SendVerificationEmail", req.Email, mock.AnythingOfType("string")).Return(tt.sendEmailErr).Once()
 			}
 
 			srv := NewUserService(mRepo, "foobar", config.Config{}, mEmail, zap.NewNop())

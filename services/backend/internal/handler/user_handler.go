@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"github.com/H3nSte1n/recipe/internal/domain"
-	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/H3nSte1n/recipe/internal/middleware"
 	"github.com/H3nSte1n/recipe/internal/service"
 	"github.com/gin-gonic/gin"
@@ -45,13 +44,11 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 	response, err := h.userService.Login(c.Request.Context(), &req)
 	if err != nil {
-		// Locked accounts get their own status (423) so clients can tell "try again later" apart
-		// from "check your password" — but the message stays generic either way: it must not
-		// hint at whether the account exists, is locked, or the password was simply wrong.
-		if apperrors.IsLocked(err) {
-			c.JSON(http.StatusLocked, gin.H{"error": "account temporarily locked, try again later"})
-			return
-		}
+		// Deliberately a single status/message for every failure mode (wrong password,
+		// nonexistent email, locked account): a distinct response for "locked" would let a
+		// caller who already has a candidate email confirm it's registered by driving it
+		// into lockout and checking for that response, which the service layer already logs
+		// internally (apperrors.IsLocked) but must never surface to the client here.
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
@@ -117,10 +114,11 @@ func (h *UserHandler) ResendVerification(c *gin.Context) {
 		return
 	}
 
-	if err := h.userService.ResendVerification(c.Request.Context(), &req); err != nil {
-		c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
-		return
-	}
+	// ResendVerification deliberately never returns an error for this handler to surface —
+	// it logs internal failures (SMTP/DB) itself and always resolves to the same generic
+	// outcome, so the response can't be used to distinguish "registered and eligible" from
+	// "already verified" / "unknown email" / "in cooldown" / "send failed".
+	_ = h.userService.ResendVerification(c.Request.Context(), &req)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "if the email exists and is unverified, a new verification link will be sent",
