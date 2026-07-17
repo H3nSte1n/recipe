@@ -1,16 +1,12 @@
 services:
   frontend:
     build: ./services/frontend
+    # Host port stays 5173; the container now serves the production build
+    # via nginx on its internal port 80 instead of the Vite dev server.
     ports:
-      - "5173:5173"
+      - "5173:80"
     depends_on:
       - app
-    environment:
-      - VITE_ENV=development
-    volumes:
-      - ./services/frontend:/app
-      - /app/node_modules
-    command: npm run dev
 
   app:
     build: ./services/backend
