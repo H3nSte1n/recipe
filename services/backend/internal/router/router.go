@@ -3,6 +3,7 @@ package router
 import (
 	"os"
 	"strings"
+	"time"
 
 	"github.com/H3nSte1n/recipe/internal/handler"
 	"github.com/H3nSte1n/recipe/internal/middleware"
@@ -10,6 +11,20 @@ import (
 	"github.com/H3nSte1n/recipe/pkg/signedurl"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"golang.org/x/time/rate"
+)
+
+// Rate limits for the public auth endpoints, keyed per client IP (see middleware.RateLimit).
+// These endpoints have no auth token to key on, so IP is the only signal available; limits are
+// generous enough for normal use (typos, retries) but bound how fast an attacker can guess
+// passwords, spam registrations, or trigger password-reset emails against one IP.
+var (
+	loginRateLimit          = rate.Every(12 * time.Second) // 5 requests/min
+	loginRateBurst          = 5
+	registerRateLimit       = rate.Every(20 * time.Second) // 3 requests/min
+	registerRateBurst       = 3
+	forgotPasswordRateLimit = rate.Every(20 * time.Second) // 3 requests/min
+	forgotPasswordRateBurst = 3
 )
 
 // defaultTrustedProxies is used when TRUSTED_PROXIES is unset. The production deployment plan
@@ -100,10 +115,13 @@ func (r *Router) SetupRoutes() *gin.Engine {
 func (r *Router) setupPublicRoutes(rg *gin.RouterGroup) {
 	auth := rg.Group("/auth")
 	{
-		auth.POST("/register", r.handlers.UserHandler.Register)
-		auth.POST("/login", r.handlers.UserHandler.Login)
-		// Could add other public routes like:
-		auth.POST("/forgot-password", r.handlers.UserHandler.ForgotPassword)
+		// Login/register/forgot-password are rate-limited per client IP: they're the
+		// endpoints an attacker would hit to brute-force credentials, mass-register, or spam
+		// password-reset emails, and (unlike protected routes) have no user identity to key
+		// on until after they succeed.
+		auth.POST("/register", middleware.RateLimit(registerRateLimit, registerRateBurst), r.handlers.UserHandler.Register)
+		auth.POST("/login", middleware.RateLimit(loginRateLimit, loginRateBurst), r.handlers.UserHandler.Login)
+		auth.POST("/forgot-password", middleware.RateLimit(forgotPasswordRateLimit, forgotPasswordRateBurst), r.handlers.UserHandler.ForgotPassword)
 		auth.POST("/reset-password", r.handlers.UserHandler.ResetPassword)
 	}
 }
