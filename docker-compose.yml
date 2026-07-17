@@ -9,11 +9,11 @@ services:
       - app
     networks:
       app_net:
-        ipv4_address: 172.28.0.10
+        ipv4_address: 172.30.0.10
 
   app:
     build: ./services/backend
-    # No host port published: the frontend's nginx (172.28.0.10 on app_net)
+    # No host port published: the frontend's nginx (172.30.0.10 on app_net)
     # is the only intended path to the backend, matching the production
     # topology (backend reachable only through a reverse proxy). Direct
     # localhost:8080 access from the host is no longer available in Docker
@@ -33,9 +33,11 @@ services:
       - DB_SSL_MODE=disable
       # Only trust X-Forwarded-For/X-Real-IP from the frontend's fixed
       # address on app_net (the sole reverse proxy in front of this
-      # service). Production deployment behind host nginx should instead
-      # set this to 127.0.0.1 (that topology's proxy runs on loopback).
-      - TRUSTED_PROXIES=172.28.0.10
+      # service). In production, host nginx proxies to the frontend
+      # container's own nginx (services/frontend/nginx.conf), which is
+      # what actually connects to this service — so this stays the
+      # frontend's fixed docker IP, not 127.0.0.1, in both environments.
+      - TRUSTED_PROXIES=172.30.0.10
     volumes:
       - ./services/backend:/app
       - ./uploads:/app/uploads
@@ -73,7 +75,7 @@ networks:
   app_net:
     ipam:
       config:
-        - subnet: 172.28.0.0/24
+        - subnet: 172.30.0.0/24
 
 volumes:
   postgres_data:
