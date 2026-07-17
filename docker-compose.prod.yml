@@ -1,0 +1,22 @@
+# Production override. Deploy with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Replaces the dev-mode pieces (air hot-reload, bind-mounted source, host-wide
+# frontend port) with a compiled binary and a loopback-only entry point.
+# Host nginx is the only thing in front of the frontend container; the
+# frontend's own nginx (services/frontend/nginx.conf) proxies /api/ to the
+# backend over the internal app_net network, so the backend is never
+# published, not even to loopback.
+services:
+  frontend:
+    ports: !override
+      - "127.0.0.1:3200:80"
+
+  app:
+    build:
+      context: ./services/backend
+      dockerfile: Dockerfile.prod
+    environment:
+      - APP_ENV=production
+    volumes: !override
+      - ./uploads:/app/uploads
