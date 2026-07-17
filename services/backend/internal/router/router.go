@@ -17,7 +17,7 @@ type Router struct {
 	logger   *zap.Logger
 }
 
-func NewRouter(handlers *handler.Handlers, config config.Config, logger *zap.Logger) *Router {
+func NewRouter(handlers *handler.Handlers, config config.Config, logger *zap.Logger, revocations middleware.TokenRevocationChecker) *Router {
 	engine := gin.Default()
 
 	// Bound the in-memory portion of multipart parsing; larger parts spill to
@@ -29,7 +29,7 @@ func NewRouter(handlers *handler.Handlers, config config.Config, logger *zap.Log
 	return &Router{
 		engine:   engine,
 		handlers: handlers,
-		auth:     middleware.NewAuthMiddleware(config.JWT.Secret),
+		auth:     middleware.NewAuthMiddleware(config.JWT.Secret, config.JWT.Issuer, config.JWT.Audience, revocations),
 		config:   config,
 		logger:   logger,
 	}

@@ -69,7 +69,7 @@ func main() {
 
 	handlers := handler.NewHandlers(services, logger)
 
-	r := router.NewRouter(handlers, cfg, logger)
+	r := router.NewRouter(handlers, cfg, logger, repos.UserRepository)
 	r.SetupRoutes()
 
 	logger.Info("Starting server on port " + cfg.App.Port)

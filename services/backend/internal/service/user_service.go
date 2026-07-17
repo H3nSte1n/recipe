@@ -27,6 +27,7 @@ type userRepository interface {
 	CreateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
 	GetResetTokenByToken(ctx context.Context, token string) (*domain.PasswordResetToken, error)
 	MarkResetTokenUsed(ctx context.Context, tokenID string) error
+	SetTokenRevocation(ctx context.Context, userID string, revokedAt time.Time) error
 	WithTypedTransaction(ctx context.Context, fn func(repository.UserRepository) error) error
 }
 
@@ -44,6 +45,8 @@ type userService struct {
 	userRepo     userRepository
 	jwtSecret    []byte
 	jwtDuration  time.Duration
+	jwtIssuer    string
+	jwtAudience  string
 	emailService email.EmailService
 	logger       *zap.Logger
 }
@@ -53,6 +56,8 @@ func NewUserService(userRepo userRepository, jwtSecret string, config config.Con
 		userRepo:     userRepo,
 		jwtSecret:    []byte(jwtSecret),
 		jwtDuration:  config.JWT.Duration,
+		jwtIssuer:    config.JWT.Issuer,
+		jwtAudience:  config.JWT.Audience,
 		emailService: emailService,
 		logger:       logger,
 	}
@@ -178,28 +183,42 @@ func (s *userService) ResetPassword(ctx context.Context, req *domain.ResetPasswo
 		if err := txRepo.UpdatePassword(ctx, user.ID, hashedPassword); err != nil {
 			return err
 		}
-		return txRepo.MarkResetTokenUsed(ctx, resetToken.ID)
+		if err := txRepo.MarkResetTokenUsed(ctx, resetToken.ID); err != nil {
+			return err
+		}
+		// Invalidate any JWT issued before this moment so a token obtained
+		// prior to the reset (e.g. by an attacker) can't keep working.
+		return txRepo.SetTokenRevocation(ctx, user.ID, time.Now())
 	})
 }
 
 func (s *userService) generateToken(user *domain.User) (string, error) {
+	now := time.Now()
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
 		"email":   user.Email,
-		"exp":     time.Now().Add(s.jwtDuration).Unix(),
+		"iss":     s.jwtIssuer,
+		"aud":     s.jwtAudience,
+		"iat":     now.Unix(),
+		"nbf":     now.Unix(),
+		"exp":     now.Add(s.jwtDuration).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(s.jwtSecret)
 }
 
+// ValidateToken is unused by any request path today (AuthRequired middleware
+// has its own equivalent validator, since it also needs to check revocation)
+// but is kept hardened the same way — iss/aud/nbf checked, same as the
+// middleware — so it can't become a weaker bypass if it's ever wired up.
 func (s *userService) ValidateToken(tokenString string) (*jwt.Token, error) {
 	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, apperrors.New("unexpected signing method")
 		}
 		return s.jwtSecret, nil
-	})
+	}, jwt.WithIssuer(s.jwtIssuer), jwt.WithAudience(s.jwtAudience))
 }
 
 func (s *userService) Delete(ctx context.Context, userID string) error {
@@ -211,6 +230,11 @@ func (s *userService) Delete(ctx context.Context, userID string) error {
 		return err
 	}
 	return s.userRepo.WithTypedTransaction(ctx, func(txRepo repository.UserRepository) error {
+		// Revoke first: token_revocations has no FK to users, so it survives
+		// the delete and keeps rejecting any JWT issued before this moment.
+		if err := txRepo.SetTokenRevocation(ctx, user.ID, time.Now()); err != nil {
+			return err
+		}
 		return txRepo.Delete(ctx, user.ID)
 	})
 }

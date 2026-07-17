@@ -2,8 +2,11 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"time"
 )
 
 type UserRepository interface {
@@ -19,6 +22,13 @@ type UserRepository interface {
 	UpdateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
 	GetResetTokenByToken(ctx context.Context, token string) (*domain.PasswordResetToken, error)
 	MarkResetTokenUsed(ctx context.Context, tokenID string) error
+	// SetTokenRevocation records that all JWTs issued for userID before
+	// revokedAt must be rejected. Upserts so repeated calls (e.g. reset then
+	// delete) simply advance the timestamp.
+	SetTokenRevocation(ctx context.Context, userID string, revokedAt time.Time) error
+	// GetTokenRevokedAt returns the revocation timestamp for userID, or nil
+	// if the user has never had a token revoked.
+	GetTokenRevokedAt(ctx context.Context, userID string) (*time.Time, error)
 	WithTypedTransaction(ctx context.Context, fn func(UserRepository) error) error
 }
 
@@ -93,6 +103,28 @@ func (r *UserRepositoryImpl) MarkResetTokenUsed(ctx context.Context, tokenID str
 	return r.DB.WithContext(ctx).Model(&domain.PasswordResetToken{}).
 		Where("id = ?", tokenID).
 		Update("used", true).Error
+}
+
+func (r *UserRepositoryImpl) SetTokenRevocation(ctx context.Context, userID string, revokedAt time.Time) error {
+	record := domain.TokenRevocation{UserID: userID, RevokedAt: revokedAt}
+	return r.DB.WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "user_id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"revoked_at"}),
+		}).
+		Create(&record).Error
+}
+
+func (r *UserRepositoryImpl) GetTokenRevokedAt(ctx context.Context, userID string) (*time.Time, error) {
+	var record domain.TokenRevocation
+	err := r.DB.WithContext(ctx).Where("user_id = ?", userID).First(&record).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &record.RevokedAt, nil
 }
 
 func (r *UserRepositoryImpl) Delete(ctx context.Context, userID string) error {
