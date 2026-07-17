@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"time"
+
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"gorm.io/gorm"
 )
@@ -19,6 +21,8 @@ type UserRepository interface {
 	UpdateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
 	GetResetTokenByToken(ctx context.Context, token string) (*domain.PasswordResetToken, error)
 	MarkResetTokenUsed(ctx context.Context, tokenID string) error
+	SetLoginLockoutState(ctx context.Context, userID string, failedAttempts int, lockedUntil *time.Time) error
+	ResetLoginLockout(ctx context.Context, userID string) error
 	WithTypedTransaction(ctx context.Context, fn func(UserRepository) error) error
 }
 
@@ -105,4 +109,22 @@ func (r *UserRepositoryImpl) ListAll(ctx context.Context) ([]domain.User, error)
 		return nil, err
 	}
 	return users, nil
+}
+
+// SetLoginLockoutState persists the failed-login counter and, once the caller has decided the
+// account should be locked, the cooldown expiry. Pass a nil lockedUntil to leave the account
+// unlocked while still recording the attempt count.
+func (r *UserRepositoryImpl) SetLoginLockoutState(ctx context.Context, userID string, failedAttempts int, lockedUntil *time.Time) error {
+	return r.DB.WithContext(ctx).Model(&domain.User{}).
+		Where("id = ?", userID).
+		Updates(map[string]interface{}{
+			"failed_login_attempts": failedAttempts,
+			"locked_until":           lockedUntil,
+		}).Error
+}
+
+// ResetLoginLockout clears the failed-login counter and any lockout, called after a successful
+// login so past failures don't carry forward.
+func (r *UserRepositoryImpl) ResetLoginLockout(ctx context.Context, userID string) error {
+	return r.SetLoginLockoutState(ctx, userID, 0, nil)
 }

@@ -85,6 +85,16 @@ func (m *mockUserRepository) UpdateResetToken(ctx context.Context, token *domain
 	return args.Error(0)
 }
 
+func (m *mockUserRepository) SetLoginLockoutState(ctx context.Context, userID string, failedAttempts int, lockedUntil *time.Time) error {
+	args := m.Called(ctx, userID, failedAttempts, lockedUntil)
+	return args.Error(0)
+}
+
+func (m *mockUserRepository) ResetLoginLockout(ctx context.Context, userID string) error {
+	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
+
 func (m *mockUserRepository) WithTypedTransaction(ctx context.Context, fn func(repository.UserRepository) error) error {
 	args := m.Called(ctx, fn)
 	if args.Error(0) != nil {
@@ -240,12 +250,55 @@ func TestUserService_Login(t *testing.T) {
 			expectedErr: "invalid credentials",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByEmail", mock.Anything, req.Email).Return(&invalidUser, nil).Once()
+				m.On("SetLoginLockoutState", mock.Anything, invalidUser.ID, 1, (*time.Time)(nil)).Return(nil).Once()
 			},
 		},
 		{
 			name: "returns LoginResponse when credentials are valid",
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByEmail", mock.Anything, req.Email).Return(&user, nil).Once()
+			},
+		},
+		{
+			name:        "returns account locked error when locked_until is in the future",
+			expectedErr: "account temporarily locked",
+			mockMethod: func(m *mockUserRepository) {
+				lockedUser := user
+				until := time.Now().Add(10 * time.Minute)
+				lockedUser.LockedUntil = &until
+				m.On("GetByEmail", mock.Anything, req.Email).Return(&lockedUser, nil).Once()
+			},
+		},
+		{
+			name:        "locks account once the failed-attempt threshold is reached",
+			expectedErr: "invalid credentials",
+			mockMethod: func(m *mockUserRepository) {
+				almostLockedUser := invalidUser
+				almostLockedUser.FailedLoginAttempts = maxFailedLoginAttempts - 1
+				m.On("GetByEmail", mock.Anything, req.Email).Return(&almostLockedUser, nil).Once()
+				m.On("SetLoginLockoutState", mock.Anything, almostLockedUser.ID, maxFailedLoginAttempts, mock.MatchedBy(func(lockedUntil *time.Time) bool {
+					return lockedUntil != nil && lockedUntil.After(time.Now())
+				})).Return(nil).Once()
+			},
+		},
+		{
+			name: "clears an expired lockout and lets a correct password through",
+			mockMethod: func(m *mockUserRepository) {
+				expiredLockUser := user
+				expiredLockUser.FailedLoginAttempts = maxFailedLoginAttempts
+				expired := time.Now().Add(-1 * time.Minute)
+				expiredLockUser.LockedUntil = &expired
+				m.On("GetByEmail", mock.Anything, req.Email).Return(&expiredLockUser, nil).Once()
+				m.On("ResetLoginLockout", mock.Anything, expiredLockUser.ID).Return(nil).Once()
+			},
+		},
+		{
+			name: "resets the failed-attempt counter on a successful login",
+			mockMethod: func(m *mockUserRepository) {
+				priorFailuresUser := user
+				priorFailuresUser.FailedLoginAttempts = 2
+				m.On("GetByEmail", mock.Anything, req.Email).Return(&priorFailuresUser, nil).Once()
+				m.On("ResetLoginLockout", mock.Anything, priorFailuresUser.ID).Return(nil).Once()
 			},
 		},
 	}

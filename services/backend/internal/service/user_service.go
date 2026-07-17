@@ -27,8 +27,21 @@ type userRepository interface {
 	CreateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
 	GetResetTokenByToken(ctx context.Context, token string) (*domain.PasswordResetToken, error)
 	MarkResetTokenUsed(ctx context.Context, tokenID string) error
+	SetLoginLockoutState(ctx context.Context, userID string, failedAttempts int, lockedUntil *time.Time) error
+	ResetLoginLockout(ctx context.Context, userID string) error
 	WithTypedTransaction(ctx context.Context, fn func(repository.UserRepository) error) error
 }
+
+const (
+	// maxFailedLoginAttempts is how many consecutive bad passwords are tolerated before an
+	// account is locked out. 5 balances usability (typos happen) against slowing down
+	// credential-stuffing/brute-force attempts.
+	maxFailedLoginAttempts = 5
+	// accountLockDuration is how long an account stays locked once maxFailedLoginAttempts is
+	// reached. 15 minutes is long enough to make automated brute-forcing impractical while
+	// short enough that a legitimate user isn't locked out indefinitely.
+	accountLockDuration = 15 * time.Minute
+)
 
 type UserService interface {
 	Register(ctx context.Context, req *domain.RegisterRequest) (*domain.User, error)
@@ -111,8 +124,28 @@ func (s *userService) Login(ctx context.Context, req *domain.LoginRequest) (*dom
 		return nil, apperrors.New("invalid credentials")
 	}
 
+	if user.LockedUntil != nil {
+		if time.Now().Before(*user.LockedUntil) {
+			return nil, apperrors.ErrAccountLocked
+		}
+		// Lockout window has expired: clear it so the account gets a fresh set of
+		// attempts instead of re-locking on the very next bad password.
+		if err := s.userRepo.ResetLoginLockout(ctx, user.ID); err != nil {
+			s.logger.Warn("failed to clear expired login lockout", zap.Error(err))
+		}
+		user.FailedLoginAttempts = 0
+		user.LockedUntil = nil
+	}
+
 	if !domain.CheckPasswordHash(req.Password, user.PasswordHash) {
+		s.recordFailedLogin(ctx, user)
 		return nil, apperrors.New("invalid credentials")
+	}
+
+	if user.FailedLoginAttempts > 0 {
+		if err := s.userRepo.ResetLoginLockout(ctx, user.ID); err != nil {
+			s.logger.Warn("failed to reset login lockout state after successful login", zap.Error(err))
+		}
 	}
 
 	token, err := s.generateToken(user)
@@ -124,6 +157,24 @@ func (s *userService) Login(ctx context.Context, req *domain.LoginRequest) (*dom
 		Token: token,
 		User:  *user,
 	}, nil
+}
+
+// recordFailedLogin increments the account's failed-login counter and, once
+// maxFailedLoginAttempts is reached, sets a locked-until cooldown. Persistence failures are
+// logged but not surfaced to the caller — Login already returns "invalid credentials" for the
+// bad password itself, and a lockout-bookkeeping error shouldn't turn into a 500 on top of that.
+func (s *userService) recordFailedLogin(ctx context.Context, user *domain.User) {
+	attempts := user.FailedLoginAttempts + 1
+
+	var lockedUntil *time.Time
+	if attempts >= maxFailedLoginAttempts {
+		until := time.Now().Add(accountLockDuration)
+		lockedUntil = &until
+	}
+
+	if err := s.userRepo.SetLoginLockoutState(ctx, user.ID, attempts, lockedUntil); err != nil {
+		s.logger.Warn("failed to record failed login attempt", zap.Error(err))
+	}
 }
 
 func (s *userService) ForgotPassword(ctx context.Context, req *domain.ForgotPasswordRequest) error {

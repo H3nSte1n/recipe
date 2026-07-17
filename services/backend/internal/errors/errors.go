@@ -62,16 +62,29 @@ func IsUnauthorized(err error) bool {
 	return false
 }
 
+// IsLocked reports whether err represents an account temporarily locked out after too many
+// failed login attempts (see UserService.Login).
+func IsLocked(err error) bool {
+	var appErr *AppError
+	if errors.As(err, &appErr) {
+		return appErr.Code == "LOCKED"
+	}
+	return false
+}
+
 // StatusCode maps an error to the HTTP status a handler should return for it. Known cases
-// (not-found, unauthorized/cross-tenant) get their specific status; anything else — including
-// raw GORM/driver errors that must never reach the client — falls back to 500 so callers know to
-// log the real error and return a generic message instead of the error's own text.
+// (not-found, unauthorized/cross-tenant, account-locked) get their specific status; anything
+// else — including raw GORM/driver errors that must never reach the client — falls back to 500
+// so callers know to log the real error and return a generic message instead of the error's own
+// text.
 func StatusCode(err error) int {
 	switch {
 	case IsNotFound(err):
 		return http.StatusNotFound
 	case IsUnauthorized(err):
 		return http.StatusForbidden
+	case IsLocked(err):
+		return http.StatusLocked
 	default:
 		return http.StatusInternalServerError
 	}
@@ -81,6 +94,7 @@ var (
 	ErrNotFound         = &AppError{Code: "NOT_FOUND", Message: "resource not found"}
 	ErrUnauthorized     = &AppError{Code: "UNAUTHORIZED", Message: "unauthorized"}
 	ErrInternal         = &AppError{Code: "INTERNAL", Message: "internal error"}
+	ErrAccountLocked    = &AppError{Code: "LOCKED", Message: "account temporarily locked, try again later"}
 	ErrTooManyRedirects = fmt.Errorf("too many redirects")
 	ErrInvalidURL       = fmt.Errorf("invalid URL")
 	ErrFetchFailed      = fmt.Errorf("failed to fetch content")
