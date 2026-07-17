@@ -18,5 +18,19 @@ services:
       dockerfile: Dockerfile.prod
     environment:
       - APP_ENV=production
+      # Required secrets — the app refuses to boot without a strong JWT_SECRET,
+      # and NewCipher fails on an empty SECURITY_ENCRYPTION_KEY. Both override
+      # the CHANGE_ME placeholders baked into env.production.yaml.
+      - JWT_SECRET=${JWT_SECRET:?set JWT_SECRET in .env, see .env.sample}
+      - SECURITY_ENCRYPTION_KEY=${SECURITY_ENCRYPTION_KEY:?set SECURITY_ENCRYPTION_KEY in .env, see .env.sample}
+      # Optional — app boots fine without these, but email verification/reset
+      # and AI-powered import features are inert until real values are set.
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+      - AI_OPENAI_API_KEY=${AI_OPENAI_API_KEY:-}
+      - AI_ANTHROPIC_API_KEY=${AI_ANTHROPIC_API_KEY:-}
     volumes: !override
       - ./uploads:/app/uploads
