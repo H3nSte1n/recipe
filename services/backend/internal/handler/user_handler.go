@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/H3nSte1n/recipe/internal/domain"
+	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/H3nSte1n/recipe/internal/middleware"
 	"github.com/H3nSte1n/recipe/internal/service"
 	"github.com/gin-gonic/gin"
@@ -43,7 +44,14 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 	response, err := h.userService.Login(c.Request.Context(), &req)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		// Locked accounts get their own status (423) so clients can tell "try again later" apart
+		// from "check your password" — but the message stays generic either way: it must not
+		// hint at whether the account exists, is locked, or the password was simply wrong.
+		if apperrors.IsLocked(err) {
+			c.JSON(http.StatusLocked, gin.H{"error": "account temporarily locked, try again later"})
+			return
+		}
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
 

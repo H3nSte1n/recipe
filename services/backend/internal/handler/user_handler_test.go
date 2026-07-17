@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/H3nSte1n/recipe/internal/domain"
+	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
@@ -169,13 +170,27 @@ func Test_UserHandler_Login(t *testing.T) {
 			mockMethod:         func(m *mockUserService) {},
 		},
 		{
-			name:                 "service error",
+			// The handler must not echo the service's internal error text back to the
+			// client — only the generic "invalid credentials" message, so a caller can't
+			// distinguish "wrong password" from "account doesn't exist" from any other
+			// internal failure.
+			name:                 "service error maps to generic invalid-credentials message",
 			expectedStatusCode:   http.StatusUnauthorized,
 			body:                 string(jsonRequest),
-			expectedBodyContains: "service error",
+			expectedBodyContains: "invalid credentials",
 			shouldCallService:    true,
 			mockMethod: func(m *mockUserService) {
 				m.On("Login", mock.Anything, mock.Anything).Return(nil, errors.New("service error")).Once()
+			},
+		},
+		{
+			name:                 "locked account returns 423 with a generic message",
+			expectedStatusCode:   http.StatusLocked,
+			body:                 string(jsonRequest),
+			expectedBodyContains: "temporarily locked",
+			shouldCallService:    true,
+			mockMethod: func(m *mockUserService) {
+				m.On("Login", mock.Anything, mock.Anything).Return(nil, apperrors.ErrAccountLocked).Once()
 			},
 		},
 	}
