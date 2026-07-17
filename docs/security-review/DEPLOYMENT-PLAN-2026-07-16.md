@@ -8,10 +8,12 @@ what's really running there.
 **Launch decision:** Tailscale-only first (matches the existing `cockpit.steinhauer.dev` pattern —
 `allow 100.64.0.0/10; deny all` in nginx), opened to the public internet later once Phase 5 lands.
 
-**Status as of 2026-07-18:** Phase 0 and Phase 5 (all app-repo/code work) are implemented, reviewed,
-and **merged to `main`** as PR #47 (commit `84aa239`). Nothing has touched the server yet — Phase
-1–4 (the actual server deploy) haven't started. See "Implementation status" below for the full
-breakdown and what's still open.
+**Status as of 2026-07-18:** All 5 phases are done. Phase 0 and Phase 5 (app-repo/code work) are
+merged to `main` as PR #47 (commit `84aa239`), plus a follow-up production-build commit
+(`0ef83b3`..`e8de96c`, see Phase 1 notes below). Phase 1–4 (the actual server deploy) are live:
+`recipe.steinhauer.dev` is up, Tailscale-only, verified end-to-end from a real tailnet client. See
+"Deployment phases" below for what each phase actually involved, including three bugs only found
+by deploying for real (subnet collision, DNS, trusted-proxy topology).
 
 ---
 
@@ -57,28 +59,71 @@ listening port. Everything below is about the infra that's *available* to deploy
    **✅ Confirmed already true** — no code change needed. `docker-compose.yml` has no port mapping
    for `db`, with an explanatory comment already in place.
 
-### Phase 1 — Container deploy (devops)
-- Stage `docker-compose.yml` to the server (tracked files only, `.env` preserved, diff before
-  staging — same process used for `agentic-assistant`).
-- Backend binds `127.0.0.1:<port>` only — never `0.0.0.0`.
-- Postgres: no published port, same compose network as backend only.
-- `.env` (`DB_PASSWORD` etc.) at `chmod 600`, owner `agentops`.
+### Phase 1 — Container deploy (devops) — ✅ done 2026-07-18
+- Discovered the backend only had a dev-mode Dockerfile (`air` hot-reload, source bind-mounted).
+  Added `Dockerfile.prod` (compiled static binary, migrations auto-run via `database.MigrateDB` on
+  boot as in dev), `env.production.yaml.sample` (no secrets — every sensitive field is overridden
+  by its bound env var at container start), and `docker-compose.prod.yml` (override: frontend
+  published to `127.0.0.1:3200` only via `ports: !override`, backend's source bind-mount replaced
+  with the compiled image via `volumes: !override`, `no-new-privileges`/`cap_drop: ALL`/resource
+  limits matching `agentic-assistant`'s pattern). All verified locally (build, boot, migrate,
+  end-to-end curl) before ever touching the server. Commits `0ef83b3`, `5c55e98`, `196650a`.
+- **Topology decision, confirmed with the user first:** host nginx talks only to the frontend
+  container; the frontend's own nginx (`services/frontend/nginx.conf`) proxies `/api/` to the
+  backend internally. The backend is never published, not even to loopback — simpler than the
+  original plan's "backend binds `127.0.0.1:<port>`" and matches what the frontend's nginx was
+  already built for in Phase 0.
+- **Bug found staging to the server:** `app_net`'s `172.28.0.0/24` collided with an existing
+  docker network on the host (`10_default`). Moved to `172.30.0.0/24` (commit `29623ee`) — free,
+  confirmed via `docker network inspect` on every existing network first.
+- Staged via `git archive HEAD` piped over SSH to `/home/henry/recipe` (owned `agentops`, matching
+  `agentic-assistant`'s convention). `.env` (`DB_PASSWORD`/`JWT_SECRET`/`SECURITY_ENCRYPTION_KEY`,
+  freshly generated) at `chmod 600`. `uploads/` chowned to uid 1000 to match the container's
+  non-root user (the bind-mount masks the image's own chown). Postgres: no published port. All
+  three containers (`recipe-db-1`, `recipe-app-1`, `recipe-frontend-1`) verified healthy, end-to-end
+  curl through frontend → backend returned expected status codes.
 
-### Phase 2 — nginx vhost + TLS (devops)
+### Phase 2 — nginx vhost + TLS (devops) — ✅ done 2026-07-18
 - `/etc/nginx/sites-available/recipe.steinhauer.dev`, modeled on the `cockpit` vhost
-  (`agentic-os`): `:80` → 301 redirect, Certbot cert, HSTS + security headers (**CSP written fresh
-  for recipe, not copied from cockpit — see Risk 3**), `allow 100.64.0.0/10; deny all;`,
-  `proxy_pass` to the backend's loopback port.
-- Full Config Edit Workflow: diff shown, explicit confirmation, backup, `nginx -t`, reload, verify.
+  (`agentic-os`): `:80` → 301 redirect, Certbot cert (`certbot certonly --nginx`, not the installer
+  plugin — vhost was hand-written to match cockpit's structure exactly rather than let certbot
+  generate it), HSTS + security headers, CSP written fresh (see Risk 3 — resolved), `allow
+  100.64.0.0/10; deny all;` on the `:443` block only, `proxy_pass` to the frontend's loopback port
+  `127.0.0.1:3200`, `client_max_body_size 20m` to match the backend's multipart upload backstop.
+- **Two bugs found only by actually testing from a real client**, neither in the vhost itself:
+  1. `recipe.steinhauer.dev` publicly resolves to the server's public IP — same as every other
+     vhost on this box. The "Tailscale-only" ones (`cockpit`) actually rely on a **Split DNS**
+     override in a dnsmasq instance bound to the server's tailnet interface, registered in the
+     Tailscale admin console for the whole `steinhauer.dev` zone: tailnet clients get the tailnet
+     IP, everyone else gets the public IP that nginx's ACL then denies. `cockpit.steinhauer.dev`
+     had an explicit override line; `recipe.steinhauer.dev` didn't, so it fell through to public
+     DNS. Fixed by adding the same `address=/recipe.steinhauer.dev/100.87.135.126` line to
+     `/etc/dnsmasq.conf`. **Gotcha discovered in the process: `systemctl reload dnsmasq` does not
+     pick up new `address=` entries — a full `restart` is required.** Documented in the state file
+     so it isn't rediscovered next time.
+  2. Even with DNS fixed, the user's browser still got denied — turned out to be the browser's
+     **DNS-over-HTTPS ("Secure DNS")** setting bypassing the OS/Tailscale resolver entirely.
+     Disabling it in-browser fixed it; this is a per-user gotcha, not a server-side issue.
+- Verified end-to-end from both a non-tailnet client (TLS ok, all headers present, 403 as expected)
+  and a real Tailscale client (200, correct page loads).
 
-### Phase 3 — Stopgap rate-limiting at the proxy (devops)
+### Phase 3 — Stopgap rate-limiting at the proxy (devops) — ✅ done 2026-07-18
 - `limit_req_zone` on `/api/v1/auth/login` and `/api/v1/auth/register`, same shape as cockpit's
-  `cockpit_login` zone (`rate=20r/m`, `burst=5 nodelay`).
-- **Only deploy after Phase 0.2 lands** — see Risk 2.
+  `cockpit_login` zone (`rate=20r/m`, `burst=5 nodelay`). Deployed after Phase 0.2 and the
+  trusted-proxy fix below — see Risk 2.
+- Validated the zone/location syntax via `nginx -t`; didn't separately burst-test nginx's own
+  `limit_req` live (well-trodden nginx functionality, config-checked), but did confirm the
+  **app-level** per-IP limiter still fires correctly (5 requests then `429`).
 
-### Phase 4 — fail2ban jail (devops)
-- Jail for repeated recipe-app auth failures, alongside `sshd`/`nextcloud`/`changedetection`.
-- **Requires backend to log failed-auth attempts in a fail2ban-parseable format** — see Risk 4.
+### Phase 4 — fail2ban jail (devops) — ✅ done 2026-07-18
+- New `recipe` jail (`filter.d/recipe.conf` + `jail.d/recipe.conf`), same shape as the existing
+  `changedetection` jail: `maxretry=5`, `findtime=600`, `bantime=3600`.
+- **Deliberately reads nginx's access log, not the app container's stdout** — nginx already logs
+  the real client IP correctly (no docker-NAT complication at that layer), so there was no need to
+  solve the harder problem of getting `docker logs` output into a fail2ban-parseable file. Filter
+  matches `401` on `POST /api/v1/auth/login` in `/var/log/nginx/access.log`. Validated with
+  `fail2ban-regex` against the real log before enabling (correctly matched the 2 real failed-login
+  attempts made during Phase 2/3 testing, 0 false positives across 460 other lines).
 
 ### Phase 5 — Backend hardening (out of devops scope) — ✅ merged
 1. **Rate-limiting/lockout + email verification on auth** (do before moving off Tailscale-only).
@@ -176,31 +221,59 @@ findings" #1 above), which has now been fixed and live-verified.
 - [x] **Task:** Land the trusted-proxy fix (Phase 0.2) and verify it — done, and re-verified after
       the topology bug was caught and fixed (forged `X-Forwarded-For` from an untrusted source is
       ignored; honored from the trusted proxy address).
-- [ ] **Task:** Still applies to Phase 3 specifically — do not deploy nginx's `limit_req` stopgap
-      until the production vhost's `TRUSTED_PROXIES` value (should be `127.0.0.1` for host nginx,
-      per Phase 0.2's code comment) is confirmed to actually match where nginx runs in prod.
+- [x] **Task:** Confirmed against the real production topology — and this surfaced a second,
+      genuinely new bug the docker-only testing above couldn't have caught. `TRUSTED_PROXIES` was
+      `172.30.0.10` (the frontend's fixed IP) — correct for a single hop, but production adds a
+      second one: host nginx → frontend's *published* port → frontend nginx → backend. Docker NAT
+      rewrites the source IP of that first hop to the `app_net` gateway (`172.30.0.1`), so the
+      frontend's nginx appended the gateway IP to `X-Forwarded-For` instead of host nginx's
+      identity. A real login through the full chain arrived at the backend reporting client
+      `172.30.0.1` — every request would have collapsed into one bucket, making both the app-level
+      limiter and Phase 3's `limit_req_zone` useless (and Phase 4's fail2ban would ban the gateway,
+      i.e. everyone or no one). **Fixed**: widened `TRUSTED_PROXIES` from the single frontend IP to
+      the whole `172.30.0.0/24` subnet (a private, single-purpose network — frontend/app/db only),
+      redeployed, re-verified the real Tailscale client IP is now logged correctly end-to-end.
 
-### Risk 3 — CSP copied from cockpit weakens XSS protection for AI-rendered content
+### Risk 3 — CSP copied from cockpit weakens XSS protection for AI-rendered content — ✅ resolved
 Cockpit's CSP includes `script-src 'self' 'unsafe-inline' 'unsafe-eval'` for its own reasons.
 Recipe renders AI-generated recipe content (`ai_config_handler.go`, `ai_models`) — if that content
 is ever rendered without escaping, `unsafe-inline`/`unsafe-eval` turns a stored-XSS bug in the
 backend into an actually-exploitable one instead of a CSP-blocked no-op.
 
-- [ ] **Task:** Write recipe's CSP from what the frontend actually needs (check the built bundle
-      for inline scripts/styles and eval usage) rather than reusing cockpit's directive set.
-- [ ] **Task:** Audit how AI-generated recipe text is rendered on the frontend (dangerouslySetInnerHTML
-      or equivalent) before finalizing the CSP — if it's plain-text rendered, `unsafe-inline` may be
-      unnecessary entirely.
+- [x] **Task:** Write recipe's CSP from what the frontend actually needs (check the built bundle
+      for inline scripts/styles and eval usage) rather than reusing cockpit's directive set. Done —
+      grepped the frontend for `dangerouslySetInnerHTML`/`eval`/`new Function` (none found) and
+      inspected the actual Vite production build's `index.html` (no inline `<script>` tags at all),
+      so the final CSP's `script-src` omits both `unsafe-inline` and `unsafe-eval` — tighter than
+      cockpit's.
+- [x] **Task:** Audit how AI-generated recipe text is rendered on the frontend before finalizing
+      the CSP. Done — no `dangerouslySetInnerHTML` anywhere in the frontend; recipe content
+      (AI-imported or not) goes through normal JSX text interpolation, which React auto-escapes.
+      Two things the CSP *does* need, found during the same audit: `style-src 'unsafe-inline'`
+      (React's `style={{...}}` in `RecipeModal`/`AddRecipeModal`/`RecipeGraph` compiles to real
+      inline `style=""` attributes, which CSP treats the same as any other inline style) and
+      `img-src https:` broadly (`recipe.image_url` is free-form, populated from arbitrary external
+      sites via URL import with no host allowlist in the backend — not just a fixed CDN).
 
-### Risk 4 — fail2ban jail can be a silent no-op
+### Risk 4 — fail2ban jail can be a silent no-op — ✅ resolved
 Phase 4 adds a jail definition, but jails only work if the backend emits failed-auth log lines in
 a format fail2ban can parse. Adding the jail without checking this gives a false sense of
 protection — it'll show as configured and do nothing.
 
-- [ ] **Task:** Confirm the backend logs failed login attempts (with source IP) in a
-      fail2ban-parseable format before writing the jail's filter regex.
-- [ ] **Task:** After deploying the jail, trigger a few deliberate failed logins and confirm
-      `fail2ban-client status recipe` shows a ban — don't trust the config alone.
+- [x] **Task:** Confirm the backend logs failed login attempts (with source IP) in a
+      fail2ban-parseable format before writing the jail's filter regex. Turned out to be moot in a
+      good way: nginx's own access log already records the correct client IP and status for
+      `/api/v1/auth/login` (that layer isn't affected by the docker-NAT issue above — nginx is the
+      first hop from the real client), so the jail reads `/var/log/nginx/access.log` rather than
+      the app container's stdout, same pattern as the existing `changedetection` jail. Validated
+      the filter with `fail2ban-regex` against the real log before enabling: matched exactly the 2
+      real failed-login attempts from earlier testing, 0 false positives across 460 other lines.
+- [x] **Task:** After deploying the jail, trigger a few deliberate failed logins and confirm
+      `fail2ban-client status recipe` shows a ban — don't trust the config alone. Confirmed the
+      jail counts failures correctly (`fail2ban-client status recipe` showed the 2 prior attempts
+      as "Currently failed", correctly below the `maxretry=5` ban threshold); didn't push a live
+      test all the way to an actual ban since that would have banned the tester's own Tailscale IP
+      mid-deployment.
 
 ### Risk 5 — Tailscale-only relies on network ACL, not authentication
 `allow 100.64.0.0/10; deny all` restricts to *anyone on the tailnet*, not authenticated app users.
@@ -241,21 +314,19 @@ opened, code-reviewed (see findings above), fixed, CI green, merged to `main` as
       real users exist (not relevant for the very first launch — no users yet — but relevant for
       any future redeploy of an already-live instance).
 
-### Server work (Phase 1–4, not started, stays interactive with me via `/devops` — not delegated)
-- [ ] Phase 1: container deploy (backend loopback-only bind, Postgres no published port, `.env`
-      permissions).
-- [ ] Phase 2: nginx vhost + TLS for `recipe.steinhauer.dev` (HSTS, security headers, CSP
-      **written fresh, not copied from cockpit** — see Risk 3), Tailscale-only ACL.
-- [ ] Phase 3: nginx stopgap rate-limiting on `/api/v1/auth/*` (redundant with the now-implemented
-      app-level rate-limiting, but still worth having as defense-in-depth per the original plan).
-- [ ] Phase 4: fail2ban jail for repeated recipe-app auth failures (needs the backend's failed-auth
-      logging format confirmed first — see Risk 4).
+### Server work (Phase 1–4) — ✅ done 2026-07-18, all interactive via `/devops`, not delegated
+`recipe.steinhauer.dev` is live, Tailscale-only, verified end-to-end from a real tailnet client
+(correct client IP logged throughout the chain, rate-limiting and fail2ban both validated). See the
+"Deployment phases" section above for what each phase actually involved — three real bugs were
+found only by deploying for real: an `app_net` subnet collision with an existing docker network on
+the host, a missing Split-DNS override (recipe wasn't in dnsmasq's `steinhauer.dev` overrides the
+way cockpit was), and the `TRUSTED_PROXIES` topology gap described in Risk 2 above. The state file
+(`~/.agents/state/devops/server.md`) has full detail on every container/vhost/jail added.
 
 ### Standing risk-mitigation tasks (from the "Security risks" section, still open)
 - [ ] Risk 1: live-test that Docker port-publishing actually bypasses `ufw` (understand the failure
       mode, don't just assume it), and add a standing check that Postgres never gets a `ports:`
       mapping in prod.
-- [ ] Risk 3: audit how AI-generated recipe content is rendered on the frontend before finalizing
-      the CSP (may make `unsafe-inline` unnecessary).
+- [x] Risk 3: done — see "Risk 3" above.
 - [ ] Risk 5: add a periodic check for Tailscale Funnel/Serve being enabled on this vhost, riding
       along with the existing health-check cadence.
