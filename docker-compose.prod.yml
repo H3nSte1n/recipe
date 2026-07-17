@@ -11,11 +11,34 @@ services:
   frontend:
     ports: !override
       - "127.0.0.1:3200:80"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      # nginx's stock entrypoint runs as root to chown its cache/temp dirs to
+      # the nginx user, then the master process binds :80 (privileged) before
+      # dropping to worker processes as nginx — all three caps are needed for
+      # that startup sequence under cap_drop: ALL.
+      - CHOWN
+      - SETUID
+      - SETGID
+      - NET_BIND_SERVICE
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 128
 
   app:
     build:
       context: ./services/backend
       dockerfile: Dockerfile.prod
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 256
     environment:
       - APP_ENV=production
       # Required secrets — the app refuses to boot without a strong JWT_SECRET,
