@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"time"
+
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"gorm.io/gorm"
 )
@@ -19,6 +21,12 @@ type UserRepository interface {
 	UpdateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
 	GetResetTokenByToken(ctx context.Context, token string) (*domain.PasswordResetToken, error)
 	MarkResetTokenUsed(ctx context.Context, tokenID string) error
+	CreateVerificationToken(ctx context.Context, token *domain.EmailVerificationToken) error
+	GetVerificationTokenByToken(ctx context.Context, token string) (*domain.EmailVerificationToken, error)
+	MarkVerificationTokenUsed(ctx context.Context, tokenID string) error
+	GetLatestVerificationToken(ctx context.Context, userID string) (*domain.EmailVerificationToken, error)
+	MarkEmailVerified(ctx context.Context, userID string) error
+	IsEmailVerified(ctx context.Context, userID string) (bool, error)
 	WithTypedTransaction(ctx context.Context, fn func(UserRepository) error) error
 }
 
@@ -93,6 +101,50 @@ func (r *UserRepositoryImpl) MarkResetTokenUsed(ctx context.Context, tokenID str
 	return r.DB.WithContext(ctx).Model(&domain.PasswordResetToken{}).
 		Where("id = ?", tokenID).
 		Update("used", true).Error
+}
+
+func (r *UserRepositoryImpl) CreateVerificationToken(ctx context.Context, token *domain.EmailVerificationToken) error {
+	return r.DB.WithContext(ctx).Create(token).Error
+}
+
+func (r *UserRepositoryImpl) GetVerificationTokenByToken(ctx context.Context, token string) (*domain.EmailVerificationToken, error) {
+	var verificationToken domain.EmailVerificationToken
+	err := r.DB.WithContext(ctx).
+		Where("token = ?", token).
+		First(&verificationToken).Error
+	return &verificationToken, err
+}
+
+func (r *UserRepositoryImpl) MarkVerificationTokenUsed(ctx context.Context, tokenID string) error {
+	return r.DB.WithContext(ctx).Model(&domain.EmailVerificationToken{}).
+		Where("id = ?", tokenID).
+		Update("used", true).Error
+}
+
+// GetLatestVerificationToken returns the most recently created verification
+// token for a user, used to enforce a resend cooldown without new
+// rate-limiting infrastructure.
+func (r *UserRepositoryImpl) GetLatestVerificationToken(ctx context.Context, userID string) (*domain.EmailVerificationToken, error) {
+	var verificationToken domain.EmailVerificationToken
+	err := r.DB.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		First(&verificationToken).Error
+	return &verificationToken, err
+}
+
+func (r *UserRepositoryImpl) MarkEmailVerified(ctx context.Context, userID string) error {
+	return r.DB.WithContext(ctx).Model(&domain.User{}).
+		Where("id = ?", userID).
+		Update("email_verified_at", time.Now()).Error
+}
+
+func (r *UserRepositoryImpl) IsEmailVerified(ctx context.Context, userID string) (bool, error) {
+	var user domain.User
+	if err := r.DB.WithContext(ctx).Select("email_verified_at").First(&user, "id = ?", userID).Error; err != nil {
+		return false, err
+	}
+	return user.IsEmailVerified(), nil
 }
 
 func (r *UserRepositoryImpl) Delete(ctx context.Context, userID string) error {
