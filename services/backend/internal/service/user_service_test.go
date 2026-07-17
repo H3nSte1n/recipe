@@ -75,6 +75,17 @@ func (m *mockUserRepository) MarkResetTokenUsed(ctx context.Context, tokenID str
 	return args.Error(0)
 }
 
+func (m *mockUserRepository) SetTokenRevocation(ctx context.Context, userID string, revokedAt time.Time) error {
+	args := m.Called(ctx, userID, revokedAt)
+	return args.Error(0)
+}
+
+func (m *mockUserRepository) GetTokenRevokedAt(ctx context.Context, userID string) (*time.Time, error) {
+	args := m.Called(ctx, userID)
+	v, _ := args.Get(0).(*time.Time)
+	return v, args.Error(1)
+}
+
 func (m *mockUserRepository) Update(ctx context.Context, user *domain.User) error {
 	args := m.Called(ctx, user)
 	return args.Error(0)
@@ -502,6 +513,7 @@ func TestUserService_ResetPassword(t *testing.T) {
 				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
 				m.On("UpdatePassword", mock.Anything, user.ID, mock.AnythingOfType("string")).Return(nil).Once()
 				m.On("MarkResetTokenUsed", mock.Anything, resetTokenValid.ID).Return(nil).Once()
+				m.On("SetTokenRevocation", mock.Anything, user.ID, mock.AnythingOfType("time.Time")).Return(nil).Once()
 			},
 		},
 	}
@@ -544,6 +556,7 @@ func TestUserService_Delete(t *testing.T) {
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByID", mock.Anything, user.ID).Return(&user, nil).Once()
 				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("SetTokenRevocation", mock.Anything, user.ID, mock.AnythingOfType("time.Time")).Return(nil).Once()
 				m.On("Delete", mock.Anything, user.ID).Return(errors.New("delete failed")).Once()
 			},
 		},
@@ -560,6 +573,7 @@ func TestUserService_Delete(t *testing.T) {
 			mockMethod: func(m *mockUserRepository) {
 				m.On("GetByID", mock.Anything, user.ID).Return(&user, nil).Once()
 				m.On("WithTypedTransaction", mock.Anything, mock.Anything).Return(nil).Once()
+				m.On("SetTokenRevocation", mock.Anything, user.ID, mock.AnythingOfType("time.Time")).Return(nil).Once()
 				m.On("Delete", mock.Anything, user.ID).Return(nil).Once()
 			},
 		},

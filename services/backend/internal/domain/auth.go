@@ -11,6 +11,15 @@ type PasswordResetToken struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// TokenRevocation records, per user, the newest time at which all JWTs
+// issued before that time must be rejected. Written on password reset and
+// account deletion; read by the auth middleware on every authenticated
+// request.
+type TokenRevocation struct {
+	UserID    string    `json:"user_id" gorm:"primaryKey;type:uuid"`
+	RevokedAt time.Time `json:"revoked_at" gorm:"not null"`
+}
+
 type ForgotPasswordRequest struct {
 	Email string `json:"email" binding:"required,email"`
 }
