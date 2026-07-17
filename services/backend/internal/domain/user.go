@@ -13,6 +13,13 @@ type User struct {
 	LastName     string    `json:"last_name"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
+
+	// FailedLoginAttempts and LockedUntil back the account-lockout check in
+	// UserService.Login: consecutive bad passwords increment the counter, and
+	// hitting the threshold sets a cooldown expiry. Never serialized to
+	// clients — that would leak lockout state to an unauthenticated caller.
+	FailedLoginAttempts int        `json:"-" gorm:"column:failed_login_attempts;not null;default:0"`
+	LockedUntil         *time.Time `json:"-" gorm:"column:locked_until"`
 }
 
 // UserSummary is a non-PII projection of a user used by list endpoints. It omits
