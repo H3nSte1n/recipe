@@ -1,6 +1,9 @@
 package router
 
 import (
+	"os"
+	"strings"
+
 	"github.com/H3nSte1n/recipe/internal/handler"
 	"github.com/H3nSte1n/recipe/internal/middleware"
 	"github.com/H3nSte1n/recipe/pkg/config"
@@ -8,6 +11,32 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
+
+// defaultTrustedProxies is used when TRUSTED_PROXIES is unset. The production deployment plan
+// puts this app behind a local nginx reverse proxy on the same host, so loopback is the correct
+// default; override via TRUSTED_PROXIES (comma-separated IPs/CIDRs) if that topology changes.
+var defaultTrustedProxies = []string{"127.0.0.1"}
+
+// trustedProxiesFromEnv returns the proxy IPs/CIDRs Gin should trust when reading
+// X-Forwarded-For/X-Real-IP. By default Gin trusts every proxy, which lets any client forge
+// those headers; this restricts trust to known proxies only.
+func trustedProxiesFromEnv() []string {
+	raw := os.Getenv("TRUSTED_PROXIES")
+	if raw == "" {
+		return defaultTrustedProxies
+	}
+
+	proxies := make([]string, 0)
+	for _, p := range strings.Split(raw, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			proxies = append(proxies, p)
+		}
+	}
+	if len(proxies) == 0 {
+		return defaultTrustedProxies
+	}
+	return proxies
+}
 
 type Router struct {
 	engine   *gin.Engine
@@ -20,10 +49,18 @@ type Router struct {
 func NewRouter(handlers *handler.Handlers, config config.Config, logger *zap.Logger) *Router {
 	engine := gin.Default()
 
+	// Gin trusts every proxy by default, which makes X-Forwarded-For/X-Real-IP
+	// attacker-controlled from any client. Restrict trust to known proxies so those headers
+	// (and IP-based rate limiting built on top of them) reflect the real client.
+	if err := engine.SetTrustedProxies(trustedProxiesFromEnv()); err != nil {
+		logger.Warn("invalid TRUSTED_PROXIES, falling back to no trusted proxies", zap.Error(err))
+	}
+
 	// Bound the in-memory portion of multipart parsing; larger parts spill to
 	// temp files and per-handler MaxBytesReader enforces hard size limits.
 	engine.MaxMultipartMemory = 10 << 20 // 10 MiB
 
+	engine.Use(middleware.BodySizeLimit(middleware.MaxJSONBodyBytes))
 	engine.Use(middleware.CORS(config.CORS.AllowedOrigins))
 
 	return &Router{

@@ -3,6 +3,7 @@ package errors
 import (
 	"errors"
 	"fmt"
+	"net/http"
 
 	"gorm.io/gorm"
 )
@@ -51,6 +52,29 @@ func IsNotFound(err error) bool {
 		return appErr.Code == "NOT_FOUND"
 	}
 	return false
+}
+
+func IsUnauthorized(err error) bool {
+	var appErr *AppError
+	if errors.As(err, &appErr) {
+		return appErr.Code == "UNAUTHORIZED"
+	}
+	return false
+}
+
+// StatusCode maps an error to the HTTP status a handler should return for it. Known cases
+// (not-found, unauthorized/cross-tenant) get their specific status; anything else — including
+// raw GORM/driver errors that must never reach the client — falls back to 500 so callers know to
+// log the real error and return a generic message instead of the error's own text.
+func StatusCode(err error) int {
+	switch {
+	case IsNotFound(err):
+		return http.StatusNotFound
+	case IsUnauthorized(err):
+		return http.StatusForbidden
+	default:
+		return http.StatusInternalServerError
+	}
 }
 
 var (

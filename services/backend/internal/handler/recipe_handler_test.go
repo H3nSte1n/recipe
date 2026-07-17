@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/H3nSte1n/recipe/internal/domain"
+	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -385,6 +386,26 @@ func TestRecipeHandler_Get(t *testing.T) {
 				m.On("GetByID", mock.Anything, userID, recipe.ID, domain.NutritionDetailBase).Return(nil, errors.New("service error")).Once()
 			},
 		},
+		{
+			name:                 "returns 403 forbidden for a cross-tenant private recipe (not 500)",
+			setUserID:            true,
+			url:                  fmt.Sprintf("/api/v1/recipes/%v", recipe.ID),
+			expectedStatusCode:   http.StatusForbidden,
+			expectedBodyContains: "unauthorized",
+			mockMethod: func(m *mockRecipeService) {
+				m.On("GetByID", mock.Anything, userID, recipe.ID, domain.NutritionDetailBase).Return(nil, apperrors.ErrUnauthorized).Once()
+			},
+		},
+		{
+			name:                 "returns 404 not found when recipe does not exist (not 500)",
+			setUserID:            true,
+			url:                  fmt.Sprintf("/api/v1/recipes/%v", recipe.ID),
+			expectedStatusCode:   http.StatusNotFound,
+			expectedBodyContains: "resource not found",
+			mockMethod: func(m *mockRecipeService) {
+				m.On("GetByID", mock.Anything, userID, recipe.ID, domain.NutritionDetailBase).Return(nil, apperrors.ErrNotFound).Once()
+			},
+		},
 	}
 
 	gin.SetMode(gin.TestMode)
@@ -496,6 +517,7 @@ func TestRecipeHandler_ListPublic(t *testing.T) {
 	tests := []struct {
 		name                 string
 		setUserID            bool
+		queryString          string
 		expectedStatusCode   int
 		expectedBodyContains string
 		mockMethod           func(m *mockRecipeService)
@@ -503,6 +525,7 @@ func TestRecipeHandler_ListPublic(t *testing.T) {
 		{
 			name:                 "returns 200 with all public recipes when request is successfully",
 			setUserID:            true,
+			queryString:          "page=1&page_size=3",
 			expectedStatusCode:   http.StatusOK,
 			expectedBodyContains: string(jsonRecipes),
 			mockMethod: func(m *mockRecipeService) {
@@ -512,10 +535,45 @@ func TestRecipeHandler_ListPublic(t *testing.T) {
 		{
 			name:                 "returns 500 internal server error when service returns error",
 			setUserID:            true,
+			queryString:          "page=1&page_size=3",
 			expectedStatusCode:   http.StatusInternalServerError,
 			expectedBodyContains: "failed to list recipes",
 			mockMethod: func(m *mockRecipeService) {
 				m.On("ListPublicRecipes", mock.Anything, page, 3).Return(nil, pageSize, errors.New("service error")).Once()
+			},
+		},
+		{
+			name:                 "returns 400 bad request when page is negative",
+			setUserID:            true,
+			queryString:          "page=-1&page_size=3",
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedBodyContains: "page must be a positive integer",
+			mockMethod:           func(m *mockRecipeService) {},
+		},
+		{
+			name:                 "returns 400 bad request when page is zero",
+			setUserID:            true,
+			queryString:          "page=0&page_size=3",
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedBodyContains: "page must be a positive integer",
+			mockMethod:           func(m *mockRecipeService) {},
+		},
+		{
+			name:                 "returns 400 bad request when page_size is negative",
+			setUserID:            true,
+			queryString:          "page=1&page_size=-5",
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedBodyContains: "page_size must be a positive integer",
+			mockMethod:           func(m *mockRecipeService) {},
+		},
+		{
+			name:                 "clamps oversized page_size to the maximum",
+			setUserID:            true,
+			queryString:          "page=1&page_size=10000",
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: string(jsonRecipes),
+			mockMethod: func(m *mockRecipeService) {
+				m.On("ListPublicRecipes", mock.Anything, page, maxPublicRecipePageSize).Return(recipes, pageSize, nil).Once()
 			},
 		},
 	}
@@ -536,7 +594,7 @@ func TestRecipeHandler_ListPublic(t *testing.T) {
 				handler.ListPublic(ctx)
 			})
 
-			w := performRequest(router, http.MethodGet, "/api/v1/recipes/public?page=1&page_size=3", nil)
+			w := performRequest(router, http.MethodGet, "/api/v1/recipes/public?"+tt.queryString, nil)
 
 			require.Equal(t, tt.expectedStatusCode, w.Code)
 			if tt.expectedBodyContains != "" {
