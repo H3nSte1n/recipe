@@ -15,6 +15,17 @@ merged to `main` as PR #47 (commit `84aa239`), plus a follow-up production-build
 "Deployment phases" below for what each phase actually involved, including three bugs only found
 by deploying for real (subnet collision, DNS, trusted-proxy topology).
 
+**⚠ Infra is live; the app cannot accept writes yet.** All verification above covers the
+unauthenticated surface (static assets, login/register responses, rate limiting). Checked the
+actual write path directly: registered a test user, logged in, attempted `POST /api/v1/recipes` —
+blocked with `"email verification required before performing this action"` (`RequireVerified`
+middleware, see Phase 5 notes). SMTP is unconfigured (blank, per the Phase 1 `.env`), so no
+verification email can ever be sent — a new user can register and log in but can never write
+anything, including deleting their own account (`DELETE /users/me` is also `RequireVerified`-gated).
+**The two "before Phase 5 is live" TODOs below (pick an email provider, build `/verify-email`) are
+launch blockers, not nice-to-haves**, until then this is infrastructure verification, not a usable
+app.
+
 ---
 
 ## Server reconciliation (checked 2026-07-16)
@@ -305,14 +316,21 @@ All five backend branches + the frontend branch were merged into an integration 
 → up against a scratch Postgres, in order). Full test suite green on the integrated result. PR #47
 opened, code-reviewed (see findings above), fixed, CI green, merged to `main` as `84aa239`.
 
-### Before Phase 5 is actually "live" (not just merged)
+### Before Phase 5 is actually "live" (not just merged) — ⚠ these are launch blockers now
+Confirmed 2026-07-18 by testing the real write path (see status note at the top): a freshly
+registered user cannot write anything — not even delete their own account — until these land.
 - [ ] **Pick an email provider + credentials** for the verification/reset emails — currently
-      placeholder Gmail creds only. Your call, not made yet.
+      blank in the deployed `.env` (Phase 1 left `SMTP_*` empty deliberately, per the earlier
+      decision to not block infra deploy on this). Your call, not made yet.
 - [ ] **Build the frontend `/verify-email` page** (and check whether `/reset-password` has the
       same gap — the email-verification agent noted it looked unbuilt too).
 - [ ] **Warn/plan for forced re-login on first deploy** of the JWT `iss`/`aud` validation, once
       real users exist (not relevant for the very first launch — no users yet — but relevant for
       any future redeploy of an already-live instance).
+- [ ] **PII in production logs**: noticed during Phase 2 login testing — GORM logs full SQL
+      queries including plaintext user emails (`SELECT * FROM "users" WHERE email = '...'`) to the
+      `recipe-app-1` container's stdout. Not a launch blocker, but worth turning down GORM's log
+      level (or scrubbing the query args) in the production config before this handles real users.
 
 ### Server work (Phase 1–4) — ✅ done 2026-07-18, all interactive via `/devops`, not delegated
 `recipe.steinhauer.dev` is live, Tailscale-only, verified end-to-end from a real tailnet client
