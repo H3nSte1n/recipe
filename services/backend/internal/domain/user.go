@@ -6,13 +6,14 @@ import (
 )
 
 type User struct {
-	ID           string    `json:"id" gorm:"primaryKey;type:uuid"`
-	Email        string    `json:"email" gorm:"unique;not null"`
-	PasswordHash string    `json:"-" gorm:"not null"`
-	FirstName    string    `json:"first_name"`
-	LastName     string    `json:"last_name"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID              string     `json:"id" gorm:"primaryKey;type:uuid"`
+	Email           string     `json:"email" gorm:"unique;not null"`
+	PasswordHash    string     `json:"-" gorm:"not null"`
+	FirstName       string     `json:"first_name"`
+	LastName        string     `json:"last_name"`
+	EmailVerifiedAt *time.Time `json:"email_verified_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 
 	// FailedLoginAttempts and LockedUntil back the account-lockout check in
 	// UserService.Login: consecutive bad passwords increment the counter, and
@@ -20,6 +21,11 @@ type User struct {
 	// clients — that would leak lockout state to an unauthenticated caller.
 	FailedLoginAttempts int        `json:"-" gorm:"column:failed_login_attempts;not null;default:0"`
 	LockedUntil         *time.Time `json:"-" gorm:"column:locked_until"`
+}
+
+// IsEmailVerified reports whether the user has completed email verification.
+func (u *User) IsEmailVerified() bool {
+	return u.EmailVerifiedAt != nil
 }
 
 // UserSummary is a non-PII projection of a user used by list endpoints. It omits

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/H3nSte1n/recipe/internal/middleware"
@@ -92,6 +93,40 @@ func (h *UserHandler) ResetPassword(c *gin.Context) {
 	})
 }
 
+func (h *UserHandler) VerifyEmail(c *gin.Context) {
+	var req domain.VerifyEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.userService.VerifyEmail(c.Request.Context(), &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "email successfully verified",
+	})
+}
+
+func (h *UserHandler) ResendVerification(c *gin.Context) {
+	var req domain.ResendVerificationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.userService.ResendVerification(c.Request.Context(), &req); err != nil {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "if the email exists and is unverified, a new verification link will be sent",
+	})
+}
+
 func (h *UserHandler) DeleteAccount(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	if userID == "" {
@@ -112,6 +147,12 @@ func (h *UserHandler) DeleteAccount(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "account successfully deleted"})
+}
+
+// IsEmailVerified exposes the underlying service check so router.go can wire
+// up middleware.RequireVerified without needing its own DB/service access.
+func (h *UserHandler) IsEmailVerified(ctx context.Context, userID string) (bool, error) {
+	return h.userService.IsEmailVerified(ctx, userID)
 }
 
 func (h *UserHandler) ListAll(c *gin.Context) {
