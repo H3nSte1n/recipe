@@ -2,20 +2,38 @@ package handler
 
 import (
 	"github.com/H3nSte1n/recipe/internal/domain"
+	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/H3nSte1n/recipe/internal/middleware"
 	"github.com/H3nSte1n/recipe/internal/service"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"net/http"
 )
 
 type AIConfigHandler struct {
 	aiConfigService service.AIConfigService
+	logger          *zap.Logger
 }
 
-func NewAIConfigHandler(aiConfigService service.AIConfigService) *AIConfigHandler {
+func NewAIConfigHandler(aiConfigService service.AIConfigService, logger *zap.Logger) *AIConfigHandler {
 	return &AIConfigHandler{
 		aiConfigService: aiConfigService,
+		logger:          logger,
 	}
+}
+
+// respondError maps a service error to its HTTP status and writes the response. Known errors
+// (not-found, cross-tenant/unauthorized) get their specific status and safe message; anything
+// else — including raw GORM/Postgres driver errors, which must never reach the client — is
+// logged server-side with the real error and returns a generic fallback message.
+func (h *AIConfigHandler) respondError(c *gin.Context, err error, fallback string) {
+	status := apperrors.StatusCode(err)
+	if status == http.StatusInternalServerError {
+		h.logger.Error(fallback, zap.Error(err))
+		c.JSON(status, gin.H{"error": fallback})
+		return
+	}
+	c.JSON(status, gin.H{"error": err.Error()})
 }
 
 func (h *AIConfigHandler) Create(c *gin.Context) {
@@ -28,7 +46,7 @@ func (h *AIConfigHandler) Create(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	config, err := h.aiConfigService.Create(c.Request.Context(), userID, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.respondError(c, err, "failed to create AI configuration")
 		return
 	}
 
@@ -47,7 +65,7 @@ func (h *AIConfigHandler) Update(c *gin.Context) {
 
 	config, err := h.aiConfigService.Update(c.Request.Context(), userID, configID, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.respondError(c, err, "failed to update AI configuration")
 		return
 	}
 
@@ -60,7 +78,7 @@ func (h *AIConfigHandler) Get(c *gin.Context) {
 
 	config, err := h.aiConfigService.GetByID(c.Request.Context(), userID, configID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "AI configuration not found"})
+		h.respondError(c, err, "AI configuration not found")
 		return
 	}
 
@@ -72,7 +90,7 @@ func (h *AIConfigHandler) List(c *gin.Context) {
 
 	configs, err := h.aiConfigService.List(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.respondError(c, err, "failed to list AI configurations")
 		return
 	}
 
@@ -84,7 +102,7 @@ func (h *AIConfigHandler) Delete(c *gin.Context) {
 	configID := c.Param("id")
 
 	if err := h.aiConfigService.Delete(c.Request.Context(), userID, configID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.respondError(c, err, "failed to delete AI configuration")
 		return
 	}
 
@@ -94,7 +112,7 @@ func (h *AIConfigHandler) Delete(c *gin.Context) {
 func (h *AIConfigHandler) ListModels(c *gin.Context) {
 	models, err := h.aiConfigService.ListAIModels(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.respondError(c, err, "failed to list AI models")
 		return
 	}
 
@@ -106,7 +124,7 @@ func (h *AIConfigHandler) SetDefault(c *gin.Context) {
 	configID := c.Param("id")
 
 	if err := h.aiConfigService.SetDefault(c.Request.Context(), userID, configID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.respondError(c, err, "failed to set default AI configuration")
 		return
 	}
 
@@ -118,7 +136,7 @@ func (h *AIConfigHandler) GetDefault(c *gin.Context) {
 
 	config, err := h.aiConfigService.GetDefaultConfig(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "No default AI configuration found"})
+		h.respondError(c, err, "No default AI configuration found")
 		return
 	}
 

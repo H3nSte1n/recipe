@@ -2,8 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
+
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"time"
 )
 
 type UserRepository interface {
@@ -19,6 +23,21 @@ type UserRepository interface {
 	UpdateResetToken(ctx context.Context, token *domain.PasswordResetToken) error
 	GetResetTokenByToken(ctx context.Context, token string) (*domain.PasswordResetToken, error)
 	MarkResetTokenUsed(ctx context.Context, tokenID string) error
+	RecordFailedLogin(ctx context.Context, userID string, maxAttempts int, lockUntil time.Time) (int, *time.Time, error)
+	ResetLoginLockout(ctx context.Context, userID string) error
+	// SetTokenRevocation records that all JWTs issued for userID before
+	// revokedAt must be rejected. Upserts so repeated calls (e.g. reset then
+	// delete) simply advance the timestamp.
+	SetTokenRevocation(ctx context.Context, userID string, revokedAt time.Time) error
+	// GetTokenRevokedAt returns the revocation timestamp for userID, or nil
+	// if the user has never had a token revoked.
+	GetTokenRevokedAt(ctx context.Context, userID string) (*time.Time, error)
+	CreateVerificationToken(ctx context.Context, token *domain.EmailVerificationToken) error
+	GetVerificationTokenByToken(ctx context.Context, token string) (*domain.EmailVerificationToken, error)
+	MarkVerificationTokenUsed(ctx context.Context, tokenID string) error
+	GetLatestVerificationToken(ctx context.Context, userID string) (*domain.EmailVerificationToken, error)
+	MarkEmailVerified(ctx context.Context, userID string) error
+	IsEmailVerified(ctx context.Context, userID string) (bool, error)
 	WithTypedTransaction(ctx context.Context, fn func(UserRepository) error) error
 }
 
@@ -95,6 +114,72 @@ func (r *UserRepositoryImpl) MarkResetTokenUsed(ctx context.Context, tokenID str
 		Update("used", true).Error
 }
 
+func (r *UserRepositoryImpl) SetTokenRevocation(ctx context.Context, userID string, revokedAt time.Time) error {
+	record := domain.TokenRevocation{UserID: userID, RevokedAt: revokedAt}
+	return r.DB.WithContext(ctx).
+		Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "user_id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"revoked_at"}),
+		}).
+		Create(&record).Error
+}
+
+func (r *UserRepositoryImpl) GetTokenRevokedAt(ctx context.Context, userID string) (*time.Time, error) {
+	var record domain.TokenRevocation
+	err := r.DB.WithContext(ctx).Where("user_id = ?", userID).First(&record).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &record.RevokedAt, nil
+}
+
+func (r *UserRepositoryImpl) CreateVerificationToken(ctx context.Context, token *domain.EmailVerificationToken) error {
+	return r.DB.WithContext(ctx).Create(token).Error
+}
+
+func (r *UserRepositoryImpl) GetVerificationTokenByToken(ctx context.Context, token string) (*domain.EmailVerificationToken, error) {
+	var verificationToken domain.EmailVerificationToken
+	err := r.DB.WithContext(ctx).
+		Where("token = ?", token).
+		First(&verificationToken).Error
+	return &verificationToken, err
+}
+
+func (r *UserRepositoryImpl) MarkVerificationTokenUsed(ctx context.Context, tokenID string) error {
+	return r.DB.WithContext(ctx).Model(&domain.EmailVerificationToken{}).
+		Where("id = ?", tokenID).
+		Update("used", true).Error
+}
+
+// GetLatestVerificationToken returns the most recently created verification
+// token for a user, used to enforce a resend cooldown without new
+// rate-limiting infrastructure.
+func (r *UserRepositoryImpl) GetLatestVerificationToken(ctx context.Context, userID string) (*domain.EmailVerificationToken, error) {
+	var verificationToken domain.EmailVerificationToken
+	err := r.DB.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		First(&verificationToken).Error
+	return &verificationToken, err
+}
+
+func (r *UserRepositoryImpl) MarkEmailVerified(ctx context.Context, userID string) error {
+	return r.DB.WithContext(ctx).Model(&domain.User{}).
+		Where("id = ?", userID).
+		Update("email_verified_at", time.Now()).Error
+}
+
+func (r *UserRepositoryImpl) IsEmailVerified(ctx context.Context, userID string) (bool, error) {
+	var user domain.User
+	if err := r.DB.WithContext(ctx).Select("email_verified_at").First(&user, "id = ?", userID).Error; err != nil {
+		return false, err
+	}
+	return user.IsEmailVerified(), nil
+}
+
 func (r *UserRepositoryImpl) Delete(ctx context.Context, userID string) error {
 	return r.DB.WithContext(ctx).Delete(&domain.User{ID: userID}).Error
 }
@@ -105,4 +190,42 @@ func (r *UserRepositoryImpl) ListAll(ctx context.Context) ([]domain.User, error)
 		return nil, err
 	}
 	return users, nil
+}
+
+// ResetLoginLockout clears the failed-login counter and any lockout, called after a successful
+// login so past failures don't carry forward.
+func (r *UserRepositoryImpl) ResetLoginLockout(ctx context.Context, userID string) error {
+	return r.DB.WithContext(ctx).Model(&domain.User{}).
+		Where("id = ?", userID).
+		Updates(map[string]interface{}{
+			"failed_login_attempts": 0,
+			"locked_until":          nil,
+		}).Error
+}
+
+// RecordFailedLogin atomically increments the failed-login counter for userID and, if the
+// resulting count reaches maxAttempts, sets locked_until to lockUntil in the same statement.
+// This must be a single UPDATE (not a read of the current count followed by a separate write):
+// two concurrent failed-login requests that each read the same stale count and write back
+// count+1 would lose one of the increments, letting an attacker bypass the lockout entirely by
+// firing attempts in parallel. `failed_login_attempts + 1` here is evaluated by the database
+// against the row's current value at write time, so concurrent increments for the same user
+// serialize correctly instead of racing. Returns the post-increment attempt count and lock
+// expiry (nil if not locked) so the caller doesn't need a follow-up read.
+func (r *UserRepositoryImpl) RecordFailedLogin(ctx context.Context, userID string, maxAttempts int, lockUntil time.Time) (int, *time.Time, error) {
+	var result struct {
+		FailedLoginAttempts int
+		LockedUntil         *time.Time
+	}
+	err := r.DB.WithContext(ctx).Raw(`
+		UPDATE users
+		SET failed_login_attempts = failed_login_attempts + 1,
+		    locked_until = CASE WHEN failed_login_attempts + 1 >= ? THEN ? ELSE locked_until END
+		WHERE id = ?
+		RETURNING failed_login_attempts, locked_until
+	`, maxAttempts, lockUntil, userID).Scan(&result).Error
+	if err != nil {
+		return 0, nil, err
+	}
+	return result.FailedLoginAttempts, result.LockedUntil, nil
 }

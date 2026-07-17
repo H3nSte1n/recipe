@@ -1,21 +1,26 @@
 services:
   frontend:
     build: ./services/frontend
+    # Host port stays 5173; the container now serves the production build
+    # via nginx on its internal port 80 instead of the Vite dev server.
     ports:
-      - "5173:5173"
+      - "5173:80"
     depends_on:
       - app
-    environment:
-      - VITE_ENV=development
-    volumes:
-      - ./services/frontend:/app
-      - /app/node_modules
-    command: npm run dev
+    networks:
+      app_net:
+        ipv4_address: 172.28.0.10
 
   app:
     build: ./services/backend
-    ports:
-      - "8080:8080"
+    # No host port published: the frontend's nginx (172.28.0.10 on app_net)
+    # is the only intended path to the backend, matching the production
+    # topology (backend reachable only through a reverse proxy). Direct
+    # localhost:8080 access from the host is no longer available in Docker
+    # mode — use `make dev` (services/backend) for that. Publishing this
+    # port previously let a client connect directly and bypass the proxy
+    # that sets X-Forwarded-For, which made TRUSTED_PROXIES below
+    # meaningless (see docs/security-review/DEPLOYMENT-PLAN-2026-07-16.md).
     depends_on:
       db:
         condition: service_healthy
@@ -26,9 +31,16 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:?set DB_PASSWORD in .env, see .env.sample}
       - DB_NAME=recipe_db
       - DB_SSL_MODE=disable
+      # Only trust X-Forwarded-For/X-Real-IP from the frontend's fixed
+      # address on app_net (the sole reverse proxy in front of this
+      # service). Production deployment behind host nginx should instead
+      # set this to 127.0.0.1 (that topology's proxy runs on loopback).
+      - TRUSTED_PROXIES=172.28.0.10
     volumes:
       - ./services/backend:/app
       - ./uploads:/app/uploads
+    networks:
+      - app_net
 
   db:
     image: postgres:18-alpine
@@ -49,7 +61,19 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - app_net
 
+
+networks:
+  # Fixed subnet so the frontend's address is known ahead of time and can be
+  # trusted explicitly via TRUSTED_PROXIES above, rather than trusting an
+  # auto-assigned bridge subnet (which would also mean trusting whatever
+  # else joins this network).
+  app_net:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
 
 volumes:
   postgres_data:

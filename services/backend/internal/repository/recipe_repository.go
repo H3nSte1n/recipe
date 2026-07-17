@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"gorm.io/gorm"
 )
@@ -142,7 +141,10 @@ func (r *RecipeRepositoryImpl) GetByID(ctx context.Context, id string, nutrition
 	err := query.First(&recipe, "id = ?", id).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.New("recipe not found")
+			// Propagate the sentinel (rather than a plain errors.New) so
+			// apperrors.IsNotFound/StatusCode upstream can recognize it and map it to a
+			// 404 instead of it falling through to a generic 500.
+			return nil, gorm.ErrRecordNotFound
 		}
 		return nil, err
 	}

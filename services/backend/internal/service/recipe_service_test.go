@@ -162,7 +162,10 @@ func TestRecipeService_GetByID_NotFound(t *testing.T) {
 	recipeRepo.AssertExpectations(t)
 }
 
-func TestRecipeService_GetByID_PrivateUnauthorized(t *testing.T) {
+func TestRecipeService_GetByID_PrivateReturnsNotFound(t *testing.T) {
+	// A private recipe owned by someone else must be indistinguishable from a recipe that
+	// doesn't exist at all (ErrNotFound, not ErrUnauthorized) — otherwise an unauthorized
+	// caller could enumerate valid recipe IDs by observing 403 vs 404.
 	recipeID := "recipe-1"
 	recipe := &domain.Recipe{ID: recipeID, UserID: "other-user", IsPrivate: true}
 
@@ -173,7 +176,7 @@ func TestRecipeService_GetByID_PrivateUnauthorized(t *testing.T) {
 	result, err := srv.GetByID(context.Background(), "user-1", recipeID, domain.NutritionDetailBase)
 
 	require.Nil(t, result)
-	require.ErrorIs(t, err, apperrors.ErrUnauthorized)
+	require.ErrorIs(t, err, apperrors.ErrNotFound)
 	recipeRepo.AssertExpectations(t)
 }
 

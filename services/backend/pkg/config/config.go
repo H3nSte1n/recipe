@@ -53,6 +53,11 @@ type JWTConfig struct {
 	Secret        string        `mapstructure:"secret"`
 	Duration      time.Duration `mapstructure:"duration"`
 	ExpirationHrs time.Duration `mapstructure:"expiration_hours"`
+	// Issuer and Audience are set as the "iss"/"aud" claims on issued tokens
+	// and are required to match on every token the auth middleware accepts.
+	// Fall back to defaultJWTIssuer/defaultJWTAudience when unset.
+	Issuer   string `mapstructure:"issuer"`
+	Audience string `mapstructure:"audience"`
 }
 
 type SMTPConfig struct {
@@ -111,6 +116,17 @@ func LoadConfig(env string) (config Config, err error) {
 		_ = v.BindEnv(key)
 	}
 
+	// Same reasoning as secretKeys above, for non-secret fields we still want
+	// overridable via env var (e.g. JWT_ISSUER, JWT_AUDIENCE) in deployments
+	// that don't want to bake them into the committed YAML.
+	overridableKeys := []string{
+		"jwt.issuer",
+		"jwt.audience",
+	}
+	for _, key := range overridableKeys {
+		_ = v.BindEnv(key)
+	}
+
 	if err := v.ReadInConfig(); err != nil {
 		return config, fmt.Errorf("error reading config file: %w", err)
 	}
@@ -119,8 +135,24 @@ func LoadConfig(env string) (config Config, err error) {
 		return config, fmt.Errorf("unable to decode config into struct: %w", err)
 	}
 
+	if strings.TrimSpace(config.JWT.Issuer) == "" {
+		config.JWT.Issuer = defaultJWTIssuer
+	}
+	if strings.TrimSpace(config.JWT.Audience) == "" {
+		config.JWT.Audience = defaultJWTAudience
+	}
+
 	return config, nil
 }
+
+// defaultJWTIssuer/defaultJWTAudience are used when jwt.issuer/jwt.audience
+// are not set via config or env var. Kept as simple constants per project
+// convention (config-driven where a pattern already exists, constants
+// otherwise) rather than a new configuration subsystem.
+const (
+	defaultJWTIssuer   = "recipe-app"
+	defaultJWTAudience = "recipe-app-api"
+)
 
 const minJWTSecretBytes = 32
 

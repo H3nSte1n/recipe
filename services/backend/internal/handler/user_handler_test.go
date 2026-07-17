@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/H3nSte1n/recipe/internal/domain"
+	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
@@ -57,6 +58,21 @@ func (m *mockUserService) ListAll(ctx context.Context) ([]domain.UserSummary, er
 	args := m.Called(ctx)
 	v, _ := args.Get(0).([]domain.UserSummary)
 	return v, args.Error(1)
+}
+
+func (m *mockUserService) VerifyEmail(ctx context.Context, req *domain.VerifyEmailRequest) error {
+	args := m.Called(ctx, req)
+	return args.Error(0)
+}
+
+func (m *mockUserService) ResendVerification(ctx context.Context, req *domain.ResendVerificationRequest) error {
+	args := m.Called(ctx, req)
+	return args.Error(0)
+}
+
+func (m *mockUserService) IsEmailVerified(ctx context.Context, userID string) (bool, error) {
+	args := m.Called(ctx, userID)
+	return args.Bool(0), args.Error(1)
 }
 
 func Test_UserHandler_Register(t *testing.T) {
@@ -169,13 +185,31 @@ func Test_UserHandler_Login(t *testing.T) {
 			mockMethod:         func(m *mockUserService) {},
 		},
 		{
-			name:                 "service error",
+			// The handler must not echo the service's internal error text back to the
+			// client — only the generic "invalid credentials" message, so a caller can't
+			// distinguish "wrong password" from "account doesn't exist" from any other
+			// internal failure.
+			name:                 "service error maps to generic invalid-credentials message",
 			expectedStatusCode:   http.StatusUnauthorized,
 			body:                 string(jsonRequest),
-			expectedBodyContains: "service error",
+			expectedBodyContains: "invalid credentials",
 			shouldCallService:    true,
 			mockMethod: func(m *mockUserService) {
 				m.On("Login", mock.Anything, mock.Anything).Return(nil, errors.New("service error")).Once()
+			},
+		},
+		{
+			// A locked account must get the same response as any other login failure --
+			// a distinct status would let a caller who already has a candidate email
+			// confirm it's registered by driving it into lockout and observing the
+			// difference (see the account-existence-oracle fix in this handler).
+			name:                 "locked account returns the same generic 401 as any other failure",
+			expectedStatusCode:   http.StatusUnauthorized,
+			body:                 string(jsonRequest),
+			expectedBodyContains: "invalid credentials",
+			shouldCallService:    true,
+			mockMethod: func(m *mockUserService) {
+				m.On("Login", mock.Anything, mock.Anything).Return(nil, apperrors.ErrAccountLocked).Once()
 			},
 		},
 	}
@@ -340,6 +374,148 @@ func Test_UserHandler_ResetPassword(t *testing.T) {
 			}
 			if !tt.shouldCallService {
 				m.AssertNotCalled(t, "ResetPassword", mock.Anything, mock.Anything)
+			}
+			m.AssertExpectations(t)
+		})
+	}
+}
+
+func Test_UserHandler_VerifyEmail(t *testing.T) {
+	verifyEmailRequest := domain.VerifyEmailRequest{Token: "FoobarToken"}
+	jsonRequest, _ := json.Marshal(verifyEmailRequest)
+	tests := []struct {
+		name                 string
+		body                 string
+		expectedStatusCode   int
+		expectedBodyContains string
+		shouldCallService    bool
+		mockMethod           func(m *mockUserService)
+	}{
+		{
+			name:                 "verifies email successfully",
+			body:                 string(jsonRequest),
+			expectedStatusCode:   http.StatusOK,
+			shouldCallService:    true,
+			expectedBodyContains: "email successfully verified",
+			mockMethod: func(m *mockUserService) {
+				m.On("VerifyEmail", mock.Anything, mock.MatchedBy(func(req *domain.VerifyEmailRequest) bool {
+					return req.Token == verifyEmailRequest.Token
+				})).Return(nil).Once()
+			},
+		},
+		{
+			name:               "invalid json",
+			body:               `{"token":"foobar12`,
+			expectedStatusCode: http.StatusBadRequest,
+			shouldCallService:  false,
+			mockMethod:         func(m *mockUserService) {},
+		},
+		{
+			name:                 "service error",
+			body:                 string(jsonRequest),
+			expectedStatusCode:   http.StatusBadRequest,
+			expectedBodyContains: "service error",
+			shouldCallService:    true,
+			mockMethod: func(m *mockUserService) {
+				m.On("VerifyEmail", mock.Anything, mock.Anything).Return(errors.New("service error")).Once()
+			},
+		},
+	}
+
+	gin.SetMode(gin.TestMode)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockUserService)
+			tt.mockMethod(m)
+
+			handler := NewUserHandler(m)
+			router := gin.New()
+			router.POST("/api/v1/auth/verify-email", handler.VerifyEmail)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/verify-email", strings.NewReader(tt.body))
+			w := httptest.NewRecorder()
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.expectedStatusCode, w.Code)
+			if tt.expectedBodyContains != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedBodyContains)
+			}
+			if !tt.shouldCallService {
+				m.AssertNotCalled(t, "VerifyEmail", mock.Anything, mock.Anything)
+			}
+			m.AssertExpectations(t)
+		})
+	}
+}
+
+func Test_UserHandler_ResendVerification(t *testing.T) {
+	resendRequest := domain.ResendVerificationRequest{Email: "foo@bar.com"}
+	jsonRequest, _ := json.Marshal(resendRequest)
+	tests := []struct {
+		name                 string
+		body                 string
+		expectedStatusCode   int
+		expectedBodyContains string
+		shouldCallService    bool
+		mockMethod           func(m *mockUserService)
+	}{
+		{
+			name:                 "resends verification successfully",
+			body:                 string(jsonRequest),
+			expectedStatusCode:   http.StatusOK,
+			shouldCallService:    true,
+			expectedBodyContains: "if the email exists and is unverified",
+			mockMethod: func(m *mockUserService) {
+				m.On("ResendVerification", mock.Anything, mock.MatchedBy(func(req *domain.ResendVerificationRequest) bool {
+					return req.Email == resendRequest.Email
+				})).Return(nil).Once()
+			},
+		},
+		{
+			name:               "invalid json",
+			body:               `{"email":"foo@bar.c`,
+			expectedStatusCode: http.StatusBadRequest,
+			shouldCallService:  false,
+			mockMethod:         func(m *mockUserService) {},
+		},
+		{
+			// Regression test: the handler must return the same generic 200 whether the
+			// service succeeds or fails internally (it never surfaces a service error) —
+			// otherwise the response itself would leak which case occurred, defeating the
+			// service's own non-enumeration design (see ResendVerification's doc comment).
+			name:                 "returns the same generic response even when the service reports an internal error",
+			body:                 string(jsonRequest),
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: "if the email exists and is unverified",
+			shouldCallService:    true,
+			mockMethod: func(m *mockUserService) {
+				m.On("ResendVerification", mock.Anything, mock.Anything).Return(errors.New("service error")).Once()
+			},
+		},
+	}
+
+	gin.SetMode(gin.TestMode)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := new(mockUserService)
+			tt.mockMethod(m)
+
+			handler := NewUserHandler(m)
+			router := gin.New()
+			router.POST("/api/v1/auth/resend-verification", handler.ResendVerification)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/resend-verification", strings.NewReader(tt.body))
+			w := httptest.NewRecorder()
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.expectedStatusCode, w.Code)
+			if tt.expectedBodyContains != "" {
+				assert.Contains(t, w.Body.String(), tt.expectedBodyContains)
+			}
+			if !tt.shouldCallService {
+				m.AssertNotCalled(t, "ResendVerification", mock.Anything, mock.Anything)
 			}
 			m.AssertExpectations(t)
 		})

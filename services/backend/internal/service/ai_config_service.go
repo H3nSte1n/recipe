@@ -133,7 +133,11 @@ func (s *aiConfigService) GetByID(ctx context.Context, userID string, configID s
 	}
 
 	if config.UserID != userID {
-		return nil, apperrors.ErrUnauthorized
+		// Deliberately ErrNotFound, not ErrUnauthorized: a 403 here would tell an
+		// unauthorized caller "this config ID exists, just not yours," letting them
+		// enumerate valid IDs by observing 403 vs 404. Reads must be indistinguishable
+		// from a genuinely missing config.
+		return nil, apperrors.ErrNotFound
 	}
 
 	config.APIKey = decryptAPIKey(s.cipher, s.logger, config.APIKey)

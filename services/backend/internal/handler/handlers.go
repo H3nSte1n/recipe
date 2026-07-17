@@ -18,7 +18,7 @@ func NewHandlers(services *service.Services, logger *zap.Logger) *Handlers {
 	return &Handlers{
 		UserHandler:         NewUserHandler(services.UserService),
 		ProfileHandler:      NewProfileHandler(services.ProfileService),
-		AIConfigHandler:     NewAIConfigHandler(services.AIConfigService),
+		AIConfigHandler:     NewAIConfigHandler(services.AIConfigService, logger),
 		RecipeHandler:       NewRecipeHandler(services.RecipeService, logger),
 		ShoppingListHandler: NewShoppingListHandler(services.ShoppingListService, logger),
 		StoreChainHandler:   NewStoreChainHandler(services.StoreChainService, logger),
