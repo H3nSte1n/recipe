@@ -47,3 +47,10 @@ Phase 5 (production-deployment): Fixed app_net subnet collision, Tailscale Split
 Phase 6 (production-deployment): Verified write path end-to-end; provisioned Henry + Johannes accounts directly (SMTP deferred, 2-user scope) — DONE — 2026-07-18T08:40:00Z
 Phase 7 (production-deployment): Added recipe.johanneszimmer.com as a second Tailscale-only domain in front of the same app — DONE — 2026-07-18T10:50:00Z
 Phase 8 (production-deployment): Invited Johannes to the tailnet with scoped Tailscale ACL grants (recipe app only) + explicit nginx-level deny on cockpit.steinhauer.dev to close the vhost-multiplexing gap — DONE — 2026-07-18T22:10:00Z
+Phase 9 (production-deployment): GORM logger explicitly configured (Silent in production), fixing plaintext-email SQL leaks to container stdout — DONE — 2026-07-18T20:45:00Z
+
+Phase 1 (risk-mitigation): Risk 1 Part A — live-tested and confirmed Docker port-publishing bypasses ufw's default-deny (throwaway container, external curl, torn down immediately); recorded in server state file — DONE — 2026-07-18T20:39:00Z
+Phase 2 (risk-mitigation): Risk 5 — deployed check-tailscale-serve.sh + Uptime Kuma Push monitor ("Tailscale Funnel/Serve Check"); test-run confirmed push succeeds; cron entry added by user (root crontab, */30 * * * *) — first live cron-triggered heartbeat pending verification — DONE (script/monitor) — 2026-07-18T22:59:00Z
+
+Phase 1 (unplanned-fixes): Fixed brie.johanneszimmer.com — vhost's ssl_certificate paths pointed at steinhauer.dev's cert (not covering this domain) since at least 2025-12-17, causing a TLS hostname-mismatch failure for all visitors despite correct DNS and a healthy backend; a dedicated valid cert already existed but was never wired in. Corrected paths, reloaded nginx, verified (HTTP 200, correct cert) — DONE — 2026-07-18T20:57:00Z
+Phase 2 (unplanned-fixes): Rebound Uptime Kuma's docker-compose port mapping from 127.0.0.1:3001 to the Tailscale interface (100.87.135.126:3001, matching Portainer's pattern) so it's reachable over the tailnet without an SSH tunnel — needed to create the Risk 5 push monitor — DONE — 2026-07-18T20:51:00Z

@@ -5,13 +5,30 @@ on:
     branches: [ main ]
     paths:
       - 'services/backend/**'
+      - 'docker-compose.yml'
+      - 'docker-compose.prod.yml'
+      - 'scripts/check-no-db-port.sh'
       - '.github/workflows/backend-ci.yml'
   pull_request:
     branches: [ main ]
     paths:
       - 'services/backend/**'
+      - 'docker-compose.yml'
+      - 'docker-compose.prod.yml'
+      - 'scripts/check-no-db-port.sh'
 
 jobs:
+  no-db-port:
+    name: Postgres has no published port
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run check-no-db-port.sh
+        run: ./scripts/check-no-db-port.sh
+
   lint-and-build:
     name: Lint & Build
     runs-on: ubuntu-latest
