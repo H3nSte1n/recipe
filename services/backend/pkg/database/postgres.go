@@ -5,6 +5,7 @@ import (
 	"github.com/H3nSte1n/recipe/pkg/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
 )
 
 func NewPostgresConnection(config *config.Config) (*gorm.DB, error) {
@@ -17,7 +18,16 @@ func NewPostgresConnection(config *config.Config) (*gorm.DB, error) {
 		config.DB.SSLMode,
 	)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	// GORM's default logger logs slow-query warnings with full SQL, including
+	// literal query args like plaintext user emails. Silence it in production;
+	// keep the default (Warn) elsewhere for local debugging.
+	logLevel := gormlogger.Warn
+	if config.App.Env == "production" {
+		logLevel = gormlogger.Silent
+	}
+	gormLogger := gormlogger.Default.LogMode(logLevel)
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: gormLogger})
 	if err != nil {
 		return nil, err
 	}
