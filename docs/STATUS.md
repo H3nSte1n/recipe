@@ -37,3 +37,13 @@ Phase 5 (post-remediation-audit): Triage the two not-started plans against curre
 Phase 6 (post-remediation-audit): Live functional & dependency verification — DONE — 2026-07-15T22:45:00Z
 Phase 7 (post-remediation-audit): Consolidated report & go-live blockers plan — DONE — 2026-07-15T23:50:00Z
 Phase 8 (post-remediation-audit): Go-live blocker remediation (DB exposure, registration, model IDs; key rotation left for owner) — DONE — 2026-07-16T20:05:00Z
+
+Phase 0 (production-deployment): App-repo prerequisites — trusted-proxy fix, prod frontend build — DONE — 2026-07-17T20:00:00Z
+Phase 1 (production-deployment): Rate-limiting/lockout, JWT revocation, email verification, claims/body-limit/pagination hardening — merged as PR #47 — DONE — 2026-07-17T21:30:00Z
+Phase 2 (production-deployment): Code review of PR #47 (8-angle finder + verification, 6 confirmed findings fixed) — DONE — 2026-07-17T22:15:00Z
+Phase 3 (production-deployment): Backend production build (Dockerfile.prod, compiled binary, docker-compose.prod.yml, container hardening) — DONE — 2026-07-17T23:30:00Z
+Phase 4 (production-deployment): Server deploy Phase 1-4 via /devops — containers live, nginx vhost + TLS for recipe.steinhauer.dev, rate-limiting, fail2ban jail — DONE — 2026-07-18T01:00:00Z
+Phase 5 (production-deployment): Fixed app_net subnet collision, Tailscale Split-DNS gap, and TRUSTED_PROXIES NAT-hop bug found during live deployment — DONE — 2026-07-18T01:05:00Z
+Phase 6 (production-deployment): Verified write path end-to-end; provisioned Henry + Johannes accounts directly (SMTP deferred, 2-user scope) — DONE — 2026-07-18T08:40:00Z
+Phase 7 (production-deployment): Added recipe.johanneszimmer.com as a second Tailscale-only domain in front of the same app — DONE — 2026-07-18T10:50:00Z
+Phase 8 (production-deployment): Invited Johannes to the tailnet with scoped Tailscale ACL grants (recipe app only) + explicit nginx-level deny on cockpit.steinhauer.dev to close the vhost-multiplexing gap — DONE — 2026-07-18T22:10:00Z
