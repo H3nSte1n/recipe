@@ -15,16 +15,36 @@ merged to `main` as PR #47 (commit `84aa239`), plus a follow-up production-build
 "Deployment phases" below for what each phase actually involved, including three bugs only found
 by deploying for real (subnet collision, DNS, trusted-proxy topology).
 
-**⚠ Infra is live; the app cannot accept writes yet.** All verification above covers the
-unauthenticated surface (static assets, login/register responses, rate limiting). Checked the
-actual write path directly: registered a test user, logged in, attempted `POST /api/v1/recipes` —
-blocked with `"email verification required before performing this action"` (`RequireVerified`
-middleware, see Phase 5 notes). SMTP is unconfigured (blank, per the Phase 1 `.env`), so no
-verification email can ever be sent — a new user can register and log in but can never write
-anything, including deleting their own account (`DELETE /users/me` is also `RequireVerified`-gated).
-**The two "before Phase 5 is live" TODOs below (pick an email provider, build `/verify-email`) are
-launch blockers, not nice-to-haves**, until then this is infrastructure verification, not a usable
-app.
+**Write path was blocked, now resolved for the real launch scope.** All verification through Phase
+1–4 covered only the unauthenticated surface (static assets, login/register responses, rate
+limiting). Checked the actual write path directly: registered a test user, logged in, attempted
+`POST /api/v1/recipes` — blocked with `"email verification required before performing this
+action"` (`RequireVerified` middleware, see Phase 5 notes). SMTP is unconfigured (blank, per the
+Phase 1 `.env`), so no verification email can ever be sent through it.
+
+Investigated email options (see below) but the actual user base is 2 known people (Henry, Johannes)
+— not a public signup flow — so **the decision was to skip SMTP entirely for now** rather than set
+up a provider for 2 users. Both accounts were created directly: registered through the real
+`/api/v1/auth/register` endpoint (reuses all existing validation/hashing), then `email_verified_at`
+set directly via `UPDATE users ... ` on `recipe-db-1` to clear the `RequireVerified` gate. Verified
+write access works post-verification (`POST /api/v1/recipes` no longer 403s, just needs valid
+fields). **Email provider setup (below) is deferred, not abandoned** — needed if/when this ever
+opens beyond these 2 users, or if either of them needs self-service password reset (forgot-password
+uses the same unconfigured `EmailService`, so that flow is still dead until SMTP is set up — for
+now, a password reset for either user means asking me to do the same direct-DB-update trick again).
+
+**Email provider investigation, for whenever it's needed:**
+- The server's local `postfix` is not directly usable — it's a local MTA for system mail (fail2ban
+  alerts etc.), not an authenticated SMTP submission endpoint, and the Go backend's
+  `net/smtp.SendMail` always does `PlainAuth`.
+- The existing `steinhauer.dev` mail hosting (Namecheap Private Email) *does* work — `hello@`
+  delivers successfully — but `henry@`/`www-data@` are broken there (mailbox not verified/set up on
+  Namecheap's side, unrelated to this app). A dedicated mailbox (e.g. `recipe@steinhauer.dev`) on
+  the same plan, using Private Email's real SMTP submission (`smtp.privateemail.com:587`), would
+  need to be created in the Namecheap control panel — outside what's reachable over SSH.
+- Recommended alternative if/when needed: a dedicated transactional provider (Resend suggested —
+  generous free tier, simple SMTP creds) rather than debugging the Namecheap mailbox setup, since
+  neither `email.go` nor the deploy process cares which one it is.
 
 ---
 
@@ -316,14 +336,20 @@ All five backend branches + the frontend branch were merged into an integration 
 → up against a scratch Postgres, in order). Full test suite green on the integrated result. PR #47
 opened, code-reviewed (see findings above), fixed, CI green, merged to `main` as `84aa239`.
 
-### Before Phase 5 is actually "live" (not just merged) — ⚠ these are launch blockers now
-Confirmed 2026-07-18 by testing the real write path (see status note at the top): a freshly
-registered user cannot write anything — not even delete their own account — until these land.
+### Before Phase 5 is actually "live" for a public/self-service launch
+Confirmed 2026-07-18 by testing the real write path: a freshly registered user cannot write
+anything — not even delete their own account — until email verification actually works. **Not a
+blocker for the current 2-user scope** (both accounts provisioned directly, see status note at the
+top), but required before self-service registration or password reset is usable by anyone else.
 - [ ] **Pick an email provider + credentials** for the verification/reset emails — currently
-      blank in the deployed `.env` (Phase 1 left `SMTP_*` empty deliberately, per the earlier
-      decision to not block infra deploy on this). Your call, not made yet.
+      blank in the deployed `.env` (Phase 1 left `SMTP_*` empty deliberately). Investigated
+      options (see status note at top): local postfix isn't usable as-is, the existing Namecheap
+      Private Email account works for `hello@` but not a dedicated app mailbox without setting one
+      up in the Namecheap panel, Resend suggested as the path of least resistance if/when needed.
+      Deferred, not decided against.
 - [ ] **Build the frontend `/verify-email` page** (and check whether `/reset-password` has the
-      same gap — the email-verification agent noted it looked unbuilt too).
+      same gap — the email-verification agent noted it looked unbuilt too). Same deferral as above
+      — not needed until email verification is actually wired up.
 - [ ] **Warn/plan for forced re-login on first deploy** of the JWT `iss`/`aud` validation, once
       real users exist (not relevant for the very first launch — no users yet — but relevant for
       any future redeploy of an already-live instance).
