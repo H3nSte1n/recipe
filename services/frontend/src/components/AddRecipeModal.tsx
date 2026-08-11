@@ -308,7 +308,9 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
     const file = e.target.files?.[0];
     if (!file) return;
     setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    const reader = new FileReader();
+    reader.onload = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
   }
 
   async function handleDelete() {
