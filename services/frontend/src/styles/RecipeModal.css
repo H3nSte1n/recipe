@@ -158,7 +158,7 @@
 .recipe-modal__columns {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0;
+  row-gap: 1rem; /* separates ingredients from instructions when stacked; no effect side by side */
 }
 
 .recipe-modal__ingredients,
