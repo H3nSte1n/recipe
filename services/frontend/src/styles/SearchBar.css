@@ -9,8 +9,7 @@
   background: none;
   border: none;
   outline: none;
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-size: var(--text-xl);
   color: var(--ink);
   text-align: center;

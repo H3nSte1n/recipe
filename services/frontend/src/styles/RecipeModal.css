@@ -128,8 +128,7 @@
 }
 
 .recipe-modal__serves-count {
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
   color: var(--ink);
   min-width: 24px;
@@ -187,8 +186,7 @@
 }
 
 .recipe-modal__sub-title {
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
   color: var(--ink);
   margin: 0 0 16px;
@@ -241,8 +239,7 @@
 }
 
 .recipe-modal__used-in-title {
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
   color: var(--ink);
   margin: 0 0 20px;

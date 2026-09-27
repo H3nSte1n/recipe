@@ -78,8 +78,7 @@
   border-radius: 50px;
   border: none;
   cursor: pointer;
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-weight: 400;
   font-size: var(--text-lg);
   line-height: 1;
@@ -175,8 +174,7 @@
   border: none;
   background: var(--ink);
   color: var(--surface);
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
   cursor: pointer;
   transition: opacity 0.15s;

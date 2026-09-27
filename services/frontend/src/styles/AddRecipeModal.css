@@ -107,8 +107,7 @@
   border-radius: 50px;
   background: var(--ink);
   color: var(--surface);
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
   border: none;
   cursor: pointer;
@@ -127,8 +126,7 @@
 }
 
 .add-recipe-modal__title-input {
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-weight: 300;
   font-size: var(--text-2xl);
   color: var(--ink);
@@ -212,8 +210,7 @@
 }
 
 .add-recipe-modal__serves-count {
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
   color: var(--ink);
   min-width: 24px;
@@ -343,8 +340,7 @@
 }
 
 .sub-recipe-card__name-input {
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
   color: var(--meta);
   background: none;
@@ -366,8 +362,7 @@
 }
 
 .sub-recipe-card__name-text {
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
   color: var(--ink);
 }
@@ -438,8 +433,7 @@
 }
 
 .sub-recipe-card__portion-count {
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
   color: var(--ink);
   min-width: 20px;
@@ -496,8 +490,7 @@
   border-radius: 50px;
   background: var(--ink);
   color: var(--surface);
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
   border: none;
   cursor: pointer;
