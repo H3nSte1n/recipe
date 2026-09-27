@@ -210,7 +210,7 @@ export default function RecipeModal({ recipe, serves, onInc, onDec, onClose, onE
             )}
           </div>
           <div className="recipe-modal__info">
-            <h1 className="recipe-modal__title type-h1">{recipe.title}</h1>
+            <h1 className="recipe-modal__title">{recipe.title}</h1>
             <p className="recipe-modal__cook-time">
               {metaOf(recipe.prep_time, recipe.cook_time, recipe.shelf_life)}
             </p>

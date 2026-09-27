@@ -68,8 +68,7 @@
 }
 
 .recipe-graph__node-title {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font: var(--type-body);
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
@@ -78,7 +77,6 @@
 }
 
 .recipe-graph__node-meta {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font: var(--type-small);
   color: var(--meta);
 }

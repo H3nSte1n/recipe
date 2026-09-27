@@ -9,8 +9,7 @@
   background: none;
   border: none;
   outline: none;
-  font-family: var(--font-sans);
-  font-size: var(--text-xl);
+  font: var(--type-heading);
   color: var(--ink);
   text-align: center;
   width: 100%;

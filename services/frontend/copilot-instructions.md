@@ -48,8 +48,8 @@ services/frontend/
 │   ├── services/           # API service functions
 │   ├── types/              # TypeScript type definitions
 │   ├── styles/             # CSS stylesheets
-│   │   ├── index.css       # Global styles
-│   │   └── App.css         # Layout styles
+│   │   ├── design-system.css  # Global tokens: colors, text styles, icon sizes
+│   │   └── <Component>.css    # One stylesheet per component/page
 │   ├── utils/              # Helper functions
 │   ├── App.tsx             # Root component
 │   └── main.tsx            # React entry point
@@ -211,30 +211,41 @@ const fetchRecipes = async () => {
 ```
 
 ### Styling
-- **CSS files in src/styles/** - index.css for global, componentName.css for component-specific
-- **Global styles** - resets, variables, base styles
+- **CSS files in src/styles/** - design-system.css for global tokens, ComponentName.css for component-specific
+- **Global styles** - resets, color tokens, text styles and icon sizes live in design-system.css
 - **BEM convention** for class names: block__element--modifier
+
+#### Typography (enforced by `npm run lint`)
+All font styling comes from the text styles in `design-system.css`. Components never set
+`font-family`, `font-size`, `font-weight`, `font-style` or `letter-spacing`, and never use inline
+React font styles.
+
+| Text style | Size | Use for |
+|---|---|---|
+| `--type-display` | 36 → 48 → 60px, Light | landing headline, recipe title |
+| `--type-heading` | 28 → 36px | search field |
+| `--type-title` | 18 → 22px | card/section titles, big buttons, counts |
+| `--type-body` | 15px | ingredients, steps, inputs, labels |
+| `--type-small` | 13px | times, errors, links, meta |
+| `--type-caption` | 11px | tiny labels |
+
+- Text: `font: var(--type-body);`
+- Characters used as icons (− + ← × ▲ ⚙ ℹ): `font-size: var(--icon-md); line-height: 1; /* icon glyph */`
+- A `line-height` override is allowed only for layout reasons and must carry a `/* reason */` comment.
+- Need a new style? Add a `--type-…` token to `design-system.css`; don't hand-tune a component.
 
 Example:
 ```css
-/* src/styles/index.css - Global */
-:root {
-  --color-primary: #646cff;
-  --spacing-lg: 2rem;
-}
-
 /* src/styles/RecipeCard.css - Component-specific */
 .recipe-card {
-  padding: var(--spacing-lg);
-  border: 1px solid var(--color-primary);
+  border: 1px solid var(--line);
+  background: var(--surface);
 }
 
 .recipe-card__title {
+  font: var(--type-title);
+  color: var(--ink);
   margin: 0;
-}
-
-.recipe-card__button--primary {
-  background-color: var(--color-primary);
 }
 ```
 

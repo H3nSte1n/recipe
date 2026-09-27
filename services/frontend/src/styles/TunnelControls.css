@@ -10,13 +10,14 @@
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink);
-  font-size: 18px;
+  font-size: var(--icon-md);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: opacity 0.15s;
   box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  line-height: 1; /* icon glyph: no extra line box */
 }
 
 .tunnel-controls__toggle:hover {
@@ -61,8 +62,7 @@
   border-radius: 4px;
   background: transparent;
   color: rgba(255,255,255,0.45);
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
+  font: var(--type-caption);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
@@ -78,11 +78,11 @@
   display: inline-flex;
   align-items: center;
   margin-left: 5px;
-  font-size: 9px;
+  font-size: var(--icon-xs);
   color: rgba(255,255,255,0.25);
   cursor: default;
   vertical-align: middle;
-  line-height: 1;
+  line-height: 1; /* icon glyph: no extra line box */
 }
 
 .tunnel-controls__tip::after {
@@ -94,8 +94,7 @@
   background: rgba(255,255,255,0.1);
   backdrop-filter: blur(8px);
   color: rgba(255,255,255,0.85);
-  font-size: 11px;
-  line-height: 1.4;
+  font: var(--type-caption);
   padding: 7px 9px;
   border-radius: 6px;
   border: 1px solid rgba(255,255,255,0.1);
@@ -129,14 +128,12 @@
 }
 
 .tunnel-controls__label {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
+  font: var(--type-caption);
   color: rgba(255,255,255,0.7);
 }
 
 .tunnel-controls__value {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
+  font: var(--type-caption);
   color: rgba(255,255,255,0.5);
   font-variant-numeric: tabular-nums;
 }
@@ -158,8 +155,7 @@
   border: 1px solid rgba(255,255,255,0.15);
   background: transparent;
   color: rgba(255,255,255,0.6);
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
+  font: var(--type-caption);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }

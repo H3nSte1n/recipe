@@ -40,6 +40,7 @@ cd services/backend && make test   # run tests
 - Interface over type for object shapes
 - Functional components only, PascalCase files, camelCase variables
 - BEM convention for CSS (`block__element--modifier`)
+- Font styling only via the global text styles in `design-system.css` (`font: var(--type-…)`), enforced by `npm run lint`; see `services/frontend/CLAUDE.md`
 - try-catch on all API calls with user-friendly error messages
 
 ### Backend (Go)
