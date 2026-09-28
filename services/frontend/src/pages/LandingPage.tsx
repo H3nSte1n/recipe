@@ -18,7 +18,7 @@ function HeroView({ onLogin, onRegister }: { onLogin: () => void; onRegister: ()
   return (
     <>
       <p className="landing-page__brand">Mise</p>
-      <h1 className="landing-page__headline type-h1">
+      <h1 className="landing-page__headline">
         Your recipes,<br />always with you.
       </h1>
       <div className="landing-page__actions">

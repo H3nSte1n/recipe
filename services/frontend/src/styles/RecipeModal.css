@@ -63,19 +63,18 @@
 }
 
 .recipe-modal__title {
+  font: var(--type-display);
   margin: 0 0 8px;
 }
 
 .recipe-modal__cook-time {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font: var(--type-body);
   color: var(--meta);
   margin: 0 0 12px;
 }
 
 .recipe-modal__nutrition {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font: var(--type-body);
   color: var(--meta);
   margin: 0;
 }
@@ -122,14 +121,12 @@
 }
 
 .recipe-modal__serves-label {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font: var(--type-body);
   color: var(--meta);
 }
 
 .recipe-modal__serves-count {
-  font-family: var(--font-sans);
-  font-size: var(--text-lg);
+  font: var(--type-title);
   color: var(--ink);
   min-width: 24px;
   text-align: center;
@@ -140,8 +137,8 @@
   border: none;
   cursor: pointer;
   color: var(--meta);
-  font-size: 18px;
-  line-height: 1;
+  font-size: var(--icon-md);
+  line-height: 1; /* icon glyph: no extra line box */
   padding: 4px 8px;
   transition: color 0.15s;
 }
@@ -163,9 +160,7 @@
 
 .recipe-modal__ingredients,
 .recipe-modal__instructions {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  line-height: 1.4;
+  font: var(--type-body);
   color: var(--ink);
   padding-right: 0;
 }
@@ -186,8 +181,7 @@
 }
 
 .recipe-modal__sub-title {
-  font-family: var(--font-sans);
-  font-size: var(--text-lg);
+  font: var(--type-title);
   color: var(--ink);
   margin: 0 0 16px;
   display: flex;
@@ -220,16 +214,13 @@
 }
 
 .recipe-modal__notes-label {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font: var(--type-small);
   color: var(--meta);
   margin: 0 0 6px;
 }
 
 .recipe-modal__notes-text {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  line-height: 1.4;
+  font: var(--type-body);
   color: var(--ink);
   margin: 0;
 }
@@ -239,8 +230,7 @@
 }
 
 .recipe-modal__used-in-title {
-  font-family: var(--font-sans);
-  font-size: var(--text-lg);
+  font: var(--type-title);
   color: var(--ink);
   margin: 0 0 20px;
 }

@@ -88,8 +88,7 @@
   text-align: center;
   padding: 140px 0;
   color: var(--label);
-  font-family: var(--font-sans);
-  font-size: var(--text-lg);
+  font: var(--type-title);
 }
 
 .home-page__empty-add-btn {
@@ -98,8 +97,7 @@
   border-radius: 50px;
   background: var(--ink);
   color: var(--surface);
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font: var(--type-body);
   border: none;
   cursor: pointer;
   transition: opacity 0.15s;

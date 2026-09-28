@@ -32,16 +32,13 @@
 }
 
 .recipe-card__title {
-  font-family: var(--font-sans);
-  font-size: var(--text-lg);
+  font: var(--type-title);
   color: var(--ink);
   margin: 0;
-  line-height: 1.2;
 }
 
 .recipe-card__time {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font: var(--type-small);
   color: var(--meta);
   margin: 0;
 }

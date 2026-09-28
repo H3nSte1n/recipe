@@ -29,95 +29,59 @@ body {
   --status-archived-bg: #f3f4f6; /* archived status badge background (RecipeModal) */
   --status-archived-text: #6b7280; /* archived status badge text (RecipeModal) */
 
-  /* Font-family tokens */
-  --font-sans: 'Noto Sans', system-ui, sans-serif; /* the only typeface: headings, body, buttons, inputs, labels */
+  /* ─── Typography ─────────────────────────────────────────────────────────
+     The only place in the app with font numbers. Components never set
+     font-family, font-size, font-weight or font-style themselves; they use
+     one text style:   font: var(--type-body);
+     The one allowed exception is a layout-driven line-height, with a comment
+     saying why. Enforced by scripts/check-font-styles.sh (npm run lint). */
 
-  /* Type-scale tokens (mobile-first base values, ≤599px) */
-  --text-xs: 11px;      /* section/field labels (AddRecipe), nutrition labels & sep, status badge (RecipeModal) */
-  --text-sm: 13px;      /* save btn, desc, unit labels, servings, field textarea (AddRecipe); form label & error (Login); used-in card & nutrition value (RecipeModal) — Figma Copy-Small */
-  --text-base: 15px;    /* status select, section handle, dropdown items (AddRecipe); input & button (Login); serves count (RecipeModal) — Figma Copy-Regular */
-  --text-lg: 18px;      /* H3 on mobile — scales up to 22px at ≥600px */
-  --text-xl: 28px;      /* H2 on mobile — scales up to 36px at ≥600px */
-  --text-2xl: 36px;     /* H1 on mobile — scales up to 60px at ≥600px */
-  --text-display: 36px; /* display on mobile — scales up to 60px at ≥600px */
+  /* Typeface */
+  --font-sans: 'Noto Sans', system-ui, sans-serif;
+
+  /* Size scale — building blocks for the text styles below, not for direct use.
+     Responsive steps are in the media queries at the end of this file. */
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 18px;      /* 22px at ≥600px */
+  --text-xl: 28px;      /* 36px at ≥600px */
+  --text-display: 36px; /* 48px at ≥600px, 60px at ≥1024px */
+
+  /* Text styles: weight size/line-height family — the Figma text-style list */
+  --type-display: 300 var(--text-display)/1.2 var(--font-sans); /* landing headline, recipe title, add-recipe title */
+  --type-heading: 400 var(--text-xl)/1.2 var(--font-sans);      /* search field */
+  --type-title:   400 var(--text-lg)/1.2 var(--font-sans);      /* card & section titles, big buttons, serves count */
+  --type-body:    400 var(--text-base)/1.4 var(--font-sans);    /* ingredients, steps, inputs, labels */
+  --type-small:   400 var(--text-sm)/1.4 var(--font-sans);      /* times, errors, links, meta */
+  --type-caption: 400 var(--text-xs)/1.4 var(--font-sans);      /* nutrition labels, tuning panel */
+
+  /* Icon glyphs (− + ← × ▲ ⚙ ℹ): characters used as icons, not reading text.
+     Use as  font-size: var(--icon-md); line-height: 1; */
+  --icon-xs: 9px;  /* ℹ tooltip marker (TunnelControls) */
+  --icon-sm: 13px; /* ▲ ▼ reorder handle */
+  --icon-md: 18px; /* − + steppers, × unlink, ⚙ toggle */
+  --icon-lg: 20px; /* ← back arrows */
 }
 
 /* ─── Body Base Styles ───────────────────────────────────────────────────── */
 body {
   background-color: var(--surface);
   color: var(--ink);
-  font-family: var(--font-sans);
-}
-
-/* ─── Type Scale Utilities ───────────────────────────────────────────────── */
-.type-display {
-  font-family: var(--font-sans);
-  font-weight: 300;
-  font-size: var(--text-display); /* 60px */
-  line-height: 1.2;
-  color: var(--ink);
-}
-
-.type-h1 {
-  font-family: var(--font-sans);
-  font-weight: 300;
-  font-size: var(--text-2xl); /* 60px */
-  line-height: 1.2;
-  color: var(--ink);
-}
-
-.type-h2 {
-  font-family: var(--font-sans);
-  font-weight: 400;
-  font-size: var(--text-xl); /* 36px */
-  line-height: 1.0;
-  color: var(--ink);
-}
-
-.type-h3 {
-  font-family: var(--font-sans);
-  font-weight: 400;
-  font-size: var(--text-lg); /* 22px */
-  line-height: 1.0;
-  color: var(--ink);
-}
-
-.type-body {
-  font-family: var(--font-sans);
-  font-size: var(--text-base); /* 15px */
-  line-height: 1.4;
-  color: var(--ink);
-}
-
-.type-body-sm {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm); /* 13px */
-  line-height: 1.5;
-  color: var(--meta);
-}
-
-.type-caption {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs); /* 11px */
-  line-height: 1.4;
-  color: var(--meta);
-}
-
-.type-label {
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--label);
+  font: var(--type-body);
 }
 
 /* ─── Responsive Type Scale ──────────────────────────────────────────────── */
 @media (min-width: 600px) {
   :root {
-    --text-lg:      22px;  /* H3 at tablet+ — Figma H3 */
-    --text-xl:      36px;  /* H2 at tablet+ — Figma H2 */
-    --text-2xl:     60px;  /* H1 at tablet+ — Figma H1 */
-    --text-display: 60px;  /* display at tablet+ — Figma H1 display size */
+    --text-lg: 22px;
+    --text-xl: 36px;
+    --text-display: 48px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --text-display: 60px;
   }
 }

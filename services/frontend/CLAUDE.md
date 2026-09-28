@@ -27,7 +27,7 @@ src/
 ```bash
 npm run dev          # Vite dev server at :5173 (hot reload)
 npm run build        # tsc + vite build → dist/
-npm run lint         # ESLint
+npm run lint         # ESLint + font-styling guard (scripts/check-font-styles.sh)
 npm run type-check   # tsc --noEmit
 ```
 
@@ -39,6 +39,7 @@ npm run type-check   # tsc --noEmit
 - **PascalCase** for component files/names, **camelCase** for variables/functions
 - **ComponentNameProps** for prop interfaces
 - **BEM CSS**: `block__element--modifier` in `src/styles/`
+- **Typography is global**: all font styling comes from the text styles in `src/styles/design-system.css` (`--type-display`, `--type-heading`, `--type-title`, `--type-body`, `--type-small`, `--type-caption`). Components use `font: var(--type-…);` and never set font-family/size/weight/style or letter-spacing themselves. Icon glyphs use `font-size: var(--icon-…)`. A `line-height` override is allowed only for layout, with a `/* reason */` comment. `npm run lint` enforces this via `scripts/check-font-styles.sh`.
 - **try-catch** on all API calls, user-friendly error messages in state
 - **Default export** for page/root components
 

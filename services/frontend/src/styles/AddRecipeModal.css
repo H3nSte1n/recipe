@@ -107,8 +107,7 @@
   border-radius: 50px;
   background: var(--ink);
   color: var(--surface);
-  font-family: var(--font-sans);
-  font-size: var(--text-lg);
+  font: var(--type-title);
   border: none;
   cursor: pointer;
   transition: opacity 0.15s;
@@ -120,15 +119,13 @@
 }
 
 .add-recipe-modal__save-error {
-  font-size: var(--text-sm);
+  font: var(--type-small);
   color: #c0392b;
   margin: 0 0 12px;
 }
 
 .add-recipe-modal__title-input {
-  font-family: var(--font-sans);
-  font-weight: 300;
-  font-size: var(--text-2xl);
+  font: var(--type-display);
   color: var(--ink);
   background: none;
   border: none;
@@ -136,7 +133,6 @@
   width: 100%;
   padding: 0;
   margin: 0 0 8px;
-  line-height: 1.2;
   resize: none;
 }
 
@@ -145,8 +141,7 @@
 }
 
 .add-recipe-modal__desc-input {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font: var(--type-body);
   color: var(--ink);
   background: none;
   border: none;
@@ -169,15 +164,13 @@
 }
 
 .add-recipe-modal__nutrition-label {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font: var(--type-small);
   color: var(--ink);
-  line-height: 1.8;
+  line-height: 1.8; /* layout: row height of the nutrition table */
 }
 
 .add-recipe-modal__nutrition-input {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font: var(--type-small);
   color: var(--ink);
   text-align: right;
   background: none;
@@ -185,14 +178,13 @@
   outline: none;
   width: 60px;
   padding: 0;
-  line-height: 1.8;
+  line-height: 1.8; /* layout: row height of the nutrition table */
 }
 
 .add-recipe-modal__nutrition-unit {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font: var(--type-small);
   color: var(--meta);
-  line-height: 1.8;
+  line-height: 1.8; /* layout: row height of the nutrition table */
 }
 
 .add-recipe-modal__stepper {
@@ -204,14 +196,12 @@
 }
 
 .add-recipe-modal__serves-label {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font: var(--type-body);
   color: var(--meta);
 }
 
 .add-recipe-modal__serves-count {
-  font-family: var(--font-sans);
-  font-size: var(--text-lg);
+  font: var(--type-title);
   color: var(--ink);
   min-width: 24px;
   text-align: center;
@@ -222,8 +212,8 @@
   border: none;
   cursor: pointer;
   color: var(--meta);
-  font-size: 18px;
-  line-height: 1;
+  font-size: var(--icon-md);
+  line-height: 1; /* icon glyph: no extra line box */
   padding: 4px 8px;
   transition: color 0.15s;
 }
@@ -256,8 +246,7 @@
   position: absolute;
   top: 17px;
   left: 20px;
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font: var(--type-small);
   color: var(--meta);
   pointer-events: none;
 }
@@ -267,11 +256,10 @@
   background: none;
   border: none;
   outline: none;
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font: var(--type-body);
   color: var(--ink);
   resize: none;
-  line-height: 2.2;
+  line-height: 2.2; /* layout: spaces the lines inside the text box */
   min-height: 80px;
   box-sizing: border-box;
 }
@@ -318,8 +306,8 @@
   background: none;
   border: none;
   padding: 4px 6px;
-  line-height: 1;
-  font-size: 13px;
+  line-height: 1; /* icon glyph: no extra line box */
+  font-size: var(--icon-sm);
   color: var(--label);
   cursor: pointer;
   transition: color 0.15s;
@@ -340,8 +328,7 @@
 }
 
 .sub-recipe-card__name-input {
-  font-family: var(--font-sans);
-  font-size: var(--text-lg);
+  font: var(--type-title);
   color: var(--meta);
   background: none;
   border: none;
@@ -362,8 +349,7 @@
 }
 
 .sub-recipe-card__name-text {
-  font-family: var(--font-sans);
-  font-size: var(--text-lg);
+  font: var(--type-title);
   color: var(--ink);
 }
 
@@ -371,10 +357,10 @@
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 18px;
+  font-size: var(--icon-md);
   color: var(--meta);
   padding: 0 2px;
-  line-height: 1;
+  line-height: 1; /* icon glyph: no extra line box */
   transition: color 0.15s;
 }
 
@@ -402,8 +388,7 @@
   padding: 10px 16px;
   background: none;
   border: none;
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font: var(--type-body);
   color: var(--ink);
   cursor: pointer;
   transition: background 0.1s;
@@ -427,14 +412,12 @@
 }
 
 .sub-recipe-card__portion-label {
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
+  font: var(--type-body);
   color: var(--meta);
 }
 
 .sub-recipe-card__portion-count {
-  font-family: var(--font-sans);
-  font-size: var(--text-lg);
+  font: var(--type-title);
   color: var(--ink);
   min-width: 20px;
   text-align: center;
@@ -445,8 +428,8 @@
   border: none;
   cursor: pointer;
   color: var(--meta);
-  font-size: 18px;
-  line-height: 1;
+  font-size: var(--icon-md);
+  line-height: 1; /* icon glyph: no extra line box */
   padding: 2px 6px;
   transition: color 0.15s;
 }
@@ -490,8 +473,7 @@
   border-radius: 50px;
   background: var(--ink);
   color: var(--surface);
-  font-family: var(--font-sans);
-  font-size: var(--text-lg);
+  font: var(--type-title);
   border: none;
   cursor: pointer;
   display: flex;

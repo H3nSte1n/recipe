@@ -1,4 +1,5 @@
-/* TEMPORARY — paired with ThemeExplorer.tsx */
+/* TEMPORARY — paired with ThemeExplorer.tsx. Deliberately off the global type system
+   (excluded from scripts/check-font-styles.sh) because it is scheduled for deletion. */
 
 .theme-explorer__toggle {
   position: fixed;
@@ -36,6 +37,7 @@
   flex-direction: column;
   gap: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  line-height: normal; /* off-system: don't inherit the body text style's 1.4 */
 }
 
 .theme-explorer__header {
