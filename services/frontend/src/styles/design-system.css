@@ -30,8 +30,7 @@ body {
   --status-archived-text: #6b7280; /* archived status badge text (RecipeModal) */
 
   /* Font-family tokens */
-  --font-serif: 'Newsreader', Georgia, serif; /* recipe title, section names, profile button letter, type utilities */
-  --font-sans: 'Noto Sans', system-ui, sans-serif; /* body base, buttons, inputs, labels, all UI text */
+  --font-sans: 'Noto Sans', system-ui, sans-serif; /* the only typeface: headings, body, buttons, inputs, labels */
 
   /* Type-scale tokens (mobile-first base values, ≤599px) */
   --text-xs: 11px;      /* section/field labels (AddRecipe), nutrition labels & sep, status badge (RecipeModal) */
@@ -52,8 +51,7 @@ body {
 
 /* ─── Type Scale Utilities ───────────────────────────────────────────────── */
 .type-display {
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-weight: 300;
   font-size: var(--text-display); /* 60px */
   line-height: 1.2;
@@ -61,8 +59,7 @@ body {
 }
 
 .type-h1 {
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-weight: 300;
   font-size: var(--text-2xl); /* 60px */
   line-height: 1.2;
@@ -70,8 +67,7 @@ body {
 }
 
 .type-h2 {
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-weight: 400;
   font-size: var(--text-xl); /* 36px */
   line-height: 1.0;
@@ -79,8 +75,7 @@ body {
 }
 
 .type-h3 {
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-weight: 400;
   font-size: var(--text-lg); /* 22px */
   line-height: 1.0;

@@ -88,8 +88,7 @@
   text-align: center;
   padding: 140px 0;
   color: var(--label);
-  font-style: italic;
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: var(--text-lg);
 }
 
@@ -99,8 +98,7 @@
   border-radius: 50px;
   background: var(--ink);
   color: var(--surface);
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-size: var(--text-base);
   border: none;
   cursor: pointer;

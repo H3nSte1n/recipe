@@ -68,8 +68,7 @@
 }
 
 .recipe-graph__node-title {
-  font-family: var(--font-serif);
-  font-style: italic;
+  font-family: var(--font-sans);
   font-size: var(--text-base);
   color: var(--ink);
   white-space: nowrap;
