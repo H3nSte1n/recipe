@@ -16,6 +16,7 @@ interface AddRecipeModalProps {
   onSaved: () => void;
   onDeleted?: () => void;
   initialRecipe?: Recipe;
+  importedRecipe?: Recipe;
 }
 
 interface SubSection {
@@ -250,35 +251,36 @@ function SubRecipeCard({ sub, allRecipes, onDelete, onChange, onLink, onUnlink, 
 
 // ── AddRecipeModal ──────────────────────────────────────────────────────────
 
-export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRecipe }: AddRecipeModalProps) {
-  const [title, setTitle] = useState(initialRecipe?.title ?? '');
-  const [description, setDescription] = useState(initialRecipe?.description ?? '');
+export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRecipe, importedRecipe }: AddRecipeModalProps) {
+  const draftRecipe = initialRecipe ?? importedRecipe;
+  const [title, setTitle] = useState(draftRecipe?.title ?? '');
+  const [description, setDescription] = useState(draftRecipe?.description ?? '');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState(initialRecipe?.image_url ?? '');
-  const [prepTime, setPrepTime] = useState(initialRecipe?.prep_time ? String(initialRecipe.prep_time) : '');
-  const [cookTime, setCookTime] = useState(initialRecipe?.cook_time ? String(initialRecipe.cook_time) : '');
-  const [shelfLife, setShelfLife] = useState(initialRecipe?.shelf_life ? String(initialRecipe.shelf_life) : '');
-  const [servings, setServings] = useState(initialRecipe?.servings ?? 1);
-  const initNutrition = initialRecipe?.nutrition;
+  const [imagePreview, setImagePreview] = useState(draftRecipe?.image_url ?? '');
+  const [prepTime, setPrepTime] = useState(draftRecipe?.prep_time ? String(draftRecipe.prep_time) : '');
+  const [cookTime, setCookTime] = useState(draftRecipe?.cook_time ? String(draftRecipe.cook_time) : '');
+  const [shelfLife, setShelfLife] = useState(draftRecipe?.shelf_life ? String(draftRecipe.shelf_life) : '');
+  const [servings, setServings] = useState(Math.max(1, draftRecipe?.servings ?? 1));
+  const initNutrition = draftRecipe?.nutrition;
   const [calories, setCalories] = useState(initNutrition != null ? String(initNutrition.calories) : '');
   const [carbs, setCarbs] = useState(initNutrition != null ? String(initNutrition.carbs) : '');
   const [protein, setProtein] = useState(initNutrition != null ? String(initNutrition.protein) : '');
   const [fat, setFat] = useState(initNutrition != null ? String(initNutrition.fat) : '');
-  const hasSubRecipes = initialRecipe != null && (initialRecipe.sub_recipes?.length ?? 0) >= 1;
+  const hasSubRecipes = draftRecipe != null && (draftRecipe.sub_recipes?.length ?? 0) >= 1;
   const [ingredients, setIngredients] = useState(
-    hasSubRecipes ? '' : (initialRecipe ? formatRecipe(initialRecipe) : '')
+    hasSubRecipes ? '' : (draftRecipe ? formatRecipe(draftRecipe) : '')
   );
   const [instructions, setInstructions] = useState(
     hasSubRecipes
       ? ''
-      : (initialRecipe?.instructions ?? [])
+      : (draftRecipe?.instructions ?? [])
           .sort((a, b) => a.step_number - b.step_number)
           .map((i) => i.instruction)
           .join('\n')
   );
-  const [notes, setNotes] = useState(initialRecipe?.notes ?? '');
+  const [notes, setNotes] = useState(draftRecipe?.notes ?? '');
   const [subSections, setSubSections] = useState<SubSection[]>(() =>
-    hasSubRecipes ? buildInitialSubSections(initialRecipe!) : []
+    hasSubRecipes ? buildInitialSubSections(draftRecipe!) : []
   );
   const subSectionsRef = useRef<SubSection[]>(subSections);
   useEffect(() => { subSectionsRef.current = subSections; }, [subSections]);
@@ -487,13 +489,14 @@ export default function AddRecipeModal({ onClose, onSaved, onDeleted, initialRec
       const payload = {
         title: title.trim(),
         description,
-        source_type: 'MANUAL',
+        source_type: draftRecipe?.source_type || 'MANUAL',
+        ...(draftRecipe?.source && { source_url: draftRecipe.source }),
         servings,
         prep_time: parseInt(prepTime) || 0,
         cook_time: parseInt(cookTime) || 0,
         shelf_life: parseInt(shelfLife) || 0,
         notes,
-        is_private: false,
+        is_private: draftRecipe?.is_private ?? false,
         status: 'published',
         // In multi-block mode all content is in sub-recipes; send empty arrays for main recipe
         ingredients: isMultiBlock ? [] : parseIngredients(ingredients),

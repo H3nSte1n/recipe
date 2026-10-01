@@ -43,6 +43,7 @@ func (s *service) Parse(ctx context.Context, pdfData []byte, aiModel ai.AIModel)
 	}
 
 	recipe.Source = "PDF"
+	recipe.SourceType = "PDF"
 
 	return recipe, nil
 }

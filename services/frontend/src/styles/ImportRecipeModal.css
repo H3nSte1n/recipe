@@ -1,0 +1,190 @@
+.import-recipe-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  background: rgba(248, 248, 248, 0.7);
+  backdrop-filter: blur(26px);
+}
+
+.import-recipe-modal__card {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  padding: 72px 24px 40px;
+  background: var(--surface);
+}
+
+.import-recipe-modal__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 25px;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.import-recipe-modal__eyebrow {
+  color: var(--meta);
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+}
+
+.import-recipe-modal__title {
+  margin: 14px 0 8px;
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  font-style: italic;
+  font-weight: 300;
+  line-height: 1.1;
+}
+
+.import-recipe-modal__intro {
+  margin: 0 0 28px;
+  color: var(--meta);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.import-recipe-modal__methods {
+  border-top: 1px solid var(--line);
+}
+
+.import-recipe-modal__method {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 70px;
+  padding: 12px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.import-recipe-modal__method:hover,
+.import-recipe-modal__method--selected {
+  background: var(--bg);
+}
+
+.import-recipe-modal__method:disabled {
+  cursor: default;
+}
+
+.import-recipe-modal__method-name {
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  font-style: italic;
+}
+
+.import-recipe-modal__method-arrow {
+  padding-right: 8px;
+  color: var(--meta);
+  font-size: 20px;
+}
+
+.import-recipe-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 28px;
+}
+
+.import-recipe-modal__label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--meta);
+  font-size: var(--text-xs);
+}
+
+.import-recipe-modal__input,
+.import-recipe-modal__file {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+}
+
+.import-recipe-modal__file::file-selector-button {
+  margin-right: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+
+.import-recipe-modal__hint {
+  margin: 0;
+  color: var(--meta);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.import-recipe-modal__error {
+  margin: 0;
+  color: var(--error);
+  font-size: var(--text-sm);
+}
+
+.import-recipe-modal__submit {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 26px;
+  border: 0;
+  border-radius: 50px;
+  background: var(--ink);
+  color: var(--surface);
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  font-style: italic;
+  cursor: pointer;
+}
+
+.import-recipe-modal__submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.import-recipe-modal__close:focus-visible,
+.import-recipe-modal__method:focus-visible,
+.import-recipe-modal__input:focus-visible,
+.import-recipe-modal__file:focus-visible,
+.import-recipe-modal__submit:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+@media (min-width: 600px) {
+  .import-recipe-modal {
+    align-items: center;
+    padding: 24px;
+  }
+
+  .import-recipe-modal__card {
+    width: min(560px, 100%);
+    min-height: 0;
+    padding: 54px 48px 44px;
+    border-radius: 30px;
+    box-shadow: 0 50px 130px -34px rgba(20, 22, 28, 0.46), 0 10px 34px -12px rgba(20, 22, 28, 0.22);
+  }
+}
