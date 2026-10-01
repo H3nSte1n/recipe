@@ -4,6 +4,7 @@ import { useRecipes } from '../hooks/useRecipes';
 import RecipeCard from '../components/RecipeCard';
 import RecipeModal from '../components/RecipeModal';
 import AddRecipeModal from '../components/AddRecipeModal';
+import ImportRecipeModal from '../components/ImportRecipeModal';
 import RecipeGraph from '../components/RecipeGraph';
 import HomeHeader from '../components/HomeHeader';
 import { getRecipeById } from '../services/recipeService';
@@ -20,6 +21,8 @@ export default function HomePage({ onLogout, onPlanner }: HomePageProps) {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [serves, setServes] = useState(2);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importedRecipe, setImportedRecipe] = useState<Recipe | null>(null);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [view, setView] = useState<'grid' | 'graph'>('grid');
 
@@ -62,7 +65,7 @@ export default function HomePage({ onLogout, onPlanner }: HomePageProps) {
         query={query}
         onQueryChange={setQuery}
         onToggleView={() => setView(v => v === 'grid' ? 'graph' : 'grid')}
-        onAddRecipe={() => setShowAddModal(true)}
+        onAddRecipe={() => setShowImportModal(true)}
         onLogout={onLogout}
         onPlanner={onPlanner}
       />
@@ -79,7 +82,7 @@ export default function HomePage({ onLogout, onPlanner }: HomePageProps) {
                 <button
                   className="home-page__empty-add-btn"
                   type="button"
-                  onClick={() => setShowAddModal(true)}
+                  onClick={() => setShowImportModal(true)}
                 >
                   Add recipe
                 </button>
@@ -142,6 +145,26 @@ export default function HomePage({ onLogout, onPlanner }: HomePageProps) {
       {showAddModal && (
         <AddRecipeModal
           onClose={() => setShowAddModal(false)}
+          onSaved={refresh}
+        />
+      )}
+      {showImportModal && (
+        <ImportRecipeModal
+          onClose={() => setShowImportModal(false)}
+          onManual={() => {
+            setShowImportModal(false);
+            setShowAddModal(true);
+          }}
+          onImported={(recipe) => {
+            setShowImportModal(false);
+            setImportedRecipe(recipe);
+          }}
+        />
+      )}
+      {importedRecipe && (
+        <AddRecipeModal
+          importedRecipe={importedRecipe}
+          onClose={() => setImportedRecipe(null)}
           onSaved={refresh}
         />
       )}
