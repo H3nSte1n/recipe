@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Recipe } from '../types/recipe';
 import { useRecipes } from '../hooks/useRecipes';
 import RecipeCard from '../components/RecipeCard';
+import RecipeListItem from '../components/RecipeListItem';
 import RecipeModal from '../components/RecipeModal';
 import AddRecipeModal from '../components/AddRecipeModal';
 import RecipeGraph from '../components/RecipeGraph';
@@ -23,6 +24,7 @@ export default function HomePage({ onLogout }: HomePageProps) {
   const [view, setView] = useState<'grid' | 'graph'>('grid');
 
   const filtered = filterRecipes(query);
+  const isSearching = query.trim() !== '';
 
   const usedIn = useMemo(() => {
     const map: Record<string, Recipe[]> = {};
@@ -43,7 +45,7 @@ export default function HomePage({ onLogout }: HomePageProps) {
     setSelectedRecipe(null);
   }
 
-  async function handleGraphNodeClick(recipe: Recipe) {
+  async function handleOpenRecipe(recipe: Recipe) {
     try {
       const full = await getRecipeById(recipe.id);
       setSelectedRecipe(full);
@@ -66,7 +68,7 @@ export default function HomePage({ onLogout }: HomePageProps) {
       />
       <main className={`home-page__main${view === 'graph' ? ' home-page__main--graph' : ''}`}>
         {view === 'graph' ? (
-          <RecipeGraph recipes={recipes} usedIn={usedIn} query={query} onRecipeClick={(r) => void handleGraphNodeClick(r)} />
+          <RecipeGraph recipes={recipes} usedIn={usedIn} query={query} onRecipeClick={(r) => void handleOpenRecipe(r)} />
         ) : (
           <>
             {isLoading && <div className="home-page__loading">Loading…</div>}
@@ -83,25 +85,17 @@ export default function HomePage({ onLogout }: HomePageProps) {
                 </button>
               </div>
             )}
-            {!isLoading && !error && filtered.length > 0 && (
+            {!isLoading && !error && filtered.length > 0 && isSearching && (
+              <div className="home-page__list">
+                {filtered.map((r) => (
+                  <RecipeListItem key={r.id} recipe={r} onClick={() => void handleOpenRecipe(r)} />
+                ))}
+              </div>
+            )}
+            {!isLoading && !error && filtered.length > 0 && !isSearching && (
               <div className="home-page__grid">
                 {filtered.map((r) => (
-                  <RecipeCard
-                    key={r.id}
-                    recipe={r}
-                    onClick={() => {
-                      void (async () => {
-                        try {
-                          const full = await getRecipeById(r.id);
-                          setSelectedRecipe(full);
-                          setServes(full.servings ?? 2);
-                        } catch {
-                          setSelectedRecipe(r);
-                          setServes(r.servings ?? 2);
-                        }
-                      })();
-                    }}
-                  />
+                  <RecipeCard key={r.id} recipe={r} onClick={() => void handleOpenRecipe(r)} />
                 ))}
               </div>
             )}

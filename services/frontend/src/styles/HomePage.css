@@ -80,6 +80,14 @@
   justify-content: center;
 }
 
+.home-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
 .home-page__empty {
   display: flex;
   flex-direction: column;
