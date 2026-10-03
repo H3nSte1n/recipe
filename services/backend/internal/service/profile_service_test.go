@@ -7,6 +7,7 @@ import (
 	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"strings"
 	"testing"
 )
 
@@ -22,6 +23,11 @@ func (m *mockProfileRepository) GetByUserID(ctx context.Context, userID string) 
 
 func (m *mockProfileRepository) Update(ctx context.Context, profile *domain.Profile) error {
 	args := m.Called(ctx, profile)
+	return args.Error(0)
+}
+
+func (m *mockProfileRepository) UpdateWithUser(ctx context.Context, profile *domain.Profile, firstName, lastName *string) error {
+	args := m.Called(ctx, profile, firstName, lastName)
 	return args.Error(0)
 }
 
@@ -217,6 +223,62 @@ func TestProfileService_UpdateProfile(t *testing.T) {
 				require.Equal(t, tt.expectedReturn, got)
 			}
 			m.AssertExpectations(t)
+		})
+	}
+}
+
+func TestProfileService_UpdateNames(t *testing.T) {
+	ctx := context.Background()
+	repo := new(mockProfileRepository)
+	profile := &domain.Profile{ID: "profile-1", UserID: "user-1", Bio: "bio"}
+	first := " Ada "
+	last := " Lovelace "
+	repo.On("GetByUserID", mock.Anything, "user-1").Return(profile, nil).Once()
+	repo.On("UpdateWithUser", mock.Anything, profile, mock.MatchedBy(func(v *string) bool { return v != nil && *v == "Ada" }), mock.MatchedBy(func(v *string) bool { return v != nil && *v == "Lovelace" })).Return(nil).Once()
+	repo.On("GetByUserID", mock.Anything, "user-1").Return(profile, nil).Once()
+	_, err := NewProfileService(repo).UpdateProfile(ctx, "user-1", &domain.UpdateProfileRequest{FirstName: &first, LastName: &last})
+	require.NoError(t, err)
+	repo.AssertExpectations(t)
+}
+
+func TestProfileService_RejectsBlankName(t *testing.T) {
+	repo := new(mockProfileRepository)
+	blank := "  "
+	_, err := NewProfileService(repo).UpdateProfile(context.Background(), "user-1", &domain.UpdateProfileRequest{FirstName: &blank})
+	require.Error(t, err)
+	require.Equal(t, "INVALID_ARGUMENT", err.(*apperrors.AppError).Code)
+	repo.AssertNotCalled(t, "UpdateWithUser")
+}
+
+func TestProfileService_NameLengthMatchesDatabaseCharacterLimit(t *testing.T) {
+	ctx := context.Background()
+	for _, tc := range []struct {
+		name    string
+		value   string
+		allowed bool
+	}{
+		{name: "100 ASCII characters", value: strings.Repeat("a", 100), allowed: true},
+		{name: "101 ASCII characters", value: strings.Repeat("a", 101)},
+		{name: "100 multibyte characters", value: strings.Repeat("é", 100), allowed: true},
+		{name: "101 multibyte characters", value: strings.Repeat("é", 101)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := new(mockProfileRepository)
+			profile := &domain.Profile{ID: "profile-1", UserID: "user-1"}
+			if tc.allowed {
+				repo.On("GetByUserID", mock.Anything, "user-1").Return(profile, nil).Once()
+				repo.On("UpdateWithUser", mock.Anything, profile, mock.MatchedBy(func(v *string) bool { return v != nil && *v == tc.value }), (*string)(nil)).Return(nil).Once()
+				repo.On("GetByUserID", mock.Anything, "user-1").Return(profile, nil).Once()
+			}
+			_, err := NewProfileService(repo).UpdateProfile(ctx, "user-1", &domain.UpdateProfileRequest{FirstName: &tc.value})
+			if tc.allowed {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				require.Equal(t, "INVALID_ARGUMENT", err.(*apperrors.AppError).Code)
+				require.ErrorContains(t, err, "100 characters")
+			}
+			repo.AssertExpectations(t)
 		})
 	}
 }

@@ -36,6 +36,7 @@ type CreateUserAIConfigRequest struct {
 }
 
 type UpdateUserAIConfigRequest struct {
+	AIModelID *string         `json:"ai_model_id,omitempty"`
 	APIKey    *string         `json:"api_key,omitempty"`
 	IsDefault *bool           `json:"is_default,omitempty"`
 	Settings  json.RawMessage `json:"settings,omitempty"`

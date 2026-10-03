@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/H3nSte1n/recipe/internal/middleware"
@@ -27,6 +28,17 @@ func NewAIConfigHandler(aiConfigService service.AIConfigService, logger *zap.Log
 // else — including raw GORM/Postgres driver errors, which must never reach the client — is
 // logged server-side with the real error and returns a generic fallback message.
 func (h *AIConfigHandler) respondError(c *gin.Context, err error, fallback string) {
+	var appErr *apperrors.AppError
+	if errors.As(err, &appErr) {
+		if appErr.Code == "INVALID_ARGUMENT" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": appErr.Message})
+			return
+		}
+		if appErr.Code == "CONFLICT" {
+			c.JSON(http.StatusConflict, gin.H{"error": appErr.Message})
+			return
+		}
+	}
 	status := apperrors.StatusCode(err)
 	if status == http.StatusInternalServerError {
 		h.logger.Error(fallback, zap.Error(err))

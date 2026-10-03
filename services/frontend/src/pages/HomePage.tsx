@@ -13,9 +13,10 @@ import '../styles/HomePage.css';
 interface HomePageProps {
   onLogout: () => void;
   onPlanner: () => void;
+  onProfile: () => void;
 }
 
-export default function HomePage({ onLogout, onPlanner }: HomePageProps) {
+export default function HomePage({ onLogout, onPlanner, onProfile }: HomePageProps) {
   const { isLoading, error, filterRecipes, recipes, refresh } = useRecipes();
   const [query, setQuery] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -68,6 +69,7 @@ export default function HomePage({ onLogout, onPlanner }: HomePageProps) {
         onAddRecipe={() => setShowImportModal(true)}
         onLogout={onLogout}
         onPlanner={onPlanner}
+        onProfile={onProfile}
       />
       <main className={`home-page__main${view === 'graph' ? ' home-page__main--graph' : ''}`}>
         {view === 'graph' ? (
