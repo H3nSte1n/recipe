@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"errors"
 	"github.com/H3nSte1n/recipe/internal/domain"
+	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/H3nSte1n/recipe/internal/middleware"
 	"github.com/H3nSte1n/recipe/internal/service"
 	"github.com/gin-gonic/gin"
@@ -33,6 +35,11 @@ func (h *ProfileHandler) Update(c *gin.Context) {
 
 	profile, err := h.profileService.UpdateProfile(c.Request.Context(), userID, &req)
 	if err != nil {
+		var appErr *apperrors.AppError
+		if errors.As(err, &appErr) && appErr.Code == "INVALID_ARGUMENT" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": appErr.Message})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

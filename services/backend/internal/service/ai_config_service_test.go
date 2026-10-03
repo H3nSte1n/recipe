@@ -18,6 +18,7 @@ import (
 type fakeAIConfigRepo struct {
 	store  map[string]domain.UserAIConfig
 	nextID int
+	models []domain.AIModel
 }
 
 func newFakeAIConfigRepo() *fakeAIConfigRepo {
@@ -57,7 +58,7 @@ func (r *fakeAIConfigRepo) Delete(_ context.Context, id string) error {
 }
 
 func (r *fakeAIConfigRepo) GetAIModels(_ context.Context) ([]domain.AIModel, error) {
-	return nil, nil
+	return r.models, nil
 }
 
 func (r *fakeAIConfigRepo) GetDefaultConfig(_ context.Context, userID string) (*domain.UserAIConfig, error) {
@@ -80,7 +81,13 @@ func (r *fakeAIConfigRepo) WithTypedTransaction(_ context.Context, fn func(repos
 	return fn(r)
 }
 
-func (r *fakeAIConfigRepo) GetByUserAndModel(_ context.Context, _, _ string) (*domain.UserAIConfig, error) {
+func (r *fakeAIConfigRepo) GetByUserAndModel(_ context.Context, userID, modelID string) (*domain.UserAIConfig, error) {
+	for _, c := range r.store {
+		if c.UserID == userID && c.AIModelID == modelID {
+			copy := c
+			return &copy, nil
+		}
+	}
 	return nil, nil
 }
 
@@ -166,4 +173,48 @@ func TestAIConfigService_LegacyPlaintextReadFallback(t *testing.T) {
 	got, err := svc.GetByID(ctx, "user-1", "legacy")
 	require.NoError(t, err)
 	assert.Equal(t, "legacy-plaintext-key", got.APIKey, "legacy plaintext must be returned as-is")
+}
+
+func TestAIConfigService_UpdateModelKeepsEncryptedKey(t *testing.T) {
+	repo, svc, cipher := newTestAIConfigService(t)
+	repo.models = []domain.AIModel{{ID: "model-2", IsActive: true}}
+	ctx := context.Background()
+	created, err := svc.Create(ctx, "user-1", &domain.CreateUserAIConfigRequest{AIModelID: "model-1", APIKey: "secret"})
+	require.NoError(t, err)
+	modelID := "model-2"
+	updated, err := svc.Update(ctx, "user-1", created.ID, &domain.UpdateUserAIConfigRequest{AIModelID: &modelID})
+	require.NoError(t, err)
+	assert.Equal(t, modelID, updated.AIModelID)
+	key, err := cipher.Decrypt(repo.rawStoredKey(created.ID))
+	require.NoError(t, err)
+	assert.Equal(t, "secret", key)
+}
+
+func TestAIConfigService_UpdateModelRejectsDuplicate(t *testing.T) {
+	repo, svc, _ := newTestAIConfigService(t)
+	repo.models = []domain.AIModel{{ID: "model-2", IsActive: true}}
+	ctx := context.Background()
+	first, err := svc.Create(ctx, "user-1", &domain.CreateUserAIConfigRequest{AIModelID: "model-1", APIKey: "secret"})
+	require.NoError(t, err)
+	_, err = svc.Create(ctx, "user-1", &domain.CreateUserAIConfigRequest{AIModelID: "model-2", APIKey: "secret"})
+	require.NoError(t, err)
+	modelID := "model-2"
+	_, err = svc.Update(ctx, "user-1", first.ID, &domain.UpdateUserAIConfigRequest{AIModelID: &modelID})
+	require.Error(t, err)
+	assert.Equal(t, "model-1", repo.store[first.ID].AIModelID)
+}
+
+func TestAIConfigService_ChangingProviderRequiresNewKey(t *testing.T) {
+	repo, svc, _ := newTestAIConfigService(t)
+	repo.models = []domain.AIModel{{ID: "model-2", Provider: "openai", IsActive: true}}
+	ctx := context.Background()
+	created, err := svc.Create(ctx, "user-1", &domain.CreateUserAIConfigRequest{AIModelID: "model-1", APIKey: "anthropic-secret"})
+	require.NoError(t, err)
+	stored := repo.store[created.ID]
+	stored.AIModel = &domain.AIModel{ID: "model-1", Provider: "anthropic"}
+	repo.store[created.ID] = stored
+	modelID := "model-2"
+	_, err = svc.Update(ctx, "user-1", created.ID, &domain.UpdateUserAIConfigRequest{AIModelID: &modelID})
+	require.Error(t, err)
+	assert.Equal(t, "model-1", repo.store[created.ID].AIModelID)
 }
