@@ -6,12 +6,14 @@ import (
 	apperrors "github.com/H3nSte1n/recipe/internal/errors"
 	"github.com/H3nSte1n/recipe/internal/repository"
 	"go.uber.org/zap"
+	"strings"
 )
 
 type aiConfigRepository interface {
 	Create(ctx context.Context, config *domain.UserAIConfig) error
 	Update(ctx context.Context, config *domain.UserAIConfig) error
 	GetByID(ctx context.Context, id string) (*domain.UserAIConfig, error)
+	GetByUserAndModel(ctx context.Context, userID, modelID string) (*domain.UserAIConfig, error)
 	ListByUserID(ctx context.Context, userID string) ([]domain.UserAIConfig, error)
 	Delete(ctx context.Context, id string) error
 	GetAIModels(ctx context.Context) ([]domain.AIModel, error)
@@ -89,6 +91,36 @@ func (s *aiConfigService) Update(ctx context.Context, userID string, configID st
 	if err != nil {
 		return nil, err
 	}
+	if req.AIModelID != nil && *req.AIModelID != config.AIModelID {
+		modelID := strings.TrimSpace(*req.AIModelID)
+		models, err := s.aiConfigRepo.GetAIModels(ctx)
+		if err != nil {
+			return nil, err
+		}
+		valid := false
+		var selectedModel *domain.AIModel
+		for _, model := range models {
+			if model.ID == modelID {
+				valid = true
+				selectedModel = &model
+				break
+			}
+		}
+		if !valid {
+			return nil, apperrors.New("invalid or inactive AI model", "INVALID_ARGUMENT")
+		}
+		if config.AIModel != nil && selectedModel.Provider != config.AIModel.Provider && (req.APIKey == nil || strings.TrimSpace(*req.APIKey) == "") {
+			return nil, apperrors.New("API key is required when changing AI providers", "INVALID_ARGUMENT")
+		}
+		existing, err := s.aiConfigRepo.GetByUserAndModel(ctx, userID, modelID)
+		if err != nil && !apperrors.IsNotFound(err) {
+			return nil, err
+		}
+		if existing != nil && existing.ID != configID {
+			return nil, apperrors.New("AI model is already configured", "CONFLICT")
+		}
+		config.AIModelID = modelID
+	}
 
 	err = s.aiConfigRepo.WithTypedTransaction(ctx, func(txRepo repository.AIConfigRepository) error {
 		if req.IsDefault != nil && *req.IsDefault {
@@ -98,6 +130,9 @@ func (s *aiConfigService) Update(ctx context.Context, userID string, configID st
 		}
 
 		if req.APIKey != nil {
+			if strings.TrimSpace(*req.APIKey) == "" {
+				return apperrors.New("API key cannot be empty", "INVALID_ARGUMENT")
+			}
 			config.APIKey = *req.APIKey
 		}
 		if req.IsDefault != nil {

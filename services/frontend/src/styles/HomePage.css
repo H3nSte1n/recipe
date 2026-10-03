@@ -49,6 +49,7 @@
 }
 
 .home-page__add-btn,
+.home-page__profile-btn,
 .home-page__logout-btn {
   cursor: pointer;
   background: none;
@@ -62,6 +63,7 @@
 }
 
 .home-page__add-btn:hover,
+.home-page__profile-btn:hover,
 .home-page__logout-btn:hover {
   opacity: 1;
 }

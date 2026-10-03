@@ -618,6 +618,7 @@ func TestRecipeHandler_ImportFromPDF(t *testing.T) {
 		name                 string
 		setUserID            bool
 		fileContent          []byte
+		formFields           map[string]string
 		expectedStatusCode   int
 		expectedBodyContains string
 		mockMethod           func(m *mockRecipeService)
@@ -631,6 +632,19 @@ func TestRecipeHandler_ImportFromPDF(t *testing.T) {
 			mockMethod: func(m *mockRecipeService) {
 				m.On("ImportFromPDF", mock.Anything, userID, mock.MatchedBy(func(req *domain.ImportPDFRequest) bool {
 					return req.IsPrivate == false
+				}), pdfContent).Return(&recipe, nil).Once()
+			},
+		},
+		{
+			name:                 "passes PDF privacy preference from form data",
+			setUserID:            true,
+			fileContent:          pdfContent,
+			formFields:           map[string]string{"is_private": "true"},
+			expectedStatusCode:   http.StatusOK,
+			expectedBodyContains: string(jsonRecipe),
+			mockMethod: func(m *mockRecipeService) {
+				m.On("ImportFromPDF", mock.Anything, userID, mock.MatchedBy(func(req *domain.ImportPDFRequest) bool {
+					return req.IsPrivate
 				}), pdfContent).Return(&recipe, nil).Once()
 			},
 		},
@@ -669,7 +683,7 @@ func TestRecipeHandler_ImportFromPDF(t *testing.T) {
 				handler.ImportFromPDF(ctx)
 			})
 
-			w := performMultipartRequest(t, router, http.MethodPost, "/api/v1/recipes/import/pdf", "file", tt.fileContent, nil)
+			w := performMultipartRequest(t, router, http.MethodPost, "/api/v1/recipes/import/pdf", "file", tt.fileContent, tt.formFields)
 
 			require.Equal(t, tt.expectedStatusCode, w.Code)
 			if tt.expectedBodyContains != "" {

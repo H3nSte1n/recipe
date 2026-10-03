@@ -26,4 +26,6 @@ type UpdateProfileRequest struct {
 	Bio        *string `json:"bio,omitempty"`
 	Location   *string `json:"location,omitempty"`
 	WebsiteURL *string `json:"website_url,omitempty"`
+	FirstName  *string `json:"first_name,omitempty"`
+	LastName   *string `json:"last_name,omitempty"`
 }

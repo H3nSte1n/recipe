@@ -7,9 +7,10 @@ interface HomeHeaderProps {
   onToggleView: () => void;
   onAddRecipe: () => void;
   onLogout: () => void;
+  onProfile: () => void;
 }
 
-export default function HomeHeader({ view, query, onQueryChange, onToggleView, onAddRecipe, onLogout }: HomeHeaderProps) {
+export default function HomeHeader({ view, query, onQueryChange, onToggleView, onAddRecipe, onLogout, onProfile }: HomeHeaderProps) {
   return (
     <header className="home-page__header">
       <div className="home-page__header-content">
@@ -47,6 +48,18 @@ export default function HomeHeader({ view, query, onQueryChange, onToggleView, o
             <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
               <line x1={5} y1={12} x2={19} y2={12} />
               <line x1={12} y1={5} x2={12} y2={19} />
+            </svg>
+          </button>
+          <button
+            className="home-page__profile-btn"
+            type="button"
+            aria-label="Open profile"
+            title="Profile"
+            onClick={onProfile}
+          >
+            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx={12} cy={8} r={3.5} />
+              <path d="M4.5 20c.5-4 3.1-6 7.5-6s7 2 7.5 6" />
             </svg>
           </button>
           <button

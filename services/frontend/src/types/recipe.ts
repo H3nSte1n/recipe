@@ -27,6 +27,7 @@ export interface CreateRecipePayload {
   title: string;
   description: string;
   source_type: string;
+  source_url?: string;
   servings: number;
   prep_time: number;
   cook_time?: number;
