@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/H3nSte1n/recipe/internal/handler"
+	mealhttp "github.com/H3nSte1n/recipe/internal/mealplan/adapter/http"
 	"github.com/H3nSte1n/recipe/internal/middleware"
 	"github.com/H3nSte1n/recipe/pkg/config"
 	"github.com/H3nSte1n/recipe/pkg/signedurl"
@@ -56,12 +57,13 @@ func trustedProxiesFromEnv() []string {
 type Router struct {
 	engine   *gin.Engine
 	handlers *handler.Handlers
+	planner  *mealhttp.Handler
 	auth     *middleware.AuthMiddleware
 	config   config.Config
 	logger   *zap.Logger
 }
 
-func NewRouter(handlers *handler.Handlers, config config.Config, logger *zap.Logger, revocations middleware.TokenRevocationChecker) *Router {
+func NewRouter(handlers *handler.Handlers, planner *mealhttp.Handler, config config.Config, logger *zap.Logger, revocations middleware.TokenRevocationChecker) *Router {
 	engine := gin.Default()
 
 	// Gin trusts every proxy by default, which makes X-Forwarded-For/X-Real-IP
@@ -81,6 +83,7 @@ func NewRouter(handlers *handler.Handlers, config config.Config, logger *zap.Log
 	return &Router{
 		engine:   engine,
 		handlers: handlers,
+		planner:  planner,
 		auth:     middleware.NewAuthMiddleware(config.JWT.Secret, config.JWT.Issuer, config.JWT.Audience, revocations),
 		config:   config,
 		logger:   logger,
@@ -135,6 +138,15 @@ func (r *Router) setupProtectedRoutes(rg *gin.RouterGroup) {
 	// unconfigured SMTP provider doesn't lock people out of the app entirely
 	// — see registration/email-verification remediation notes.
 	requireVerified := middleware.RequireVerified(r.handlers.UserHandler.IsEmailVerified)
+
+	plannedMeals := rg.Group("/planned-meals")
+	{
+		plannedMeals.POST("", requireVerified, r.planner.Create)
+		plannedMeals.GET("", r.planner.List)
+		plannedMeals.GET("/:id", r.planner.Get)
+		plannedMeals.PUT("/:id", requireVerified, r.planner.Replace)
+		plannedMeals.DELETE("/:id", requireVerified, r.planner.Delete)
+	}
 
 	users := rg.Group("/users")
 	{

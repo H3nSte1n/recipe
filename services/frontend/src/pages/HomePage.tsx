@@ -11,9 +11,10 @@ import '../styles/HomePage.css';
 
 interface HomePageProps {
   onLogout: () => void;
+  onPlanner: () => void;
 }
 
-export default function HomePage({ onLogout }: HomePageProps) {
+export default function HomePage({ onLogout, onPlanner }: HomePageProps) {
   const { isLoading, error, filterRecipes, recipes, refresh } = useRecipes();
   const [query, setQuery] = useState('');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -63,6 +64,7 @@ export default function HomePage({ onLogout }: HomePageProps) {
         onToggleView={() => setView(v => v === 'grid' ? 'graph' : 'grid')}
         onAddRecipe={() => setShowAddModal(true)}
         onLogout={onLogout}
+        onPlanner={onPlanner}
       />
       <main className={`home-page__main${view === 'graph' ? ' home-page__main--graph' : ''}`}>
         {view === 'graph' ? (

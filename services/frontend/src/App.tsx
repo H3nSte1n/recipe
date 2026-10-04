@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { isAuthenticated as checkAuth, logout as clearSession } from './services/authService';
 import LandingPage from './pages/LandingPage';
 import HomePage from './pages/HomePage';
+import PlannerPage from './pages/PlannerPage';
 
-type Screen = 'landing' | 'home';
+type Screen = 'landing' | 'home' | 'planner';
 
 function App() {
   const [screen, setScreen] = useState<Screen>(checkAuth() ? 'home' : 'landing');
@@ -16,8 +17,13 @@ function App() {
   };
 
   if (screen === 'home') {
-    return <HomePage onLogout={handleLogout} />;
+    return <HomePage onLogout={handleLogout} onPlanner={() => setScreen('planner')} />;
   }
+
+  if (screen === 'planner') {
+    return <PlannerPage onRecipes={() => setScreen('home')} onLogout={handleLogout} />;
+  }
+
 
   return (
     <LandingPage

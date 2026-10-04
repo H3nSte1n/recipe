@@ -2,6 +2,9 @@ package main
 
 import (
 	"github.com/H3nSte1n/recipe/internal/handler"
+	mealhttp "github.com/H3nSte1n/recipe/internal/mealplan/adapter/http"
+	mealpostgres "github.com/H3nSte1n/recipe/internal/mealplan/adapter/postgres"
+	"github.com/H3nSte1n/recipe/internal/mealplan/application"
 	"github.com/H3nSte1n/recipe/internal/repository"
 	"github.com/H3nSte1n/recipe/internal/router"
 	"github.com/H3nSte1n/recipe/internal/service"
@@ -68,8 +71,11 @@ func main() {
 	services := service.NewServices(repos, cfg, fileStore, logger, *aiModelFactory, cipher)
 
 	handlers := handler.NewHandlers(services, logger)
+	plannerRepo := mealpostgres.NewRepository(db)
+	plannerService := application.NewService(plannerRepo)
+	plannerHandler := mealhttp.NewHandler(plannerService, logger)
 
-	r := router.NewRouter(handlers, cfg, logger, repos.UserRepository)
+	r := router.NewRouter(handlers, plannerHandler, cfg, logger, repos.UserRepository)
 	r.SetupRoutes()
 
 	logger.Info("Starting server on port " + cfg.App.Port)
