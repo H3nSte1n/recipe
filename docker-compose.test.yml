@@ -1,0 +1,18 @@
+name: recipe-mealplan-test
+
+services:
+  mealplan_test_db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mealplan_test
+      POSTGRES_DB: recipe_mealplan_test
+    ports:
+      - "127.0.0.1:55433:5432"
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d recipe_mealplan_test"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
