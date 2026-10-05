@@ -1,34 +1,43 @@
+import PlannerDayNumber from './PlannerDayNumber';
 import type { PlannedMeal } from '../types/plannedMeal';
-import { parseCalendarDate } from '../utils/plannerDates';
+import { parseCalendarDate, weekdayLetters } from '../utils/plannerDates';
 
-interface Props {
+interface PlannerCalendarProps {
   dates: string[];
   month: Date;
   items: PlannedMeal[];
-  onAdd: (date: string) => void;
+  selectedDate: string;
+  today: string;
+  onSelectDate: (date: string) => void;
   onEdit: (item: PlannedMeal) => void;
 }
 
-const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-export default function PlannerCalendar({ dates, month, items, onAdd, onEdit }: Props) {
+export default function PlannerCalendar({ dates, month, items, selectedDate, today, onSelectDate, onEdit }: PlannerCalendarProps) {
   const byDate = new Map<string, PlannedMeal[]>();
   for (const item of items) byDate.set(item.cook_date, [...(byDate.get(item.cook_date) ?? []), item]);
 
   return (
-    <div className="planner-calendar" aria-label="Meal calendar">
-      {weekdays.map((day) => <div key={day} className="planner-calendar__weekday">{day}</div>)}
+    <div className="planner-calendar" aria-label="Meal calendar" role="group">
+      {weekdayLetters.map((letter, index) => (
+        <div key={index} className="planner-calendar__weekday" aria-hidden="true">{letter}</div>
+      ))}
       {dates.map((date) => {
-        const day = parseCalendarDate(date);
+        const outside = parseCalendarDate(date).getMonth() !== month.getMonth();
+        const classes = ['planner-calendar__day'];
+        if (outside) classes.push('planner-calendar__day--outside');
+        if (date === selectedDate) classes.push('planner-calendar__day--selected');
         return (
-          <div key={date} className={`planner-calendar__day${day.getMonth() !== month.getMonth() ? ' planner-calendar__day--outside' : ''}`}>
-            <div className="planner-calendar__day-header">
-              <span aria-label={day.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}>{day.getDate()}</span>
-              <button type="button" aria-label={`Add meal on ${date}`} onClick={() => onAdd(date)}>+</button>
-            </div>
+          <div key={date} className={classes.join(' ')}>
+            <PlannerDayNumber date={date} today={today} selected={date === selectedDate} outside={outside} onSelect={onSelectDate} />
             {(byDate.get(date) ?? []).map((item) => (
-              <button key={item.id} type="button" className="planner-calendar__meal" onClick={() => onEdit(item)} aria-label={`Edit ${item.recipe.title} on ${date}`}>
-                {item.meal_type && <span>{item.meal_type} · </span>}{item.recipe.title}
+              <button
+                key={item.id}
+                type="button"
+                className="planner-calendar__meal"
+                onClick={() => onEdit(item)}
+                aria-label={`Edit ${item.recipe.title} on ${date}`}
+              >
+                {item.recipe.title}
               </button>
             ))}
           </div>

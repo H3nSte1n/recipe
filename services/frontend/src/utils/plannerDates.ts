@@ -28,3 +28,19 @@ export function monthGrid(month: Date): string[] {
 export function shiftMonth(month: Date, offset: number): Date {
   return new Date(month.getFullYear(), month.getMonth() + offset, 1, 12);
 }
+
+export const weekdayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+// Monday-to-Sunday dates of the week that contains the given calendar date.
+export function weekOf(value: string): string[] {
+  const date = parseCalendarDate(value);
+  const mondayOffset = (date.getDay() + 6) % 7;
+  const monday = addCalendarDays(date, -mondayOffset);
+  return Array.from({ length: 7 }, (_, index) => calendarDate(addCalendarDays(monday, index)));
+}
+
+// Saturday and Sunday render muted in the design.
+export function isWeekend(value: string): boolean {
+  const day = parseCalendarDate(value).getDay();
+  return day === 0 || day === 6;
+}
