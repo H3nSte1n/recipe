@@ -3,15 +3,17 @@ import PlannerCalendar from '../components/PlannerCalendar';
 import PlannerList from '../components/PlannerList';
 import PlannerWeekStrip from '../components/PlannerWeekStrip';
 import PlannedMealForm from '../components/PlannedMealForm';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { usePlannedMeals } from '../hooks/usePlannedMeals';
 import { getMyRecipes } from '../services/recipeService';
 import { createPlannedMeal, deletePlannedMeal, PlannedMealApiError, updatePlannedMeal } from '../services/plannedMealService';
 import type { PlannedMeal, PlannedMealInput } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
-import { calendarDate, monthGrid, parseCalendarDate, shiftMonth } from '../utils/plannerDates';
+import { calendarDate, monthGrid, parseCalendarDate, shiftMonth, weekOf } from '../utils/plannerDates';
 import '../styles/PlannerPage.css';
 
 const LIST_DAYS = 14;
+const DESKTOP_QUERY = '(min-width: 1024px)';
 
 function firstOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1, 12);
@@ -34,11 +36,14 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
   const busyRef = useRef(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recipeError, setRecipeError] = useState<string | null>(null);
+  const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const dates = useMemo(() => monthGrid(month), [month]);
+  // Desktop shows one week; smaller screens show the whole month grid.
+  const visibleDates = useMemo(() => (isDesktop ? weekOf(selectedDate) : dates), [isDesktop, selectedDate, dates]);
   const today = calendarDate(new Date());
   const recipesById = useMemo(() => new Map(recipes.map((recipe) => [recipe.id, recipe])), [recipes]);
   const listDates = useMemo(() => dates.filter((date) => date >= selectedDate).slice(0, LIST_DAYS), [dates, selectedDate]);
-  const { items, loading, error, refresh } = usePlannedMeals(dates[0], dates[dates.length - 1]);
+  const { items, loading, error, refresh } = usePlannedMeals(visibleDates[0], visibleDates[visibleDates.length - 1]);
 
   useEffect(() => {
     let cancelled = false;
