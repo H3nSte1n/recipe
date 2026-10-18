@@ -64,6 +64,24 @@
 .planner-calendar__day { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; min-height: 96px; padding: 8px 2px; border-bottom: 1px solid var(--line); }
 .planner-calendar__meal { width: 100%; padding: 2px 4px; border: 0; border-radius: 2px; background: var(--ph); color: var(--ink); font-size: var(--text-xs); text-align: left; overflow-wrap: anywhere; }
 
+/* ─── Desktop week grid ──────────────────────────────────────────────────── */
+.planner-week-grid { padding: 0 24px 96px; }
+.planner-week-grid__heads, .planner-week-grid__cells { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.planner-week-grid__head { padding: 12px 0; border-left: 1px solid var(--line); text-align: center; font-size: var(--text-base); }
+.planner-week-grid__head:first-child, .planner-week-grid__cell:first-child { border-left: 0; }
+.planner-week-grid__head--today { color: var(--error); }
+.planner-week-grid__row { border-top: 1px solid var(--line); }
+.planner-week-grid__slot { display: inline-block; margin: 0; padding: 2px 24px 2px 6px; background: var(--bg); clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); font-size: var(--text-xs); font-weight: 400; }
+.planner-week-grid__cell { display: flex; flex-direction: column; gap: 12px; min-height: 160px; padding: 8px 6px; border-left: 1px solid var(--line); }
+.planner-week-grid__add { flex: 1; min-height: 32px; border: 0; border-radius: 6px; background: none; color: transparent; font-size: var(--text-lg); }
+.planner-week-grid__add:hover, .planner-week-grid__add:focus-visible { background: var(--bg); color: var(--meta); }
+.planner-week-card { display: flex; align-items: center; gap: 12px; width: 100%; padding: 0; border: 0; background: none; color: inherit; text-align: left; }
+.planner-week-card__image { flex: none; width: 50px; height: 50px; object-fit: cover; }
+.planner-week-card__image--placeholder { display: block; background: var(--ph); }
+.planner-week-card__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.planner-week-card__title { font-size: var(--text-sm); overflow-wrap: anywhere; }
+.planner-week-card__time { font-size: var(--text-xs); color: var(--meta); }
+
 /* ─── Floating add button ────────────────────────────────────────────────── */
 .planner__fab { position: fixed; right: 16px; bottom: 16px; z-index: 20; width: 56px; height: 56px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--ink); box-shadow: 0 4px 16px rgba(0, 0, 0, .15); font-size: var(--text-xl); line-height: 1; }
 
