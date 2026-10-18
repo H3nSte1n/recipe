@@ -95,15 +95,17 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
     }
   }
 
+  const topbar = (
+    <div className="planner__topbar">
+      <button type="button" className="planner__text-btn" onClick={onRecipes}>← Recipes</button>
+      <button type="button" className="planner__text-btn" onClick={onLogout}>Sign out</button>
+    </div>
+  );
+
   return (
     <div className={`planner${isDesktop ? ' planner--week' : ''}`}>
-      <header className="planner__header">
-        <div className="planner__topbar">
-          <button type="button" className="planner__text-btn" onClick={onRecipes}>← Recipes</button>
-          <button type="button" className="planner__text-btn" onClick={onLogout}>Sign out</button>
-        </div>
-      </header>
-      <main className="planner__main">
+      {isDesktop && <header className="planner__header">{topbar}</header>}
+      <main className={`planner__main${isDesktop ? '' : ' planner__main--mobile'}`}>
         {recipeError && <p className="planner__error" role="alert">{recipeError}</p>}
         {actionError && <p className="planner__error" role="alert">{actionError}</p>}
         {loading && <p className={`planner__status${isDesktop ? '' : ' planner__status--floating'}`} role="status">Loading planned meals…</p>}
@@ -123,6 +125,7 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
         ) : (
           <section className="planner__list-pane" aria-label="Day">
             <PlannerDayScroller
+              topbar={topbar}
               dates={dayWindow.dates}
               items={items}
               recipesById={recipesById}

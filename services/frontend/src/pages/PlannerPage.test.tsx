@@ -175,6 +175,19 @@ describe('planner day list (mobile)', () => {
     expect(screen.queryByRole('button', { name: dayLabel(new Date(`${today}T12:00:00`)) })).not.toBeInTheDocument();
   });
 
+  it('keeps the back to recipes and sign out buttons in the sticky header', async () => {
+    const onRecipes = vi.fn();
+    const onLogout = vi.fn();
+    render(<PlannerPage onRecipes={onRecipes} onLogout={onLogout} />);
+    await screen.findByRole('region', { name: today });
+    const back = screen.getByRole('button', { name: /Recipes/ });
+    expect(back.closest('.planner-scroller__sticky')).not.toBeNull();
+    fireEvent.click(back);
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+    expect(onRecipes).toHaveBeenCalledTimes(1);
+    expect(onLogout).toHaveBeenCalledTimes(1);
+  });
+
   it('scrolls the list to a day tapped in the week strip, and back to today', async () => {
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
     await screen.findByRole('region', { name: today });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import PlannerList from './PlannerList';
 import PlannerWeekStrip from './PlannerWeekStrip';
 import type { PlannedMeal } from '../types/plannedMeal';
@@ -9,6 +9,7 @@ import { topmostDate } from '../utils/plannerScroll';
 const EDGE_DISTANCE = 600;
 
 interface PlannerDayScrollerProps {
+  topbar: ReactNode;
   dates: string[];
   items: PlannedMeal[];
   recipesById: Map<string, Recipe>;
@@ -20,9 +21,9 @@ interface PlannerDayScrollerProps {
   onExtendBottom: () => void;
 }
 
-// Mobile planner: the week strip and Today button stay on screen while the day list scrolls beneath.
+// Mobile planner: the top bar, week strip and Today button stay on screen while the day list scrolls beneath.
 // The strip follows the day at the top of the list; tapping a day in the strip scrolls to it.
-export default function PlannerDayScroller({ dates, items, recipesById, selectedDate, today, onSelectDate, onEdit, onExtendTop, onExtendBottom }: PlannerDayScrollerProps) {
+export default function PlannerDayScroller({ topbar, dates, items, recipesById, selectedDate, today, onSelectDate, onEdit, onExtendTop, onExtendBottom }: PlannerDayScrollerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const didInitialScroll = useRef(false);
@@ -101,6 +102,7 @@ export default function PlannerDayScroller({ dates, items, recipesById, selected
   return (
     <div className="planner-scroller" ref={rootRef}>
       <div className="planner-scroller__sticky" ref={stickyRef}>
+        {topbar}
         <div className="planner-scroller__today">
           <button type="button" className="planner__pill-btn" onClick={() => jumpTo(today)}>Today</button>
         </div>
