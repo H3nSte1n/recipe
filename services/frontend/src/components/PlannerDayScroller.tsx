@@ -26,16 +26,20 @@ export default function PlannerDayScroller({ dates, items, recipesById, selected
   const rootRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const didInitialScroll = useRef(false);
-  // Page height before weeks were added above the viewport, so the reader's place can be restored.
-  const heightBeforeExtension = useRef<number | null>(null);
+  // The day at the top of the list and how far below the sticky header it sits, so the reader's
+  // place can be restored when meals load or weeks are added above them.
+  const anchor = useRef<{ date: string; offset: number } | null>(null);
   const extending = useRef(false);
 
+  const sectionFor = useCallback((date: string) => rootRef.current?.querySelector<HTMLElement>(`[data-date="${date}"]`) ?? null, []);
+  const headerBottom = useCallback(() => stickyRef.current?.getBoundingClientRect().bottom ?? 0, []);
+
   const scrollToDate = useCallback((date: string) => {
-    const section = rootRef.current?.querySelector(`[data-date="${date}"]`);
+    const section = sectionFor(date);
     if (!section) return;
-    const headerHeight = stickyRef.current?.offsetHeight ?? 0;
-    window.scrollTo({ top: window.scrollY + section.getBoundingClientRect().top - headerHeight });
-  }, []);
+    window.scrollTo({ top: window.scrollY + section.getBoundingClientRect().top - headerBottom() });
+    anchor.current = { date, offset: 0 };
+  }, [sectionFor, headerBottom]);
 
   function jumpTo(date: string) {
     onSelectDate(date);
@@ -49,14 +53,15 @@ export default function PlannerDayScroller({ dates, items, recipesById, selected
     scrollToDate(selectedDate);
   }, [scrollToDate, selectedDate]);
 
-  // After weeks are added, keep what the reader was looking at in place.
+  // Meals loading or weeks being added above the reader would push the page; put the anchor day back.
   useLayoutEffect(() => {
-    if (heightBeforeExtension.current !== null) {
-      window.scrollBy(0, document.documentElement.scrollHeight - heightBeforeExtension.current);
-      heightBeforeExtension.current = null;
+    const section = anchor.current && sectionFor(anchor.current.date);
+    if (anchor.current && section) {
+      const shift = section.getBoundingClientRect().top - headerBottom() - anchor.current.offset;
+      if (Math.abs(shift) >= 1) window.scrollBy(0, shift);
     }
     extending.current = false;
-  }, [dates]);
+  }, [dates, items, sectionFor, headerBottom]);
 
   useEffect(() => {
     let frame = 0;
@@ -64,16 +69,19 @@ export default function PlannerDayScroller({ dates, items, recipesById, selected
       frame = 0;
       const root = rootRef.current;
       if (!root) return;
-      const headerBottom = stickyRef.current?.getBoundingClientRect().bottom ?? 0;
+      const headerEdge = headerBottom();
       const sections = Array.from(root.querySelectorAll<HTMLElement>('[data-date]'));
-      const date = topmostDate(sections.map((section) => ({ date: section.dataset.date ?? '', bottom: section.getBoundingClientRect().bottom })), headerBottom);
-      if (date && date !== selectedDate) onSelectDate(date);
+      const date = topmostDate(sections.map((section) => ({ date: section.dataset.date ?? '', bottom: section.getBoundingClientRect().bottom })), headerEdge);
+      if (date) {
+        const top = sectionFor(date)?.getBoundingClientRect().top ?? headerEdge;
+        anchor.current = { date, offset: top - headerEdge };
+        if (date !== selectedDate) onSelectDate(date);
+      }
 
       if (extending.current) return;
       const page = document.documentElement;
       if (window.scrollY < EDGE_DISTANCE) {
         extending.current = true;
-        heightBeforeExtension.current = page.scrollHeight;
         onExtendTop();
       } else if (page.scrollHeight - (window.scrollY + window.innerHeight) < EDGE_DISTANCE) {
         extending.current = true;
@@ -88,7 +96,7 @@ export default function PlannerDayScroller({ dates, items, recipesById, selected
       window.removeEventListener('scroll', onScroll);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [selectedDate, onSelectDate, onExtendTop, onExtendBottom]);
+  }, [selectedDate, onSelectDate, onExtendTop, onExtendBottom, sectionFor, headerBottom]);
 
   return (
     <div className="planner-scroller" ref={rootRef}>
