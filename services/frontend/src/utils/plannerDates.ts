@@ -18,15 +18,9 @@ export function addCalendarDays(date: Date, days: number): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days, 12);
 }
 
-export function monthGrid(month: Date): string[] {
-  const first = new Date(month.getFullYear(), month.getMonth(), 1, 12);
-  const mondayOffset = (first.getDay() + 6) % 7;
-  const start = addCalendarDays(first, -mondayOffset);
-  return Array.from({ length: 42 }, (_, index) => calendarDate(addCalendarDays(start, index)));
-}
-
-export function shiftMonth(month: Date, offset: number): Date {
-  return new Date(month.getFullYear(), month.getMonth() + offset, 1, 12);
+// The calendar date `days` after (or, if negative, before) the given one.
+export function addDays(value: string, days: number): string {
+  return calendarDate(addCalendarDays(parseCalendarDate(value), days));
 }
 
 export const weekdayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -46,7 +40,7 @@ export function weekStart(value: string): string {
 
 // Same weekday, `offset` weeks later (negative = earlier).
 export function shiftWeek(value: string, offset: number): string {
-  return calendarDate(addCalendarDays(parseCalendarDate(value), offset * 7));
+  return addDays(value, offset * 7);
 }
 
 // "5–11 October 2026", "28 September – 4 October 2026" or "28 December 2026 – 3 January 2027".

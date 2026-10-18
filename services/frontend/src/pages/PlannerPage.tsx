@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import PlannerCalendar from '../components/PlannerCalendar';
 import PlannerList from '../components/PlannerList';
 import PlannerWeekGrid from '../components/PlannerWeekGrid';
 import PlannerWeekStrip from '../components/PlannerWeekStrip';
@@ -10,15 +9,11 @@ import { getMyRecipes } from '../services/recipeService';
 import { createPlannedMeal, deletePlannedMeal, PlannedMealApiError, updatePlannedMeal } from '../services/plannedMealService';
 import type { MealType, PlannedMeal, PlannedMealInput } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
-import { calendarDate, monthGrid, parseCalendarDate, shiftMonth, shiftWeek, weekOf, weekRangeLabel } from '../utils/plannerDates';
+import { addDays, calendarDate, shiftWeek, weekOf, weekRangeLabel, weekStart } from '../utils/plannerDates';
 import '../styles/PlannerPage.css';
 
 const LIST_DAYS = 14;
 const DESKTOP_QUERY = '(min-width: 1024px)';
-
-function firstOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), 1, 12);
-}
 
 interface Props {
   onRecipes: () => void;
@@ -26,10 +21,7 @@ interface Props {
 }
 
 export default function PlannerPage({ onRecipes, onLogout }: Props) {
-  const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1, 12));
   const [selectedDate, setSelectedDate] = useState(() => calendarDate(new Date()));
-  // Only used below 1024px; wider screens show the week grid instead.
-  const [mobileView, setMobileView] = useState<'calendar' | 'list'>('list');
   const [form, setForm] = useState<{ date: string; item: PlannedMeal | null; mealType: MealType | null } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -38,12 +30,14 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recipeError, setRecipeError] = useState<string | null>(null);
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
-  const dates = useMemo(() => monthGrid(month), [month]);
-  // Desktop shows one week; smaller screens show the whole month grid.
-  const visibleDates = useMemo(() => (isDesktop ? weekOf(selectedDate) : dates), [isDesktop, selectedDate, dates]);
+  // Desktop shows the selected week; smaller screens list two weeks from the selected week's Monday.
+  const listDates = useMemo(() => {
+    const first = weekStart(selectedDate);
+    return Array.from({ length: LIST_DAYS }, (_, index) => addDays(first, index));
+  }, [selectedDate]);
+  const visibleDates = useMemo(() => (isDesktop ? weekOf(selectedDate) : listDates), [isDesktop, selectedDate, listDates]);
   const today = calendarDate(new Date());
   const recipesById = useMemo(() => new Map(recipes.map((recipe) => [recipe.id, recipe])), [recipes]);
-  const listDates = useMemo(() => dates.filter((date) => date >= selectedDate).slice(0, LIST_DAYS), [dates, selectedDate]);
   const { items, loading, error, refresh } = usePlannedMeals(visibleDates[0], visibleDates[visibleDates.length - 1]);
 
   useEffect(() => {
@@ -56,20 +50,6 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
 
   function selectDate(date: string) {
     setSelectedDate(date);
-    // Picking a day from a neighbouring month moves the grid to that month.
-    const picked = parseCalendarDate(date);
-    if (picked.getMonth() !== month.getMonth() || picked.getFullYear() !== month.getFullYear()) setMonth(firstOfMonth(picked));
-  }
-
-  function openDay(date: string) {
-    selectDate(date);
-    setMobileView('list');
-  }
-
-  function showMonth(target: Date) {
-    setMonth(target);
-    const isCurrentMonth = target.getMonth() === new Date().getMonth() && target.getFullYear() === new Date().getFullYear();
-    setSelectedDate(isCurrentMonth ? calendarDate(new Date()) : calendarDate(target));
   }
 
   function openForm(date: string, item: PlannedMeal | null = null, mealType: MealType | null = null) {
@@ -120,7 +100,7 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
   }
 
   return (
-    <div className={`planner planner--${mobileView}${isDesktop ? ' planner--week' : ''}`}>
+    <div className={`planner${isDesktop ? ' planner--week' : ''}`}>
       <header className="planner__header">
         <div className="planner__topbar">
           <button type="button" className="planner__text-btn" onClick={onRecipes}>← Recipes</button>
@@ -136,7 +116,7 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
           <section className="planner__week-pane" aria-label="Week">
             <div className="planner__week-toolbar">
               <h1 className="planner__week-title">{weekRangeLabel(selectedDate)}</h1>
-              <div className="planner__month-nav">
+              <div className="planner__nav">
                 <button type="button" className="planner__round-btn" aria-label="Previous week" onClick={() => selectDate(shiftWeek(selectedDate, -1))}>‹</button>
                 <button type="button" className="planner__round-btn" aria-label="Next week" onClick={() => selectDate(shiftWeek(selectedDate, 1))}>›</button>
                 <button type="button" className="planner__pill-btn" onClick={() => selectDate(today)}>Today</button>
@@ -145,26 +125,12 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
             <PlannerWeekGrid dates={visibleDates} items={items} recipesById={recipesById} today={today} onEdit={(item) => openForm(item.cook_date, item)} onAdd={(date, mealType) => openForm(date, null, mealType)} />
           </section>
         ) : (
-          <div className="planner__layout">
-            <section className="planner__calendar-pane" aria-label="Calendar">
-              <div className="planner__toolbar">
-                <h1 className="planner__month-title">{month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h1>
-                <div className="planner__month-nav">
-                  <button type="button" className="planner__round-btn" aria-label="Previous month" onClick={() => showMonth(shiftMonth(month, -1))}>‹</button>
-                  <button type="button" className="planner__round-btn" aria-label="Next month" onClick={() => showMonth(shiftMonth(month, 1))}>›</button>
-                  <button type="button" className="planner__pill-btn" onClick={() => showMonth(firstOfMonth(new Date()))}>Today</button>
-                </div>
-              </div>
-              <PlannerCalendar dates={dates} month={month} items={items} selectedDate={selectedDate} today={today} onSelectDate={openDay} onEdit={(item) => openForm(item.cook_date, item)} />
-            </section>
-            <section className="planner__list-pane" aria-label="Day">
-              <div className="planner__week-strip">
-                <PlannerWeekStrip selectedDate={selectedDate} today={today} onSelect={selectDate} />
-                <button type="button" className="planner__chevron" aria-label="Show month calendar" aria-expanded={false} onClick={() => setMobileView('calendar')}>⌄</button>
-              </div>
-              <PlannerList dates={listDates} items={items} recipesById={recipesById} onEdit={(item) => openForm(item.cook_date, item)} onSelectDate={openDay} />
-            </section>
-          </div>
+          <section className="planner__list-pane" aria-label="Day">
+            <div className="planner__week-strip">
+              <PlannerWeekStrip selectedDate={selectedDate} today={today} onSelect={selectDate} />
+            </div>
+            <PlannerList dates={listDates} items={items} recipesById={recipesById} onEdit={(item) => openForm(item.cook_date, item)} onSelectDate={selectDate} />
+          </section>
         )}
       </main>
       <button type="button" className="planner__fab" aria-label="Add meal" onClick={() => openForm(selectedDate)}>+</button>

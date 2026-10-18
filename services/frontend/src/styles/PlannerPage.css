@@ -8,15 +8,13 @@
 .planner__status, .planner__empty { text-align: center; padding: 40px; color: var(--meta); font-size: var(--text-base); }
 .planner__error { color: var(--error); font-size: var(--text-sm); }
 
-/* ─── Month title and navigation ─────────────────────────────────────────── */
-.planner__toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.planner__month-title { margin: 0; font-size: var(--text-xl); font-style: italic; font-weight: 400; }
-.planner__month-nav { display: flex; align-items: center; gap: 8px; }
+/* ─── Round and pill buttons ─────────────────────────────────────────────── */
+.planner__nav { display: flex; align-items: center; gap: 8px; }
 .planner__round-btn, .planner__pill-btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: var(--text-sm); }
 .planner__round-btn { width: 36px; height: 36px; border-radius: 50%; padding: 0; }
 .planner__pill-btn { height: 36px; border-radius: 18px; padding: 0 16px; }
 
-/* ─── Day numbers (shared by week strip and calendar) ────────────────────── */
+/* ─── Day numbers (week strip) ────────────────────── */
 .planner-day { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: none; color: var(--ink); font-size: var(--text-base); font-style: italic; }
 .planner-day--weekend, .planner-day--outside { color: var(--meta); }
 .planner-day--today { color: var(--error); }
@@ -35,12 +33,9 @@
 .planner-form__actions button[type="submit"] { border-color: var(--ink); background: var(--ink); color: var(--surface); }
 .planner-form__actions .planner-form__delete { margin-right: auto; color: var(--error); }
 
-/* ─── Mobile: week strip, chevron, day list ──────────────────────────────── */
+/* ─── Mobile: week strip, day list ───────────────────────────────────────── */
 .planner__main { padding-bottom: 96px; }
-.planner--list .planner__calendar-pane { display: none; }
-.planner--calendar .planner__list-pane { display: none; }
 .planner__week-strip { display: flex; flex-direction: column; align-items: center; }
-.planner__chevron { width: 36px; height: 36px; margin: 8px 0 16px; border: 0; border-radius: 50%; background: var(--surface); color: var(--ink); box-shadow: 0 4px 12px rgba(0, 0, 0, .12); font-size: var(--text-lg); line-height: 1; }
 .planner-week { display: grid; grid-template-columns: repeat(7, 1fr); width: 100%; }
 .planner-week__day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .planner-week__letter { font-size: var(--text-sm); color: var(--ink); }
@@ -56,13 +51,6 @@
 .planner-list__time { font-size: var(--text-sm); color: var(--meta); }
 .planner-list__also { margin: 4px 0 0; font-size: var(--text-sm); color: var(--meta); }
 .planner-list__also-link { padding: 0; border: 0; background: none; color: inherit; text-decoration: underline; }
-
-/* ─── Mobile: month calendar ─────────────────────────────────────────────── */
-.planner__toolbar { margin-bottom: 8px; }
-.planner-calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
-.planner-calendar__weekday { padding: 10px 0; border-bottom: 1px solid var(--line); text-align: center; font-size: var(--text-sm); }
-.planner-calendar__day { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; min-height: 96px; padding: 8px 2px; border-bottom: 1px solid var(--line); }
-.planner-calendar__meal { width: 100%; padding: 2px 4px; border: 0; border-radius: 2px; background: var(--ph); color: var(--ink); font-size: var(--text-xs); text-align: left; overflow-wrap: anywhere; }
 
 /* ─── Desktop week grid ──────────────────────────────────────────────────── */
 .planner-week-grid { padding: 0 24px 96px; }
@@ -91,7 +79,7 @@
 /* ─── Desktop (1024px+): week grid ──────────────────────────────────────── */
 .planner__week-toolbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 8px 24px 24px; }
 .planner__week-title { grid-column: 2; margin: 0; text-align: center; font-size: var(--text-xl); font-style: italic; font-weight: 400; }
-.planner__week-toolbar .planner__month-nav { grid-column: 3; justify-self: end; }
+.planner__week-toolbar .planner__nav { grid-column: 3; justify-self: end; }
 /* The page itself never scrolls: top bar and toolbar stay put, and the grid scrolls with its weekday header pinned. */
 .planner--week { display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
 .planner--week .planner__main { display: flex; flex: 1; flex-direction: column; min-height: 0; padding: 0; }

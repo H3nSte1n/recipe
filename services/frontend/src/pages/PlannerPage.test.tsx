@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import PlannerPage from './PlannerPage';
 import type { PlannedMeal } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
-import { calendarDate, shiftMonth, shiftWeek, weekOf, weekRangeLabel } from '../utils/plannerDates';
+import { calendarDate, shiftWeek, weekOf, weekRangeLabel } from '../utils/plannerDates';
 import { getMyRecipes } from '../services/recipeService';
 import { createPlannedMeal, deletePlannedMeal, listAllPlannedMeals, updatePlannedMeal } from '../services/plannedMealService';
 
@@ -24,15 +24,12 @@ beforeEach(() => {
 afterEach(() => vi.clearAllMocks());
 
 describe('planner', () => {
-  it('defaults Add meal to the visible month and restores focus after Escape', async () => {
+  it('defaults Add meal to today and restores focus after Escape', async () => {
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
-    const next = await screen.findByRole('button', { name: 'Next month' });
-    fireEvent.click(next);
-    const add = screen.getByRole('button', { name: 'Add meal' });
+    const add = await screen.findByRole('button', { name: 'Add meal' });
     add.focus();
     fireEvent.click(add);
-    const expected = calendarDate(shiftMonth(new Date(), 1));
-    expect(screen.getByLabelText('Cook date')).toHaveValue(expected);
+    expect(screen.getByLabelText('Cook date')).toHaveValue(calendarDate(new Date()));
     expect(screen.getByLabelText('Recipe')).toHaveFocus();
     await screen.findByRole('option', { name: 'Pasta' });
     fireEvent.change(screen.getByLabelText('Recipe'), { target: { value: recipe.id } });
@@ -43,7 +40,7 @@ describe('planner', () => {
     expect(add).toHaveFocus();
   });
 
-  it('shows same-day duplicates in calendar and list and supports edit and delete', async () => {
+  it('shows same-day duplicates in the day list and supports edit and delete', async () => {
     const date = calendarDate(new Date());
     let entries = [meal('a', date), meal('b', date)];
     vi.mocked(listAllPlannedMeals).mockImplementation(async () => entries);
@@ -54,18 +51,17 @@ describe('planner', () => {
     vi.mocked(deletePlannedMeal).mockImplementation(async (id) => { entries = entries.filter((item) => item.id !== id); });
     vi.stubGlobal('confirm', vi.fn(() => true));
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
-    const edits = (region: string) => within(screen.getByRole('group', { name: region })).getAllByRole('button', { name: `Edit Pasta on ${date}` });
-    await waitFor(() => expect(edits('Meal calendar')).toHaveLength(2));
-    expect(edits('Day list')).toHaveLength(2);
-    fireEvent.click(edits('Day list')[0]);
+    const edits = () => within(screen.getByRole('group', { name: 'Day list' })).getAllByRole('button', { name: `Edit Pasta on ${date}` });
+    await waitFor(() => expect(edits()).toHaveLength(2));
+    fireEvent.click(edits()[0]);
     fireEvent.change(screen.getByLabelText('Meal'), { target: { value: 'dinner' } });
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Save meal' }));
     await waitFor(() => expect(updatePlannedMeal).toHaveBeenCalledWith('a', expect.objectContaining({ meal_type: 'dinner' })));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    fireEvent.click(edits('Meal calendar')[0]);
+    fireEvent.click(edits()[0]);
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(deletePlannedMeal).toHaveBeenCalledWith('a'));
-    await waitFor(() => expect(edits('Meal calendar')).toHaveLength(1));
+    await waitFor(() => expect(edits()).toHaveLength(1));
     vi.unstubAllGlobals();
   });
 
@@ -102,47 +98,20 @@ describe('planner', () => {
     expect(screen.getByLabelText('Recipe')).toHaveValue(recipe.id);
   });
 
-  it('ignores a stale month response and can retry a failed load', async () => {
-    let finishOld!: (value: PlannedMeal[]) => void;
-    const oldDate = calendarDate(new Date());
-    const nextDate = calendarDate(shiftMonth(new Date(), 1));
-    vi.mocked(listAllPlannedMeals)
-      .mockImplementationOnce(() => new Promise((resolve) => { finishOld = resolve; }))
-      .mockResolvedValueOnce([meal('new', nextDate)])
-      .mockRejectedValueOnce(new Error('Temporary outage'))
-      .mockResolvedValueOnce([]);
+  it('retries a failed load', async () => {
+    vi.mocked(listAllPlannedMeals).mockRejectedValueOnce(new Error('Temporary outage')).mockResolvedValueOnce([meal('a', calendarDate(new Date()))]);
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Next month' }));
-    await screen.findAllByRole('button', { name: `Edit Pasta on ${nextDate}` });
-    finishOld([meal('old', oldDate)]);
-    expect(screen.queryByRole('button', { name: `Edit Pasta on ${oldDate}` })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Next month' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Temporary outage');
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    expect(await screen.findByRole('group', { name: 'Meal calendar' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: `Edit Pasta on ${calendarDate(new Date())}` })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
   });
 
-  it('switches between list and calendar on mobile and opens a tapped day', async () => {
-    const { container } = render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
-    const chevron = await screen.findByRole('button', { name: 'Show month calendar' });
-    expect(container.firstElementChild).toHaveClass('planner--list');
-    fireEvent.click(chevron);
-    expect(container.firstElementChild).toHaveClass('planner--calendar');
-
-    const pickedDay = new Date(new Date().getFullYear(), new Date().getMonth(), 15, 12);
-    const target = calendarDate(pickedDay);
-    const calendar = screen.getByRole('group', { name: 'Meal calendar' });
-    fireEvent.click(within(calendar).getByRole('button', { name: dayLabel(pickedDay) }));
-    expect(container.firstElementChild).toHaveClass('planner--list');
-    expect(screen.getByRole('region', { name: target })).toBeInTheDocument();
-  });
-
-  it('adds a meal on the selected day from the floating button', async () => {
+  it('adds a meal on the day picked in the week strip', async () => {
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
-    const calendar = await screen.findByRole('group', { name: 'Meal calendar' });
-    const day = new Date(new Date().getFullYear(), new Date().getMonth(), 15, 12);
-    fireEvent.click(within(calendar).getByRole('button', { name: dayLabel(day) }));
+    const strip = await screen.findByRole('group', { name: 'Week' });
+    const day = new Date(`${weekOf(calendarDate(new Date()))[0]}T12:00:00`);
+    fireEvent.click(within(strip).getByRole('button', { name: dayLabel(day) }));
     fireEvent.click(screen.getByRole('button', { name: 'Add meal' }));
     expect(screen.getByLabelText('Cook date')).toHaveValue(calendarDate(day));
   });
