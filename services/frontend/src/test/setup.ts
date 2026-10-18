@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { afterEach } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
 // Node's experimental localStorage getter may shadow jsdom's storage object.
@@ -13,5 +13,9 @@ Object.defineProperty(globalThis, 'localStorage', {
     clear: () => values.clear(),
   },
 });
+
+// jsdom does not implement window scrolling.
+window.scrollTo = vi.fn();
+window.scrollBy = vi.fn();
 
 afterEach(() => { cleanup(); values.clear(); });

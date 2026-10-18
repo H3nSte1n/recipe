@@ -1,18 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import PlannerList from '../components/PlannerList';
+import PlannerDayScroller from '../components/PlannerDayScroller';
 import PlannerWeekGrid from '../components/PlannerWeekGrid';
-import PlannerWeekStrip from '../components/PlannerWeekStrip';
 import PlannedMealForm from '../components/PlannedMealForm';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { usePlannedMeals } from '../hooks/usePlannedMeals';
+import { usePlannerWindow } from '../hooks/usePlannerWindow';
 import { getMyRecipes } from '../services/recipeService';
 import { createPlannedMeal, deletePlannedMeal, PlannedMealApiError, updatePlannedMeal } from '../services/plannedMealService';
 import type { MealType, PlannedMeal, PlannedMealInput } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
-import { addDays, calendarDate, shiftWeek, weekOf, weekRangeLabel, weekStart } from '../utils/plannerDates';
+import { calendarDate, shiftWeek, weekOf, weekRangeLabel } from '../utils/plannerDates';
 import '../styles/PlannerPage.css';
 
-const LIST_DAYS = 14;
 const DESKTOP_QUERY = '(min-width: 1024px)';
 
 interface Props {
@@ -30,15 +29,12 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recipeError, setRecipeError] = useState<string | null>(null);
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
-  // Desktop shows the selected week; smaller screens list two weeks from the selected week's Monday.
-  const listDates = useMemo(() => {
-    const first = weekStart(selectedDate);
-    return Array.from({ length: LIST_DAYS }, (_, index) => addDays(first, index));
-  }, [selectedDate]);
-  const visibleDates = useMemo(() => (isDesktop ? weekOf(selectedDate) : listDates), [isDesktop, selectedDate, listDates]);
   const today = calendarDate(new Date());
   const recipesById = useMemo(() => new Map(recipes.map((recipe) => [recipe.id, recipe])), [recipes]);
-  const { items, loading, error, refresh } = usePlannedMeals(visibleDates[0], visibleDates[visibleDates.length - 1]);
+  // Desktop shows the selected week; smaller screens show a window of weeks that grows as the list is scrolled.
+  const dayWindow = usePlannerWindow(today);
+  const week = weekOf(selectedDate);
+  const { items, loading, error, refresh } = usePlannedMeals(isDesktop ? week[0] : dayWindow.from, isDesktop ? week[6] : dayWindow.to);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,7 +106,7 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
       <main className="planner__main">
         {recipeError && <p className="planner__error" role="alert">{recipeError}</p>}
         {actionError && <p className="planner__error" role="alert">{actionError}</p>}
-        {loading && <p className="planner__status" role="status">Loading planned meals…</p>}
+        {loading && <p className={`planner__status${isDesktop ? '' : ' planner__status--floating'}`} role="status">Loading planned meals…</p>}
         {error && !loading && <div className="planner__status" role="alert"><p>{error}</p><button type="button" onClick={refresh}>Retry</button></div>}
         {isDesktop ? (
           <section className="planner__week-pane" aria-label="Week">
@@ -122,14 +118,21 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
                 <button type="button" className="planner__pill-btn" onClick={() => selectDate(today)}>Today</button>
               </div>
             </div>
-            <PlannerWeekGrid dates={visibleDates} items={items} recipesById={recipesById} today={today} onEdit={(item) => openForm(item.cook_date, item)} onAdd={(date, mealType) => openForm(date, null, mealType)} />
+            <PlannerWeekGrid dates={week} items={items} recipesById={recipesById} today={today} onEdit={(item) => openForm(item.cook_date, item)} onAdd={(date, mealType) => openForm(date, null, mealType)} />
           </section>
         ) : (
           <section className="planner__list-pane" aria-label="Day">
-            <div className="planner__week-strip">
-              <PlannerWeekStrip selectedDate={selectedDate} today={today} onSelect={selectDate} />
-            </div>
-            <PlannerList dates={listDates} items={items} recipesById={recipesById} onEdit={(item) => openForm(item.cook_date, item)} onSelectDate={selectDate} />
+            <PlannerDayScroller
+              dates={dayWindow.dates}
+              items={items}
+              recipesById={recipesById}
+              selectedDate={selectedDate}
+              today={today}
+              onSelectDate={selectDate}
+              onEdit={(item) => openForm(item.cook_date, item)}
+              onExtendTop={dayWindow.extendTop}
+              onExtendBottom={dayWindow.extendBottom}
+            />
           </section>
         )}
       </main>

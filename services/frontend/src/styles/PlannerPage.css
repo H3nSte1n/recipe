@@ -35,7 +35,11 @@
 
 /* ─── Mobile: week strip, day list ───────────────────────────────────────── */
 .planner__main { padding-bottom: 96px; }
-.planner__week-strip { display: flex; flex-direction: column; align-items: center; }
+.planner__status--floating { position: fixed; bottom: 24px; left: 50%; z-index: 20; transform: translateX(-50%); padding: 8px 16px; border-radius: 18px; background: var(--surface); box-shadow: 0 4px 16px rgba(0, 0, 0, .15); font-size: var(--text-sm); }
+.planner-scroller { overflow-anchor: none; }
+.planner-scroller__sticky { position: sticky; top: 0; z-index: 5; margin: 0 -24px 16px; padding: 12px 24px 8px; background: var(--surface); }
+.planner-scroller__today { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.planner-scroller__today .planner__pill-btn { height: 28px; padding: 0 16px; font-size: var(--text-sm); }
 .planner-week { display: grid; grid-template-columns: repeat(7, 1fr); width: 100%; }
 .planner-week__day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .planner-week__letter { font-size: var(--text-sm); color: var(--ink); }

@@ -33,7 +33,7 @@ export default function PlannerList({ dates, items, recipesById, onEdit, onSelec
       {dates.map((date) => {
         const dayItems = items.filter((item) => item.cook_date === date);
         return (
-          <section key={date} className="planner-list__day" aria-label={date}>
+          <section key={date} className="planner-list__day" aria-label={date} data-date={date}>
             <h2 className="planner-list__day-heading">{formatDayHeading(date)}</h2>
             {mealGroups.map((group) => {
               const groupItems = dayItems.filter((item) => item.meal_type === group.type);
