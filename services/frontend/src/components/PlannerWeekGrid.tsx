@@ -24,28 +24,34 @@ export default function PlannerWeekGrid({ dates, items, recipesById, today, onEd
 
   return (
     <div className="planner-week-grid" role="group" aria-label="Week plan">
-      <div className="planner-week-grid__heads">
-        {dates.map((date) => (
-          <span key={date} className={`planner-week-grid__head${date === today ? ' planner-week-grid__head--today' : ''}`}>{formatColumnHeading(date)}</span>
+      <div className="planner-week-grid__body">
+        {/* One set of column lines behind the header and every row, so they run unbroken. */}
+        <div className="planner-week-grid__lines" aria-hidden="true">
+          {dates.map((date) => <span key={date} />)}
+        </div>
+        <div className="planner-week-grid__heads">
+          {dates.map((date) => (
+            <span key={date} className={`planner-week-grid__head${date === today ? ' planner-week-grid__head--today' : ''}`}>{formatColumnHeading(date)}</span>
+          ))}
+        </div>
+        {visibleSlots.map((row) => (
+          <section key={row.slot} className="planner-week-grid__row" aria-label={row.label}>
+            <h2 className="planner-week-grid__slot">{row.label}</h2>
+            <div className="planner-week-grid__cells">
+              {dates.map((date) => (
+                <div key={date} className="planner-week-grid__cell">
+                  {(mealsByDay.get(date)?.[row.slot] ?? []).map((item) => (
+                    <PlannerWeekMealCard key={item.id} item={item} recipe={recipesById.get(item.recipe_id)} onEdit={onEdit} />
+                  ))}
+                  <button type="button" className="planner-week-grid__add" aria-label={`Add ${row.label} on ${date}`} onClick={() => onAdd(date, row.mealType)}>
+                    <span aria-hidden="true">+</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
-      {visibleSlots.map((row) => (
-        <section key={row.slot} className="planner-week-grid__row" aria-label={row.label}>
-          <h2 className="planner-week-grid__slot">{row.label}</h2>
-          <div className="planner-week-grid__cells">
-            {dates.map((date) => (
-              <div key={date} className="planner-week-grid__cell">
-                {(mealsByDay.get(date)?.[row.slot] ?? []).map((item) => (
-                  <PlannerWeekMealCard key={item.id} item={item} recipe={recipesById.get(item.recipe_id)} onEdit={onEdit} />
-                ))}
-                <button type="button" className="planner-week-grid__add" aria-label={`Add ${row.label} on ${date}`} onClick={() => onAdd(date, row.mealType)}>
-                  <span aria-hidden="true">+</span>
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
     </div>
   );
 }
