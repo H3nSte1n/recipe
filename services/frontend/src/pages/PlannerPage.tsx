@@ -120,7 +120,7 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
   }
 
   return (
-    <div className={`planner planner--${mobileView}`}>
+    <div className={`planner planner--${mobileView}${isDesktop ? ' planner--week' : ''}`}>
       <header className="planner__header">
         <div className="planner__topbar">
           <button type="button" className="planner__text-btn" onClick={onRecipes}>← Recipes</button>
