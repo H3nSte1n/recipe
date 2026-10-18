@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import PlannerCalendar from '../components/PlannerCalendar';
 import PlannerList from '../components/PlannerList';
+import PlannerWeekGrid from '../components/PlannerWeekGrid';
 import PlannerWeekStrip from '../components/PlannerWeekStrip';
 import PlannedMealForm from '../components/PlannedMealForm';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { usePlannedMeals } from '../hooks/usePlannedMeals';
 import { getMyRecipes } from '../services/recipeService';
 import { createPlannedMeal, deletePlannedMeal, PlannedMealApiError, updatePlannedMeal } from '../services/plannedMealService';
-import type { PlannedMeal, PlannedMealInput } from '../types/plannedMeal';
+import type { MealType, PlannedMeal, PlannedMealInput } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
-import { calendarDate, monthGrid, parseCalendarDate, shiftMonth, weekOf } from '../utils/plannerDates';
+import { calendarDate, monthGrid, parseCalendarDate, shiftMonth, shiftWeek, weekOf, weekRangeLabel } from '../utils/plannerDates';
 import '../styles/PlannerPage.css';
 
 const LIST_DAYS = 14;
@@ -27,9 +28,9 @@ interface Props {
 export default function PlannerPage({ onRecipes, onLogout }: Props) {
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1, 12));
   const [selectedDate, setSelectedDate] = useState(() => calendarDate(new Date()));
-  // Only matters below 1024px; wider screens show calendar and list together.
+  // Only used below 1024px; wider screens show the week grid instead.
   const [mobileView, setMobileView] = useState<'calendar' | 'list'>('list');
-  const [form, setForm] = useState<{ date: string; item: PlannedMeal | null } | null>(null);
+  const [form, setForm] = useState<{ date: string; item: PlannedMeal | null; mealType: MealType | null } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -71,10 +72,10 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
     setSelectedDate(isCurrentMonth ? calendarDate(new Date()) : calendarDate(target));
   }
 
-  function openForm(date: string, item: PlannedMeal | null = null) {
+  function openForm(date: string, item: PlannedMeal | null = null, mealType: MealType | null = null) {
     setActionError(null);
     setFormError(null);
-    setForm({ date, item });
+    setForm({ date, item, mealType });
   }
 
   async function save(input: PlannedMealInput) {
@@ -131,29 +132,43 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
         {actionError && <p className="planner__error" role="alert">{actionError}</p>}
         {loading && <p className="planner__status" role="status">Loading planned meals…</p>}
         {error && !loading && <div className="planner__status" role="alert"><p>{error}</p><button type="button" onClick={refresh}>Retry</button></div>}
-        <div className="planner__layout">
-          <section className="planner__calendar-pane" aria-label="Calendar">
-            <div className="planner__toolbar">
-              <h1 className="planner__month-title">{month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h1>
+        {isDesktop ? (
+          <section className="planner__week-pane" aria-label="Week">
+            <div className="planner__week-toolbar">
+              <h1 className="planner__week-title">{weekRangeLabel(selectedDate)}</h1>
               <div className="planner__month-nav">
-                <button type="button" className="planner__round-btn" aria-label="Previous month" onClick={() => showMonth(shiftMonth(month, -1))}>‹</button>
-                <button type="button" className="planner__round-btn" aria-label="Next month" onClick={() => showMonth(shiftMonth(month, 1))}>›</button>
-                <button type="button" className="planner__pill-btn" onClick={() => showMonth(firstOfMonth(new Date()))}>Today</button>
+                <button type="button" className="planner__round-btn" aria-label="Previous week" onClick={() => selectDate(shiftWeek(selectedDate, -1))}>‹</button>
+                <button type="button" className="planner__round-btn" aria-label="Next week" onClick={() => selectDate(shiftWeek(selectedDate, 1))}>›</button>
+                <button type="button" className="planner__pill-btn" onClick={() => selectDate(today)}>Today</button>
               </div>
             </div>
-            <PlannerCalendar dates={dates} month={month} items={items} selectedDate={selectedDate} today={today} onSelectDate={openDay} onEdit={(item) => openForm(item.cook_date, item)} />
+            <PlannerWeekGrid dates={visibleDates} items={items} recipesById={recipesById} today={today} onEdit={(item) => openForm(item.cook_date, item)} onAdd={(date, mealType) => openForm(date, null, mealType)} />
           </section>
-          <section className="planner__list-pane" aria-label="Day">
-            <div className="planner__week-strip">
-              <PlannerWeekStrip selectedDate={selectedDate} today={today} onSelect={selectDate} />
-              <button type="button" className="planner__chevron" aria-label="Show month calendar" aria-expanded={false} onClick={() => setMobileView('calendar')}>⌄</button>
-            </div>
-            <PlannerList dates={listDates} items={items} recipesById={recipesById} onEdit={(item) => openForm(item.cook_date, item)} onSelectDate={openDay} />
-          </section>
-        </div>
+        ) : (
+          <div className="planner__layout">
+            <section className="planner__calendar-pane" aria-label="Calendar">
+              <div className="planner__toolbar">
+                <h1 className="planner__month-title">{month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h1>
+                <div className="planner__month-nav">
+                  <button type="button" className="planner__round-btn" aria-label="Previous month" onClick={() => showMonth(shiftMonth(month, -1))}>‹</button>
+                  <button type="button" className="planner__round-btn" aria-label="Next month" onClick={() => showMonth(shiftMonth(month, 1))}>›</button>
+                  <button type="button" className="planner__pill-btn" onClick={() => showMonth(firstOfMonth(new Date()))}>Today</button>
+                </div>
+              </div>
+              <PlannerCalendar dates={dates} month={month} items={items} selectedDate={selectedDate} today={today} onSelectDate={openDay} onEdit={(item) => openForm(item.cook_date, item)} />
+            </section>
+            <section className="planner__list-pane" aria-label="Day">
+              <div className="planner__week-strip">
+                <PlannerWeekStrip selectedDate={selectedDate} today={today} onSelect={selectDate} />
+                <button type="button" className="planner__chevron" aria-label="Show month calendar" aria-expanded={false} onClick={() => setMobileView('calendar')}>⌄</button>
+              </div>
+              <PlannerList dates={listDates} items={items} recipesById={recipesById} onEdit={(item) => openForm(item.cook_date, item)} onSelectDate={openDay} />
+            </section>
+          </div>
+        )}
       </main>
       <button type="button" className="planner__fab" aria-label="Add meal" onClick={() => openForm(selectedDate)}>+</button>
-      {form && <PlannedMealForm key={form.item?.id ?? `new-${form.date}`} initial={form.item} date={form.date} recipes={recipes} saving={saving} error={formError} onSave={(input) => void save(input)} onCancel={() => { if (!busyRef.current) setForm(null); }} onDelete={(item) => void remove(item)} />}
+      {form && <PlannedMealForm key={form.item?.id ?? `new-${form.date}-${form.mealType}`} initial={form.item} date={form.date} defaultMealType={form.mealType} recipes={recipes} saving={saving} error={formError} onSave={(input) => void save(input)} onCancel={() => { if (!busyRef.current) setForm(null); }} onDelete={(item) => void remove(item)} />}
     </div>
   );
 }
