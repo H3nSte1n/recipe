@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, calendarDate, parseCalendarDate, shiftWeek, weekRangeLabel, weekStart } from './plannerDates';
+import { addDays, calendarDate, parseCalendarDate, shiftWeek, weekRangeLabel, weekStart, weekStarts } from './plannerDates';
 
 describe('calendar-only dates', () => {
   it('accepts leap day and rejects invalid dates and instants', () => {
@@ -26,6 +26,12 @@ describe('week helpers', () => {
     expect(shiftWeek('2026-10-07', 1)).toBe('2026-10-14');
     expect(shiftWeek('2026-10-07', -1)).toBe('2026-09-30');
     expect(shiftWeek('2026-12-30', 1)).toBe('2027-01-06');
+  });
+
+  it('lists every Monday whose week overlaps a range', () => {
+    expect(weekStarts('2026-10-07', '2026-10-07')).toEqual(['2026-10-05']);
+    expect(weekStarts('2026-10-05', '2026-10-18')).toEqual(['2026-10-05', '2026-10-12']);
+    expect(weekStarts('2026-12-30', '2027-01-12')).toEqual(['2026-12-28', '2027-01-04', '2027-01-11']);
   });
 
   it('labels the range within a month, across months and across years', () => {

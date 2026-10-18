@@ -58,6 +58,13 @@ export function weekRangeLabel(value: string): string {
   return `${first.getDate()}–${format(last, { day: 'numeric', month: 'long', year: 'numeric' })}`;
 }
 
+// Mondays of every week that overlaps from..to (inclusive calendar dates).
+export function weekStarts(from: string, to: string): string[] {
+  const starts: string[] = [];
+  for (let monday = weekStart(from); monday <= to; monday = addDays(monday, 7)) starts.push(monday);
+  return starts;
+}
+
 // Saturday and Sunday render muted in the design.
 export function isWeekend(value: string): boolean {
   const day = parseCalendarDate(value).getDay();
