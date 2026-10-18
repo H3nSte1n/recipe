@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import PlannerPage from './PlannerPage';
 import type { PlannedMeal } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
-import { calendarDate, shiftMonth } from '../utils/plannerDates';
+import { calendarDate, shiftMonth, shiftWeek, weekOf, weekRangeLabel } from '../utils/plannerDates';
 import { getMyRecipes } from '../services/recipeService';
 import { createPlannedMeal, deletePlannedMeal, listAllPlannedMeals, updatePlannedMeal } from '../services/plannedMealService';
 
@@ -145,5 +145,61 @@ describe('planner', () => {
     fireEvent.click(within(calendar).getByRole('button', { name: dayLabel(day) }));
     fireEvent.click(screen.getByRole('button', { name: 'Add meal' }));
     expect(screen.getByLabelText('Cook date')).toHaveValue(calendarDate(day));
+  });
+});
+
+describe('planner week view (desktop)', () => {
+  const today = calendarDate(new Date());
+  const week = weekOf(today);
+  const typedMeal = (id: string, date: string, mealType: PlannedMeal['meal_type']): PlannedMeal => ({ ...meal(id, date), meal_type: mealType });
+
+  beforeEach(() => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: true, media: query, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows the current week and loads only that Monday-to-Sunday range', async () => {
+    render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
+    expect(await screen.findByRole('heading', { name: weekRangeLabel(today) })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Meal calendar' })).not.toBeInTheDocument();
+    await waitFor(() => expect(listAllPlannedMeals).toHaveBeenCalledWith(week[0], week[6], expect.anything()));
+  });
+
+  it('moves between weeks and back to today', async () => {
+    render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Next week' }));
+    expect(screen.getByRole('heading', { name: weekRangeLabel(shiftWeek(today, 1)) })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Previous week' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Previous week' }));
+    expect(screen.getByRole('heading', { name: weekRangeLabel(shiftWeek(today, -1)) })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Today' }));
+    expect(screen.getByRole('heading', { name: weekRangeLabel(today) })).toBeInTheDocument();
+  });
+
+  it('shows the Snacks row only when the week has a snack or untyped meal', async () => {
+    vi.mocked(listAllPlannedMeals).mockResolvedValue([typedMeal('a', week[0], 'lunch')]);
+    const { unmount } = render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
+    await screen.findByRole('button', { name: `Edit Pasta on ${week[0]}` });
+    expect(screen.getByRole('region', { name: 'Lunch' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Snacks' })).not.toBeInTheDocument();
+    unmount();
+
+    vi.mocked(listAllPlannedMeals).mockResolvedValue([typedMeal('b', week[2], null), typedMeal('c', week[3], 'snack')]);
+    render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
+    const snacks = await screen.findByRole('region', { name: 'Snacks' });
+    expect(within(snacks).getAllByRole('button', { name: /^Edit Pasta/ })).toHaveLength(2);
+  });
+
+  it('opens the add form prefilled from an empty cell and the edit form from a card', async () => {
+    vi.mocked(listAllPlannedMeals).mockResolvedValue([typedMeal('a', week[1], 'dinner')]);
+    render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
+    fireEvent.click(await screen.findByRole('button', { name: `Add Lunch on ${week[4]}` }));
+    expect(screen.getByLabelText('Cook date')).toHaveValue(week[4]);
+    expect(screen.getByLabelText('Meal')).toHaveValue('lunch');
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+
+    fireEvent.click(screen.getByRole('button', { name: `Edit Pasta on ${week[1]}` }));
+    expect(screen.getByRole('heading', { name: 'Edit planned meal' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Meal')).toHaveValue('dinner');
   });
 });
