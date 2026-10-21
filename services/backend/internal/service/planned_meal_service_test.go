@@ -200,6 +200,19 @@ func TestPlannedMealService_Update(t *testing.T) {
 		repo.AssertNotCalled(t, "LockOwnedRecipe", mock.Anything, mock.Anything, mock.Anything)
 	})
 
+	t.Run("recognises the current recipe when the client sends it in uppercase", func(t *testing.T) {
+		repo := new(mockPlannedMealRepository)
+		req := plannedRequest()
+		req.RecipeID = strings.ToUpper(plannedRecipeID)
+		repo.On("GetByID", ctx, plannedUserID, plannedMealID).Return(current, nil).Twice()
+		repo.On("Update", ctx, mock.MatchedBy(func(m *domain.PlannedMeal) bool { return m.RecipeID == plannedRecipeID })).Return(nil).Once()
+
+		_, err := NewPlannedMealService(repo).Update(ctx, plannedUserID, plannedMealID, req)
+
+		require.NoError(t, err)
+		repo.AssertNotCalled(t, "LockOwnedRecipe", mock.Anything, mock.Anything, mock.Anything)
+	})
+
 	t.Run("requires a different recipe to be owned and published", func(t *testing.T) {
 		repo := new(mockPlannedMealRepository)
 		req := plannedRequest()

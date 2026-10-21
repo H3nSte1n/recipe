@@ -144,7 +144,8 @@ func requirePublishedRecipe(ctx context.Context, repo plannedMealRepository, use
 
 // newPlannedMeal validates the request and turns it into a meal owned by userID.
 func newPlannedMeal(userID string, req *domain.PlannedMealRequest) (*domain.PlannedMeal, error) {
-	if id, err := uuid.Parse(req.RecipeID); err != nil || id == uuid.Nil {
+	recipeID, err := uuid.Parse(req.RecipeID)
+	if err != nil || recipeID == uuid.Nil {
 		return nil, invalidPlannedMeal("invalid recipe_id")
 	}
 	if _, err := parseCalendarDate(req.CookDate); err != nil {
@@ -176,7 +177,7 @@ func newPlannedMeal(userID string, req *domain.PlannedMealRequest) (*domain.Plan
 
 	return &domain.PlannedMeal{
 		UserID:   userID,
-		RecipeID: req.RecipeID,
+		RecipeID: recipeID.String(), // canonical lowercase, so it compares equal to stored IDs
 		CookDate: req.CookDate,
 		MealType: mealType,
 		Servings: req.Servings,

@@ -87,6 +87,26 @@ describe('planner', () => {
     expect(await screen.findAllByRole('button', { name: `Edit Pasta on ${calendarDate(new Date())}` })).not.toHaveLength(0);
   });
 
+  it('rejects non-whole or out-of-range servings before calling the API', async () => {
+    render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Add meal' }));
+    await screen.findByRole('option', { name: 'Pasta' });
+    fireEvent.change(screen.getByLabelText('Recipe'), { target: { value: recipe.id } });
+    // Browsers block these through the input's own step/min/max; submit the form directly to test the fallback check.
+    const form = screen.getByRole('dialog').querySelector('form')!;
+    for (const value of ['2.5', '0', '101']) {
+      fireEvent.change(screen.getByLabelText('Servings override'), { target: { value } });
+      fireEvent.submit(form);
+      expect(await screen.findByText('Servings must be a whole number from 1 to 100.')).toBeInTheDocument();
+    }
+    expect(createPlannedMeal).not.toHaveBeenCalled();
+
+    vi.mocked(createPlannedMeal).mockResolvedValue(meal('new', calendarDate(new Date())));
+    fireEvent.change(screen.getByLabelText('Servings override'), { target: { value: '4' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save meal' }));
+    await waitFor(() => expect(createPlannedMeal).toHaveBeenCalledWith(expect.objectContaining({ servings: 4 })));
+  });
+
   it('shows a save error and retains the draft', async () => {
     vi.mocked(createPlannedMeal).mockRejectedValue(new Error('Please verify your email'));
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
