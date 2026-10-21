@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import PlannerCalendar from '../components/PlannerCalendar';
-import PlannerList from '../components/PlannerList';
+import PlannerDayScroller from '../components/PlannerDayScroller';
+import PlannerWeekGrid from '../components/PlannerWeekGrid';
 import PlannedMealForm from '../components/PlannedMealForm';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { usePlannedMeals } from '../hooks/usePlannedMeals';
+import { usePlannerWindow } from '../hooks/usePlannerWindow';
 import { getMyRecipes } from '../services/recipeService';
 import { createPlannedMeal, deletePlannedMeal, PlannedMealApiError, updatePlannedMeal } from '../services/plannedMealService';
-import type { PlannedMeal, PlannedMealInput } from '../types/plannedMeal';
+import type { MealType, PlannedMeal, PlannedMealInput } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
-import { calendarDate, monthGrid, shiftMonth } from '../utils/plannerDates';
+import { calendarDate, shiftWeek, weekOf, weekRangeLabel } from '../utils/plannerDates';
 import '../styles/PlannerPage.css';
+
+const DESKTOP_QUERY = '(min-width: 1024px)';
 
 interface Props {
   onRecipes: () => void;
@@ -16,17 +20,21 @@ interface Props {
 }
 
 export default function PlannerPage({ onRecipes, onLogout }: Props) {
-  const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1, 12));
-  const [view, setView] = useState<'calendar' | 'list'>('calendar');
-  const [form, setForm] = useState<{ date: string; item: PlannedMeal | null } | null>(null);
+  const [selectedDate, setSelectedDate] = useState(() => calendarDate(new Date()));
+  const [form, setForm] = useState<{ date: string; item: PlannedMeal | null; mealType: MealType | null } | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const busyRef = useRef(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recipeError, setRecipeError] = useState<string | null>(null);
-  const dates = useMemo(() => monthGrid(month), [month]);
-  const { items, loading, error, refresh } = usePlannedMeals(dates[0], dates[dates.length - 1]);
+  const isDesktop = useMediaQuery(DESKTOP_QUERY);
+  const today = calendarDate(new Date());
+  const recipesById = useMemo(() => new Map(recipes.map((recipe) => [recipe.id, recipe])), [recipes]);
+  // Desktop shows the selected week; smaller screens show a window of weeks that grows as the list is scrolled.
+  const dayWindow = usePlannerWindow(today);
+  const week = weekOf(selectedDate);
+  const { items, loading, error, refresh } = usePlannedMeals(isDesktop ? week[0] : dayWindow.from, isDesktop ? week[6] : dayWindow.to);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,10 +44,14 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
     return () => { cancelled = true; };
   }, []);
 
-  function openForm(date: string, item: PlannedMeal | null = null) {
+  function selectDate(date: string) {
+    setSelectedDate(date);
+  }
+
+  function openForm(date: string, item: PlannedMeal | null = null, mealType: MealType | null = null) {
     setActionError(null);
     setFormError(null);
-    setForm({ date, item });
+    setForm({ date, item, mealType });
   }
 
   async function save(input: PlannedMealInput) {
@@ -83,44 +95,52 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
     }
   }
 
+  const topbar = (
+    <div className="planner__topbar">
+      <button type="button" className="planner__text-btn" onClick={onRecipes}>← Recipes</button>
+      <button type="button" className="planner__text-btn" onClick={onLogout}>Sign out</button>
+    </div>
+  );
+
   return (
-    <div className="planner">
-      <header className="planner__header">
-        <div className="planner__topbar">
-          <button type="button" onClick={onRecipes}>← Recipes</button>
-          <h1>Meal planner</h1>
-          <button type="button" onClick={onLogout}>Sign out</button>
-        </div>
-        <div className="planner__toolbar">
-          <div className="planner__month-nav">
-            <button type="button" aria-label="Previous month" onClick={() => setMonth((current) => shiftMonth(current, -1))}>‹</button>
-            <h2>{month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2>
-            <button type="button" aria-label="Next month" onClick={() => setMonth((current) => shiftMonth(current, 1))}>›</button>
-            <button type="button" onClick={() => setMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1, 12))}>Today</button>
-          </div>
-          <div className="planner__toolbar-actions">
-            <div className="planner__view-switch" role="group" aria-label="Planner view">
-              <button type="button" aria-pressed={view === 'calendar'} onClick={() => setView('calendar')}>Calendar</button>
-              <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>List</button>
-            </div>
-            <button type="button" className="planner__add" onClick={() => {
-              const today = calendarDate(new Date());
-              openForm(today.slice(0, 7) === calendarDate(month).slice(0, 7) ? today : calendarDate(month));
-            }}>Add meal</button>
-          </div>
-        </div>
-      </header>
-      <main className="planner__main">
+    <div className={`planner${isDesktop ? ' planner--week' : ''}`}>
+      {isDesktop && <header className="planner__header">{topbar}</header>}
+      <main className={`planner__main${isDesktop ? '' : ' planner__main--mobile'}`}>
         {recipeError && <p className="planner__error" role="alert">{recipeError}</p>}
         {actionError && <p className="planner__error" role="alert">{actionError}</p>}
-        {loading && <p className="planner__status" role="status">Loading planned meals…</p>}
+        {loading && <p className={`planner__status${isDesktop ? '' : ' planner__status--floating'}`} role="status">Loading planned meals…</p>}
         {error && !loading && <div className="planner__status" role="alert"><p>{error}</p><button type="button" onClick={refresh}>Retry</button></div>}
-        {!loading && !error && view === 'calendar' && items.length === 0 && <p className="planner__empty">No meals planned for this period. Choose a date to add one.</p>}
-        {!loading && !error && (view === 'calendar'
-          ? <PlannerCalendar dates={dates} month={month} items={items} onAdd={(date) => openForm(date)} onEdit={(item) => openForm(item.cook_date, item)} />
-          : <PlannerList items={items} onEdit={(item) => openForm(item.cook_date, item)} onDelete={(item) => void remove(item)} />)}
+        {isDesktop ? (
+          <section className="planner__week-pane" aria-label="Week">
+            <div className="planner__week-toolbar">
+              <h1 className="planner__week-title">{weekRangeLabel(selectedDate)}</h1>
+              <div className="planner__nav">
+                <button type="button" className="planner__round-btn" aria-label="Previous week" onClick={() => selectDate(shiftWeek(selectedDate, -1))}>‹</button>
+                <button type="button" className="planner__round-btn" aria-label="Next week" onClick={() => selectDate(shiftWeek(selectedDate, 1))}>›</button>
+                <button type="button" className="planner__pill-btn" onClick={() => selectDate(today)}>Today</button>
+              </div>
+            </div>
+            <PlannerWeekGrid dates={week} items={items} recipesById={recipesById} today={today} onEdit={(item) => openForm(item.cook_date, item)} onAdd={(date, mealType) => openForm(date, null, mealType)} />
+          </section>
+        ) : (
+          <section className="planner__list-pane" aria-label="Day">
+            <PlannerDayScroller
+              topbar={topbar}
+              dates={dayWindow.dates}
+              items={items}
+              recipesById={recipesById}
+              selectedDate={selectedDate}
+              today={today}
+              onSelectDate={selectDate}
+              onEdit={(item) => openForm(item.cook_date, item)}
+              onExtendTop={dayWindow.extendTop}
+              onExtendBottom={dayWindow.extendBottom}
+            />
+          </section>
+        )}
       </main>
-      {form && <PlannedMealForm key={form.item?.id ?? `new-${form.date}`} initial={form.item} date={form.date} recipes={recipes} saving={saving} error={formError} onSave={(input) => void save(input)} onCancel={() => { if (!busyRef.current) setForm(null); }} onDelete={(item) => void remove(item)} />}
+      <button type="button" className="planner__fab" aria-label="Add meal" onClick={() => openForm(selectedDate)}>+</button>
+      {form && <PlannedMealForm key={form.item?.id ?? `new-${form.date}-${form.mealType}`} initial={form.item} date={form.date} defaultMealType={form.mealType} recipes={recipes} saving={saving} error={formError} onSave={(input) => void save(input)} onCancel={() => { if (!busyRef.current) setForm(null); }} onDelete={(item) => void remove(item)} />}
     </div>
   );
 }

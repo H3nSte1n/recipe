@@ -5,6 +5,7 @@ import type { MealType, PlannedMeal, PlannedMealInput } from '../types/plannedMe
 interface Props {
   initial: PlannedMeal | null;
   date: string;
+  defaultMealType?: MealType | null;
   recipes: Recipe[];
   saving: boolean;
   error: string | null;
@@ -13,10 +14,10 @@ interface Props {
   onDelete: (item: PlannedMeal) => void;
 }
 
-export default function PlannedMealForm({ initial, date, recipes, saving, error, onSave, onCancel, onDelete }: Props) {
+export default function PlannedMealForm({ initial, date, defaultMealType = null, recipes, saving, error, onSave, onCancel, onDelete }: Props) {
   const [recipeId, setRecipeId] = useState(initial?.recipe_id ?? '');
   const [cookDate, setCookDate] = useState(initial?.cook_date ?? date);
-  const [mealType, setMealType] = useState(initial?.meal_type ?? '');
+  const [mealType, setMealType] = useState(initial?.meal_type ?? defaultMealType ?? '');
   const [servings, setServings] = useState(initial?.servings?.toString() ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const dialogRef = useRef<HTMLElement>(null);

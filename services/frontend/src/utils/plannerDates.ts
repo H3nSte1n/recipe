@@ -18,13 +18,55 @@ export function addCalendarDays(date: Date, days: number): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days, 12);
 }
 
-export function monthGrid(month: Date): string[] {
-  const first = new Date(month.getFullYear(), month.getMonth(), 1, 12);
-  const mondayOffset = (first.getDay() + 6) % 7;
-  const start = addCalendarDays(first, -mondayOffset);
-  return Array.from({ length: 42 }, (_, index) => calendarDate(addCalendarDays(start, index)));
+// The calendar date `days` after (or, if negative, before) the given one.
+export function addDays(value: string, days: number): string {
+  return calendarDate(addCalendarDays(parseCalendarDate(value), days));
 }
 
-export function shiftMonth(month: Date, offset: number): Date {
-  return new Date(month.getFullYear(), month.getMonth() + offset, 1, 12);
+export const weekdayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+// Monday-to-Sunday dates of the week that contains the given calendar date.
+export function weekOf(value: string): string[] {
+  const date = parseCalendarDate(value);
+  const mondayOffset = (date.getDay() + 6) % 7;
+  const monday = addCalendarDays(date, -mondayOffset);
+  return Array.from({ length: 7 }, (_, index) => calendarDate(addCalendarDays(monday, index)));
+}
+
+// Monday of the week that contains the given calendar date.
+export function weekStart(value: string): string {
+  return weekOf(value)[0];
+}
+
+// Same weekday, `offset` weeks later (negative = earlier).
+export function shiftWeek(value: string, offset: number): string {
+  return addDays(value, offset * 7);
+}
+
+// "5–11 October 2026", "28 September – 4 October 2026" or "28 December 2026 – 3 January 2027".
+export function weekRangeLabel(value: string): string {
+  const days = weekOf(value);
+  const first = parseCalendarDate(days[0]);
+  const last = parseCalendarDate(days[6]);
+  const format = (date: Date, options: Intl.DateTimeFormatOptions) => date.toLocaleDateString('en-GB', options);
+  if (first.getFullYear() !== last.getFullYear()) {
+    return `${format(first, { day: 'numeric', month: 'long', year: 'numeric' })} – ${format(last, { day: 'numeric', month: 'long', year: 'numeric' })}`;
+  }
+  if (first.getMonth() !== last.getMonth()) {
+    return `${format(first, { day: 'numeric', month: 'long' })} – ${format(last, { day: 'numeric', month: 'long', year: 'numeric' })}`;
+  }
+  return `${first.getDate()}–${format(last, { day: 'numeric', month: 'long', year: 'numeric' })}`;
+}
+
+// Mondays of every week that overlaps from..to (inclusive calendar dates).
+export function weekStarts(from: string, to: string): string[] {
+  const starts: string[] = [];
+  for (let monday = weekStart(from); monday <= to; monday = addDays(monday, 7)) starts.push(monday);
+  return starts;
+}
+
+// Saturday and Sunday render muted in the design.
+export function isWeekend(value: string): boolean {
+  const day = parseCalendarDate(value).getDay();
+  return day === 0 || day === 6;
 }
