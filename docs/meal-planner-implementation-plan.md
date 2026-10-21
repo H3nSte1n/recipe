@@ -1,3 +1,7 @@
+> **Update:** the backend was realigned to the repo's layered pattern (`domain` → `repository` → `service` → `handler`)
+> instead of the separate `internal/mealplan` hexagonal package described below. File paths in this document
+> are historical. The hexagonal ideas that were deferred are tracked in `docs/meal-planner-hexagonal-followup.md`.
+
 # Meal planner MVP implementation plan
 
 ## Goal and scope
