@@ -20,6 +20,7 @@ export default function PlannedMealForm({ initial, date, defaultMealType = null,
   const [mealType, setMealType] = useState(initial?.meal_type ?? defaultMealType ?? '');
   const [servings, setServings] = useState(initial?.servings?.toString() ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
+  const [servingsError, setServingsError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const recipeRef = useRef<HTMLSelectElement>(null);
   const selectedRecipeAvailable = recipes.some((recipe) => recipe.id === initial?.recipe_id);
@@ -51,11 +52,17 @@ export default function PlannedMealForm({ initial, date, defaultMealType = null,
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const servingsValue = servings === '' ? null : Number(servings);
+    if (servingsValue !== null && (!Number.isInteger(servingsValue) || servingsValue < 1 || servingsValue > 100)) {
+      setServingsError('Servings must be a whole number from 1 to 100.');
+      return;
+    }
+    setServingsError(null);
     onSave({
       recipe_id: recipeId,
       cook_date: cookDate,
       meal_type: (mealType || null) as MealType | null,
-      servings: servings === '' ? null : Number(servings),
+      servings: servingsValue,
       notes: notes.trim() || null,
     });
   }
@@ -85,6 +92,7 @@ export default function PlannedMealForm({ initial, date, defaultMealType = null,
           <input id="planner-servings" type="number" min="1" max="100" step="1" value={servings} onChange={(event) => setServings(event.target.value)} placeholder="Use recipe servings" />
           <label htmlFor="planner-notes">Notes</label>
           <textarea id="planner-notes" maxLength={1000} value={notes} onChange={(event) => setNotes(event.target.value)} />
+          {servingsError && <p className="planner__error" role="alert">{servingsError}</p>}
           {error && <p className="planner__error" role="alert">{error}</p>}
           <div className="planner-form__actions">
             {initial && <button type="button" className="planner-form__delete" disabled={saving} onClick={() => onDelete(initial)}>Delete</button>}

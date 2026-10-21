@@ -3,6 +3,9 @@ import type { PlannedMeal } from '../types/plannedMeal';
 import { listAllPlannedMeals } from '../services/plannedMealService';
 import { addDays, weekStarts } from '../utils/plannerDates';
 
+// The API rejects ranges over 93 days, so a request covers at most 13 whole weeks (91 days).
+const MAX_WEEKS_PER_REQUEST = 13;
+
 // Loads planned meals for whole Monday–Sunday weeks (from = a Monday, to = a Sunday).
 // Weeks already loaded are kept, so moving around only fetches what is new.
 export function usePlannedMeals(from: string, to: string) {
@@ -19,11 +22,11 @@ export function usePlannedMeals(from: string, to: string) {
     const missing = weekStarts(from, to).filter((monday) => !(monday in weeksRef.current) && !inFlight.current.has(monday));
     if (missing.length === 0) return;
     setError(null);
-    // One request per run of neighbouring missing weeks.
+    // One request per run of neighbouring missing weeks, capped at MAX_WEEKS_PER_REQUEST.
     const runs: string[][] = [];
     for (const monday of missing) {
       const run = runs[runs.length - 1];
-      if (run && addDays(run[run.length - 1], 7) === monday) run.push(monday);
+      if (run && run.length < MAX_WEEKS_PER_REQUEST && addDays(run[run.length - 1], 7) === monday) run.push(monday);
       else runs.push([monday]);
     }
     const startedAt = revision;
@@ -39,7 +42,10 @@ export function usePlannedMeals(from: string, to: string) {
         .catch((failure: unknown) => {
           if (revisionRef.current === startedAt) setError(failure instanceof Error ? failure.message : 'Could not load planned meals');
         })
-        .finally(() => run.forEach((monday) => inFlight.current.delete(monday)));
+        .finally(() => {
+          // A refresh already cleared inFlight; don't drop markers of the requests it started.
+          if (revisionRef.current === startedAt) run.forEach((monday) => inFlight.current.delete(monday));
+        });
     }
   }, [from, to, revision]);
 

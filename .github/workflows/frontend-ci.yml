@@ -1,0 +1,39 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'services/frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'services/frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+
+jobs:
+  check:
+    name: Type-check, lint, test & build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./services/frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: services/frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm run lint
+      - run: npx vitest run
+      - run: npm run build

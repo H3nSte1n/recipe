@@ -34,6 +34,14 @@ describe('usePlannedMeals', () => {
     expect(listAllPlannedMeals).toHaveBeenCalledTimes(1);
   });
 
+  it('splits a long window into requests of at most 13 weeks', async () => {
+    // 15 weeks: Monday 2026-09-21 to Sunday 2027-01-03 (105 days, over the API's 93-day limit).
+    renderHook(() => usePlannedMeals('2026-09-21', '2027-01-03'));
+    await waitFor(() => expect(listAllPlannedMeals).toHaveBeenCalledTimes(2));
+    expect(listAllPlannedMeals).toHaveBeenCalledWith('2026-09-21', '2026-12-20');
+    expect(listAllPlannedMeals).toHaveBeenCalledWith('2026-12-21', '2027-01-03');
+  });
+
   it('ignores a response that arrives after a refresh and reloads', async () => {
     let finishOld!: (value: PlannedMeal[]) => void;
     vi.mocked(listAllPlannedMeals)
