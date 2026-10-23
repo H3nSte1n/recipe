@@ -33,15 +33,15 @@ func NewPlannedMealHandler(service service.PlannedMealService, logger *zap.Logge
 // fail answers validation errors (400) and missing meals (404) with safe messages; anything
 // else is logged and returned as a generic 500 so storage details never reach the client.
 func (h *PlannedMealHandler) fail(c *gin.Context, err error, action string) {
-	switch {
-	case errors.IsInvalid(err):
+	switch errors.StatusCode(err) {
+	case http.StatusBadRequest:
 		var appErr *errors.AppError
 		message := "invalid request"
 		if stderrors.As(err, &appErr) {
 			message = appErr.Message
 		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": message})
-	case errors.IsNotFound(err):
+	case http.StatusNotFound:
 		c.JSON(http.StatusNotFound, gin.H{"error": "planned meal not found"})
 	default:
 		h.logger.Error("failed to "+action, zap.Error(err))

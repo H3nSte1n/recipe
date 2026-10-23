@@ -166,6 +166,33 @@ func TestPlannedMealMigrationAndRepository(t *testing.T) {
 	}
 	require.True(t, seen[first.ID])
 	require.True(t, seen[second.ID])
+	// Another user's meals in the same range never appear in the list or the total.
+	otherUsers := newMeal(v, s, day)
+	require.NoError(t, repo.Create(ctx, otherUsers))
+	mine, total, err := repo.List(ctx, u, "2026-10-24", day, 100, 0)
+	require.NoError(t, err)
+	require.Equal(t, int64(3), total)
+	for _, m := range mine {
+		require.NotEqual(t, otherUsers.ID, m.ID)
+	}
+	theirs, total, err := repo.List(ctx, v, "2026-10-24", day, 100, 0)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total)
+	require.Len(t, theirs, 1)
+	require.Equal(t, otherUsers.ID, theirs[0].ID)
+	// Counting is per user; the locking read returns the same meal and keeps ownership scoping.
+	count, err := repo.CountByUser(ctx, u)
+	require.NoError(t, err)
+	require.Equal(t, int64(3), count)
+	count, err = repo.CountByUser(ctx, v)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), count)
+	locked, err := repo.GetByIDForUpdate(ctx, u, first.ID)
+	require.NoError(t, err)
+	require.Equal(t, first.ID, locked.ID)
+	require.Equal(t, "Pasta", locked.Recipe.Title)
+	_, err = repo.GetByIDForUpdate(ctx, v, first.ID)
+	require.ErrorIs(t, err, internalErr.ErrNotFound)
 	empty, total, err := repo.List(ctx, u, "2030-01-01", "2030-01-02", 100, 0)
 	require.NoError(t, err)
 	require.Equal(t, int64(0), total)

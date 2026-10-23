@@ -1,3 +1,5 @@
+-- Not CONCURRENTLY: this migration file runs as one multi-statement batch, which Postgres refuses for
+-- CREATE INDEX CONCURRENTLY. The index build blocks writes to recipes briefly; fine at the current size.
 CREATE UNIQUE INDEX idx_recipes_id_user_id ON recipes(id, user_id);
 
 CREATE TABLE planned_meals (

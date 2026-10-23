@@ -29,6 +29,17 @@ func (m *mockPlannedMealRepository) GetByID(ctx context.Context, userID, id stri
 	return v, args.Error(1)
 }
 
+func (m *mockPlannedMealRepository) GetByIDForUpdate(ctx context.Context, userID, id string) (*domain.PlannedMeal, error) {
+	args := m.Called(ctx, userID, id)
+	v, _ := args.Get(0).(*domain.PlannedMeal)
+	return v, args.Error(1)
+}
+
+func (m *mockPlannedMealRepository) CountByUser(ctx context.Context, userID string) (int64, error) {
+	args := m.Called(ctx, userID)
+	return int64(args.Int(0)), args.Error(1)
+}
+
 func (m *mockPlannedMealRepository) Create(ctx context.Context, meal *domain.PlannedMeal) error {
 	return m.Called(ctx, meal).Error(0)
 }
@@ -78,6 +89,8 @@ const (
 	plannedMealID   = "6ba7b811-9dad-11d1-80b4-00c04fd430c8"
 )
 
+func ptr[T any](v T) *T { return &v }
+
 func plannedRequest() *domain.PlannedMealRequest {
 	return &domain.PlannedMealRequest{RecipeID: plannedRecipeID, CookDate: "2026-10-03"}
 }
@@ -93,6 +106,7 @@ func TestPlannedMealService_Create(t *testing.T) {
 	t.Run("stores the meal for the user after locking a published recipe", func(t *testing.T) {
 		repo := new(mockPlannedMealRepository)
 		repo.On("LockOwnedRecipe", ctx, plannedUserID, plannedRecipeID).Return(publishedRecipe(), nil).Once()
+		repo.On("CountByUser", mock.Anything, plannedUserID).Return(0, nil)
 		repo.On("Create", ctx, mock.MatchedBy(func(m *domain.PlannedMeal) bool {
 			return m.UserID == plannedUserID && m.RecipeID == plannedRecipeID && m.CookDate == "2026-10-03"
 		})).Return(nil).Once()
@@ -111,6 +125,7 @@ func TestPlannedMealService_Create(t *testing.T) {
 		req := plannedRequest()
 		req.MealType, req.Notes = &empty, &empty
 		repo.On("LockOwnedRecipe", ctx, plannedUserID, plannedRecipeID).Return(publishedRecipe(), nil).Once()
+		repo.On("CountByUser", mock.Anything, plannedUserID).Return(0, nil)
 		repo.On("Create", ctx, mock.MatchedBy(func(m *domain.PlannedMeal) bool { return m.MealType == nil && m.Notes == nil })).Return(nil).Once()
 		repo.On("GetByID", ctx, plannedUserID, mock.Anything).Return(created, nil).Once()
 
@@ -147,6 +162,7 @@ func TestPlannedMealService_Create(t *testing.T) {
 	t.Run("returns the stored meal from inside the transaction", func(t *testing.T) {
 		repo := new(txOnlyMealRepository)
 		repo.On("LockOwnedRecipe", ctx, plannedUserID, plannedRecipeID).Return(publishedRecipe(), nil).Once()
+		repo.On("CountByUser", mock.Anything, plannedUserID).Return(0, nil)
 		repo.On("Create", ctx, mock.Anything).Return(nil).Once()
 		repo.inTx.On("GetByID", ctx, plannedUserID, mock.Anything).Return(created, nil).Once()
 
@@ -158,10 +174,41 @@ func TestPlannedMealService_Create(t *testing.T) {
 		repo.AssertNotCalled(t, "GetByID", mock.Anything, mock.Anything, mock.Anything)
 	})
 
+	t.Run("rejects a new meal once the user is at the cap", func(t *testing.T) {
+		repo := new(mockPlannedMealRepository)
+		repo.On("LockOwnedRecipe", ctx, plannedUserID, plannedRecipeID).Return(publishedRecipe(), nil).Once()
+		repo.On("CountByUser", ctx, plannedUserID).Return(maxPlannedMealsPerUser, nil).Once()
+
+		_, err := NewPlannedMealService(repo).Create(ctx, plannedUserID, plannedRequest())
+
+		require.True(t, internalErr.IsInvalid(err))
+		repo.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+	})
+
+	t.Run("stores notes without surrounding whitespace and drops blank ones", func(t *testing.T) {
+		for notes, want := range map[string]*string{"  extra garlic \n": ptr("extra garlic"), "   \t": nil} {
+			repo := new(mockPlannedMealRepository)
+			req := plannedRequest()
+			req.Notes = &notes
+			repo.On("LockOwnedRecipe", ctx, plannedUserID, plannedRecipeID).Return(publishedRecipe(), nil).Once()
+			repo.On("CountByUser", ctx, plannedUserID).Return(0, nil).Once()
+			repo.On("Create", ctx, mock.MatchedBy(func(m *domain.PlannedMeal) bool {
+				return (m.Notes == nil) == (want == nil) && (want == nil || *m.Notes == *want)
+			})).Return(nil).Once()
+			repo.On("GetByID", ctx, plannedUserID, mock.Anything).Return(created, nil).Once()
+
+			_, err := NewPlannedMealService(repo).Create(ctx, plannedUserID, req)
+
+			require.NoError(t, err)
+			repo.AssertExpectations(t)
+		}
+	})
+
 	t.Run("returns repository failures unchanged", func(t *testing.T) {
 		repo := new(mockPlannedMealRepository)
 		boom := errors.New("storage unavailable")
 		repo.On("LockOwnedRecipe", ctx, plannedUserID, plannedRecipeID).Return(publishedRecipe(), nil).Once()
+		repo.On("CountByUser", mock.Anything, plannedUserID).Return(0, nil)
 		repo.On("Create", ctx, mock.Anything).Return(boom).Once()
 
 		_, err := NewPlannedMealService(repo).Create(ctx, plannedUserID, plannedRequest())
@@ -206,6 +253,7 @@ func TestPlannedMealService_ValidatesRequests(t *testing.T) {
 		req := plannedRequest()
 		req.Servings, req.Notes, req.MealType = servings(100), text(strings.Repeat("é", 1000)), text("snack")
 		repo.On("LockOwnedRecipe", mock.Anything, plannedUserID, plannedRecipeID).Return(publishedRecipe(), nil)
+		repo.On("CountByUser", mock.Anything, plannedUserID).Return(0, nil)
 		repo.On("Create", mock.Anything, mock.Anything).Return(nil)
 		repo.On("GetByID", mock.Anything, plannedUserID, mock.Anything).Return(&domain.PlannedMeal{}, nil)
 
@@ -225,9 +273,22 @@ func TestPlannedMealService_Update(t *testing.T) {
 		require.True(t, internalErr.IsNotFound(err))
 	})
 
+	t.Run("canonicalises the id before updating", func(t *testing.T) {
+		repo := new(mockPlannedMealRepository)
+		repo.On("GetByIDForUpdate", ctx, plannedUserID, plannedMealID).Return(current, nil).Once()
+		repo.On("GetByID", ctx, plannedUserID, plannedMealID).Return(current, nil).Once()
+		repo.On("Update", ctx, mock.MatchedBy(func(m *domain.PlannedMeal) bool { return m.ID == plannedMealID })).Return(nil).Once()
+
+		_, err := NewPlannedMealService(repo).Update(ctx, plannedUserID, "urn:uuid:"+plannedMealID, plannedRequest())
+
+		require.NoError(t, err)
+		repo.AssertExpectations(t)
+	})
+
 	t.Run("keeps the current recipe without requiring it to be published", func(t *testing.T) {
 		repo := new(mockPlannedMealRepository)
-		repo.On("GetByID", ctx, plannedUserID, plannedMealID).Return(current, nil).Twice()
+		repo.On("GetByIDForUpdate", ctx, plannedUserID, plannedMealID).Return(current, nil).Once()
+		repo.On("GetByID", ctx, plannedUserID, plannedMealID).Return(current, nil).Once()
 		repo.On("Update", ctx, mock.MatchedBy(func(m *domain.PlannedMeal) bool { return m.ID == plannedMealID && m.UserID == plannedUserID })).Return(nil).Once()
 
 		_, err := NewPlannedMealService(repo).Update(ctx, plannedUserID, plannedMealID, plannedRequest())
@@ -240,7 +301,8 @@ func TestPlannedMealService_Update(t *testing.T) {
 		repo := new(mockPlannedMealRepository)
 		req := plannedRequest()
 		req.RecipeID = strings.ToUpper(plannedRecipeID)
-		repo.On("GetByID", ctx, plannedUserID, plannedMealID).Return(current, nil).Twice()
+		repo.On("GetByIDForUpdate", ctx, plannedUserID, plannedMealID).Return(current, nil).Once()
+		repo.On("GetByID", ctx, plannedUserID, plannedMealID).Return(current, nil).Once()
 		repo.On("Update", ctx, mock.MatchedBy(func(m *domain.PlannedMeal) bool { return m.RecipeID == plannedRecipeID })).Return(nil).Once()
 
 		_, err := NewPlannedMealService(repo).Update(ctx, plannedUserID, plannedMealID, req)
@@ -253,7 +315,7 @@ func TestPlannedMealService_Update(t *testing.T) {
 		repo := new(mockPlannedMealRepository)
 		req := plannedRequest()
 		req.RecipeID = otherRecipe
-		repo.On("GetByID", ctx, plannedUserID, plannedMealID).Return(current, nil).Once()
+		repo.On("GetByIDForUpdate", ctx, plannedUserID, plannedMealID).Return(current, nil).Once()
 		repo.On("LockOwnedRecipe", ctx, plannedUserID, otherRecipe).Return(&domain.PlannedMealRecipe{ID: otherRecipe, Status: "draft"}, nil).Once()
 
 		_, err := NewPlannedMealService(repo).Update(ctx, plannedUserID, plannedMealID, req)
@@ -264,7 +326,7 @@ func TestPlannedMealService_Update(t *testing.T) {
 
 	t.Run("returns not found for another user's meal", func(t *testing.T) {
 		repo := new(mockPlannedMealRepository)
-		repo.On("GetByID", ctx, plannedUserID, plannedMealID).Return(nil, internalErr.ErrNotFound).Once()
+		repo.On("GetByIDForUpdate", ctx, plannedUserID, plannedMealID).Return(nil, internalErr.ErrNotFound).Once()
 
 		_, err := NewPlannedMealService(repo).Update(ctx, plannedUserID, plannedMealID, plannedRequest())
 
@@ -275,6 +337,20 @@ func TestPlannedMealService_Update(t *testing.T) {
 
 func TestPlannedMealService_GetAndDelete(t *testing.T) {
 	ctx := context.Background()
+
+	t.Run("canonicalises the id before querying", func(t *testing.T) {
+		for _, form := range []string{"urn:uuid:" + plannedMealID, strings.ToUpper(plannedMealID), "{" + plannedMealID + "}", strings.ReplaceAll(plannedMealID, "-", "")} {
+			repo := new(mockPlannedMealRepository)
+			repo.On("GetByID", ctx, plannedUserID, plannedMealID).Return(&domain.PlannedMeal{ID: plannedMealID}, nil).Once()
+			repo.On("Delete", ctx, plannedUserID, plannedMealID).Return(nil).Once()
+			svc := NewPlannedMealService(repo)
+
+			_, err := svc.GetByID(ctx, plannedUserID, form)
+			require.NoError(t, err, form)
+			require.NoError(t, svc.Delete(ctx, plannedUserID, form), form)
+			repo.AssertExpectations(t)
+		}
+	})
 
 	t.Run("get treats a malformed id as not found without querying", func(t *testing.T) {
 		repo := new(mockPlannedMealRepository)

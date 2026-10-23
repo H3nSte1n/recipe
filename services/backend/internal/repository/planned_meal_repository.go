@@ -16,6 +16,10 @@ type PlannedMealRepository interface {
 	// surrounding transaction ends. It returns ErrNotFound when the user does not own it.
 	LockOwnedRecipe(ctx context.Context, userID, recipeID string) (*domain.PlannedMealRecipe, error)
 	GetByID(ctx context.Context, userID, id string) (*domain.PlannedMeal, error)
+	// GetByIDForUpdate is GetByID that also locks the meal row until the surrounding transaction ends.
+	GetByIDForUpdate(ctx context.Context, userID, id string) (*domain.PlannedMeal, error)
+	// CountByUser returns how many meals the user has planned in total.
+	CountByUser(ctx context.Context, userID string) (int64, error)
 	Create(ctx context.Context, meal *domain.PlannedMeal) error
 	Update(ctx context.Context, meal *domain.PlannedMeal) error
 	Delete(ctx context.Context, userID, id string) error
@@ -109,8 +113,16 @@ func (r *PlannedMealRepositoryImpl) LockOwnedRecipe(ctx context.Context, userID,
 }
 
 func (r *PlannedMealRepositoryImpl) GetByID(ctx context.Context, userID, id string) (*domain.PlannedMeal, error) {
+	return r.getByID(ctx, userID, id, "")
+}
+
+func (r *PlannedMealRepositoryImpl) GetByIDForUpdate(ctx context.Context, userID, id string) (*domain.PlannedMeal, error) {
+	return r.getByID(ctx, userID, id, " FOR UPDATE OF p") // lock the meal only, not the joined recipe
+}
+
+func (r *PlannedMealRepositoryImpl) getByID(ctx context.Context, userID, id, lock string) (*domain.PlannedMeal, error) {
 	var row plannedMealRow
-	result := r.DB.WithContext(ctx).Raw(selectPlannedMeals+` WHERE p.id = ? AND p.user_id = ?`, id, userID).Scan(&row)
+	result := r.DB.WithContext(ctx).Raw(selectPlannedMeals+` WHERE p.id = ? AND p.user_id = ?`+lock, id, userID).Scan(&row)
 	if result.Error != nil {
 		return nil, plannedMealDBError(result.Error)
 	}
@@ -119,6 +131,12 @@ func (r *PlannedMealRepositoryImpl) GetByID(ctx context.Context, userID, id stri
 	}
 	meal := row.toDomain()
 	return &meal, nil
+}
+
+func (r *PlannedMealRepositoryImpl) CountByUser(ctx context.Context, userID string) (int64, error) {
+	var total int64
+	err := r.DB.WithContext(ctx).Raw(`SELECT COUNT(*) FROM planned_meals WHERE user_id = ?`, userID).Scan(&total).Error
+	return total, plannedMealDBError(err)
 }
 
 func (r *PlannedMealRepositoryImpl) Create(ctx context.Context, meal *domain.PlannedMeal) error {

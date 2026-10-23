@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -18,11 +19,16 @@ const (
 	maxPlannerPageSize = 100
 	maxPlannedServings = 100
 	maxPlannedNotesLen = 1000
+	// maxPlannedMealsPerUser bounds storage per account. It is checked before the insert without a
+	// lock, so a burst of concurrent creates can overshoot it slightly; that is acceptable here.
+	maxPlannedMealsPerUser = 5000
 )
 
 type plannedMealRepository interface {
 	LockOwnedRecipe(ctx context.Context, userID, recipeID string) (*domain.PlannedMealRecipe, error)
 	GetByID(ctx context.Context, userID, id string) (*domain.PlannedMeal, error)
+	GetByIDForUpdate(ctx context.Context, userID, id string) (*domain.PlannedMeal, error)
+	CountByUser(ctx context.Context, userID string) (int64, error)
 	Create(ctx context.Context, meal *domain.PlannedMeal) error
 	Update(ctx context.Context, meal *domain.PlannedMeal) error
 	Delete(ctx context.Context, userID, id string) error
@@ -64,6 +70,13 @@ func (s *plannedMealService) Create(ctx context.Context, userID string, req *dom
 		if err := requirePublishedRecipe(ctx, tx, userID, meal.RecipeID); err != nil {
 			return err
 		}
+		total, err := tx.CountByUser(ctx, userID)
+		if err != nil {
+			return err
+		}
+		if total >= maxPlannedMealsPerUser {
+			return invalidPlannedMeal("you can plan at most %d meals", maxPlannedMealsPerUser)
+		}
 		if err := tx.Create(ctx, meal); err != nil {
 			return err
 		}
@@ -78,8 +91,9 @@ func (s *plannedMealService) Create(ctx context.Context, userID string, req *dom
 }
 
 func (s *plannedMealService) Update(ctx context.Context, userID string, id string, req *domain.PlannedMealRequest) (*domain.PlannedMeal, error) {
-	if _, err := uuid.Parse(id); err != nil {
-		return nil, errors.ErrNotFound
+	id, err := canonicalMealID(id)
+	if err != nil {
+		return nil, err
 	}
 	meal, err := newPlannedMeal(userID, req)
 	if err != nil {
@@ -89,7 +103,8 @@ func (s *plannedMealService) Update(ctx context.Context, userID string, id strin
 
 	var updated *domain.PlannedMeal
 	err = s.repo.WithTypedTransaction(ctx, func(tx repository.PlannedMealRepository) error {
-		current, err := tx.GetByID(ctx, userID, id)
+		// Locked so a concurrent update or delete cannot change the recipe this check compares against.
+		current, err := tx.GetByIDForUpdate(ctx, userID, id)
 		if err != nil {
 			return err
 		}
@@ -113,15 +128,17 @@ func (s *plannedMealService) Update(ctx context.Context, userID string, id strin
 }
 
 func (s *plannedMealService) GetByID(ctx context.Context, userID string, id string) (*domain.PlannedMeal, error) {
-	if _, err := uuid.Parse(id); err != nil {
-		return nil, errors.ErrNotFound
+	id, err := canonicalMealID(id)
+	if err != nil {
+		return nil, err
 	}
 	return s.repo.GetByID(ctx, userID, id)
 }
 
 func (s *plannedMealService) Delete(ctx context.Context, userID string, id string) error {
-	if _, err := uuid.Parse(id); err != nil {
-		return errors.ErrNotFound
+	id, err := canonicalMealID(id)
+	if err != nil {
+		return err
 	}
 	return s.repo.Delete(ctx, userID, id)
 }
@@ -142,6 +159,16 @@ func (s *plannedMealService) List(ctx context.Context, userID string, from, to s
 		meals = []domain.PlannedMeal{} // serialise as [] rather than null
 	}
 	return &domain.PlannedMealPage{Items: meals, Total: total, Page: page, PageSize: pageSize}, nil
+}
+
+// canonicalMealID returns the id in the lowercase hyphenated form Postgres accepts. uuid.Parse also
+// takes forms such as "urn:uuid:..." that the database rejects, which would surface as a 500.
+func canonicalMealID(id string) (string, error) {
+	parsed, err := uuid.Parse(id)
+	if err != nil {
+		return "", errors.ErrNotFound
+	}
+	return parsed.String(), nil
 }
 
 func requirePublishedRecipe(ctx context.Context, repo plannedMealRepository, userID, recipeID string) error {
@@ -169,13 +196,18 @@ func newPlannedMeal(userID string, req *domain.PlannedMealRequest) (*domain.Plan
 		return nil, invalidPlannedMeal("invalid cook_date")
 	}
 
-	// Empty strings mean "not set"; store them as NULL.
+	// Empty strings (and notes with only whitespace) mean "not set"; store them as NULL.
 	mealType, notes := req.MealType, req.Notes
 	if mealType != nil && *mealType == "" {
 		mealType = nil
 	}
-	if notes != nil && *notes == "" {
-		notes = nil
+	if notes != nil {
+		trimmed := strings.TrimSpace(*notes)
+		if trimmed == "" {
+			notes = nil
+		} else {
+			notes = &trimmed
+		}
 	}
 
 	if mealType != nil {
