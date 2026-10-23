@@ -101,7 +101,7 @@ Before making changes:
 
 ## Docker
 
-- Dockerfile: `golang:1.25-alpine`, installs `migrate` CLI + Air hot-reload
+- Dockerfile: `golang:1.26-alpine`, installs `migrate` CLI + Air hot-reload
 - Compose service name: `app` (this is the hostname frontend uses)
 - Volumes: entire `services/backend/` mounted at `/app`
 - Dev command: `air` (hot-reload)

@@ -2,7 +2,7 @@
 
 A modern recipe management platform with AI-powered features, smart shopping lists, and intelligent store navigation.
 
-[![Go Version](https://img.shields.io/badge/Go-1.25-blue.svg)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-1.26-blue.svg)](https://golang.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-blue.svg)](https://www.postgresql.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Backend CI](https://github.com/H3nSte1n/recipe/actions/workflows/backend-ci.yml/badge.svg?branch=main)](https://github.com/H3nSte1n/recipe/actions/workflows/backend-ci.yml)
@@ -46,7 +46,7 @@ recipe/
 
 ### Prerequisites
 - Docker & Docker Compose
-- Go 1.25+ (for local backend development)
+- Go 1.26+ (for local backend development)
 - Node.js 24 LTS (for local frontend development)
 - PostgreSQL 18 (managed by Docker)
 
@@ -123,7 +123,7 @@ GET /api/v1/shopping-lists/:id?sort_by=category
 ## 📊 Tech Stack
 
 ### Backend
-- **Language**: Go 1.25
+- **Language**: Go 1.26
 - **Framework**: Gin
 - **Database**: PostgreSQL 18
 - **ORM**: GORM

@@ -26,13 +26,13 @@
 - **ESLint 8.57.0** - Code quality
 
 ### Backend
-- **Go 1.25** - API server
+- **Go 1.26** - API server
 - **PostgreSQL 18** - Database
 - **Docker** - Containerization
 
 ### Versions
 See `.tool-versions`:
-- golang 1.25.0
+- golang 1.26.10
 - nodejs 24.0.0
 
 ---
