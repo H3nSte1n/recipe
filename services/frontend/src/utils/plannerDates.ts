@@ -23,6 +23,11 @@ export function addDays(value: string, days: number): string {
   return calendarDate(addCalendarDays(parseCalendarDate(value), days));
 }
 
+// "Friday 23 October" in the viewer's locale, for headings and screen reader labels.
+export function formatDayHeading(date: string): string {
+  return parseCalendarDate(date).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
 export const weekdayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 // Monday-to-Sunday dates of the week that contains the given calendar date.

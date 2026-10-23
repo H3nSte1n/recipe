@@ -166,6 +166,14 @@ func TestPlannedMealHandler_ErrorMapping(t *testing.T) {
 		w := performRequest(plannedMealRouter(svc, true), http.MethodPost, "/planned-meals", []byte(validPlannedMealBody))
 		require.Contains(t, w.Body.String(), "only published recipes can be planned")
 	})
+
+	t.Run("the per-user meal limit returns 400 with its message", func(t *testing.T) {
+		svc := new(mockPlannedMealService)
+		svc.On("Create", mock.Anything, handlerUserID, mock.Anything).Return(nil, internalErr.New("you can plan at most 5000 meals", "INVALID")).Once()
+		w := performRequest(plannedMealRouter(svc, true), http.MethodPost, "/planned-meals", []byte(validPlannedMealBody))
+		require.Equal(t, http.StatusBadRequest, w.Code)
+		require.Contains(t, w.Body.String(), "you can plan at most 5000 meals")
+	})
 }
 
 func TestPlannedMealHandler_Get(t *testing.T) {

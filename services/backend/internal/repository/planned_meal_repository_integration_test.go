@@ -36,6 +36,10 @@ func plannedMealTestDatabase(t *testing.T) *gorm.DB {
 	if u.Path != "/recipe_mealplan_test" {
 		t.Fatalf("refusing migrations on non-isolated database %q", u.Path)
 	}
+	// The schema is dropped below, so only ever do that on this machine.
+	if host := u.Hostname(); host != "localhost" && host != "127.0.0.1" && host != "::1" {
+		t.Fatalf("refusing to reset a database on remote host %q", host)
+	}
 	// Older down migrations are intentionally empty. Reset only the explicitly
 	// named disposable database so this test remains repeatable.
 	conn, err := sql.Open("postgres", dsn)
@@ -306,4 +310,49 @@ func TestPlannedMealRecipeDeleteWaitsForPlanningTransaction(t *testing.T) {
 	// The delete cascades to the meal that was just planned, so nothing is left dangling.
 	_, err = repo.GetByID(ctx, u, meal.ID)
 	require.ErrorIs(t, err, internalErr.ErrNotFound)
+}
+
+// Two updates of the same meal must run one after the other: the second waits for the row lock
+// instead of comparing against a recipe the first update is about to change.
+func TestPlannedMealUpdateWaitsForRowLock(t *testing.T) {
+	db := plannedMealTestDatabase(t)
+	u, _, r, _ := plannedMealFixture(t, db)
+	repo := NewPlannedMealRepository(db)
+	ctx := context.Background()
+	meal := newMeal(u, r, "2026-10-25")
+	require.NoError(t, repo.Create(ctx, meal))
+
+	other, err := gorm.Open(postgres.Open(os.Getenv("TEST_DATABASE_URL")), &gorm.Config{})
+	require.NoError(t, err)
+	otherSQL, err := other.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = otherSQL.Close() })
+	otherRepo := NewPlannedMealRepository(other)
+
+	locked := make(chan error, 1)
+	err = repo.WithTypedTransaction(ctx, func(tx PlannedMealRepository) error {
+		if _, err := tx.GetByIDForUpdate(ctx, u, meal.ID); err != nil {
+			return err
+		}
+		go func() {
+			locked <- otherRepo.WithTypedTransaction(ctx, func(tx2 PlannedMealRepository) error {
+				_, err := tx2.GetByIDForUpdate(ctx, u, meal.ID)
+				return err
+			})
+		}()
+		select {
+		case err := <-locked:
+			t.Fatalf("second update got the meal while the first held its lock (err=%v)", err)
+		case <-time.After(500 * time.Millisecond):
+		}
+		return nil
+	})
+	require.NoError(t, err)
+
+	select {
+	case err := <-locked:
+		require.NoError(t, err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("second update never ran after the first transaction committed")
+	}
 }

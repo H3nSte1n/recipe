@@ -3,7 +3,7 @@ import type { PlannedMeal } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
 import { groupMealsBySlot, mealSlots } from '../utils/mealSlots';
 import { recipeMinutes } from '../utils/recipeTime';
-import { parseCalendarDate } from '../utils/plannerDates';
+import { formatDayHeading } from '../utils/plannerDates';
 
 interface PlannerListProps {
   dates: string[];
@@ -11,10 +11,6 @@ interface PlannerListProps {
   recipesById: Map<string, Recipe>;
   onEdit: (item: PlannedMeal) => void;
   onSelectDate: (date: string) => void;
-}
-
-function formatDayHeading(date: string): string {
-  return parseCalendarDate(date).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
 // Every date each recipe is planned on, so a meal can point at its other days.
@@ -54,7 +50,7 @@ export default function PlannerList({ dates, items, recipesById, onEdit, onSelec
                           type="button"
                           className="planner-list__meal"
                           onClick={() => onEdit(item)}
-                          aria-label={`Edit ${item.recipe.title} on ${date}`}
+                          aria-label={`Edit ${item.recipe.title} on ${formatDayHeading(date)}`}
                         >
                           {recipe?.image_url
                             ? <img className="planner-list__image" src={recipe.image_url} alt="" />

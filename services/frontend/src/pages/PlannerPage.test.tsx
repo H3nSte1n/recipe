@@ -52,7 +52,7 @@ describe('planner', () => {
     vi.mocked(deletePlannedMeal).mockImplementation(async (id) => { entries = entries.filter((item) => item.id !== id); });
     vi.stubGlobal('confirm', vi.fn(() => true));
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
-    const edits = () => within(screen.getByRole('group', { name: 'Day list' })).getAllByRole('button', { name: `Edit Pasta on ${date}` });
+    const edits = () => within(screen.getByRole('group', { name: 'Day list' })).getAllByRole('button', { name: `Edit Pasta on ${dayHeading(date)}` });
     await waitFor(() => expect(edits()).toHaveLength(2));
     fireEvent.click(edits()[0]);
     fireEvent.change(screen.getByLabelText('Meal'), { target: { value: 'dinner' } });
@@ -85,7 +85,7 @@ describe('planner', () => {
     finish(entries[0]);
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(listAllPlannedMeals).toHaveBeenCalledTimes(2);
-    expect(await screen.findAllByRole('button', { name: `Edit Pasta on ${calendarDate(new Date())}` })).not.toHaveLength(0);
+    expect(await screen.findAllByRole('button', { name: `Edit Pasta on ${dayHeading(calendarDate(new Date()))}` })).not.toHaveLength(0);
   });
 
   it('rejects non-whole or out-of-range servings before calling the API', async () => {
@@ -144,7 +144,7 @@ describe('planner', () => {
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Temporary outage');
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    expect(await screen.findByRole('button', { name: `Edit Pasta on ${calendarDate(new Date())}` })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: `Edit Pasta on ${dayHeading(calendarDate(new Date()))}` })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
   });
 
@@ -275,7 +275,7 @@ describe('planner week view (desktop)', () => {
   it('shows the Snacks row only when the week has a snack or untyped meal', async () => {
     vi.mocked(listAllPlannedMeals).mockResolvedValue([typedMeal('a', week[0], 'lunch')]);
     const { unmount } = render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
-    await screen.findByRole('button', { name: `Edit Pasta on ${week[0]}` });
+    await screen.findByRole('button', { name: `Edit Pasta on ${dayHeading(week[0])}` });
     expect(screen.getByRole('region', { name: 'Lunch' })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Snacks' })).not.toBeInTheDocument();
     unmount();
@@ -289,12 +289,12 @@ describe('planner week view (desktop)', () => {
   it('opens the add form prefilled from an empty cell and the edit form from a card', async () => {
     vi.mocked(listAllPlannedMeals).mockResolvedValue([typedMeal('a', week[1], 'dinner')]);
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
-    fireEvent.click(await screen.findByRole('button', { name: `Add Lunch on ${week[4]}` }));
+    fireEvent.click(await screen.findByRole('button', { name: `Add Lunch on ${dayHeading(week[4])}` }));
     expect(screen.getByLabelText('Cook date')).toHaveValue(week[4]);
     expect(screen.getByLabelText('Meal')).toHaveValue('lunch');
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
 
-    fireEvent.click(screen.getByRole('button', { name: `Edit Pasta on ${week[1]}` }));
+    fireEvent.click(screen.getByRole('button', { name: `Edit Pasta on ${dayHeading(week[1])}` }));
     expect(screen.getByRole('heading', { name: 'Edit planned meal' })).toBeInTheDocument();
     expect(screen.getByLabelText('Meal')).toHaveValue('dinner');
   });

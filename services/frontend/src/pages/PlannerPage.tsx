@@ -9,7 +9,7 @@ import { getMyRecipes } from '../services/recipeService';
 import { createPlannedMeal, deletePlannedMeal, PlannedMealApiError, plannedMealErrorMessage, updatePlannedMeal } from '../services/plannedMealService';
 import type { MealType, PlannedMeal, PlannedMealInput } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
-import { calendarDate, shiftWeek, weekOf, weekRangeLabel } from '../utils/plannerDates';
+import { calendarDate, formatDayHeading, shiftWeek, weekOf, weekRangeLabel } from '../utils/plannerDates';
 import '../styles/PlannerPage.css';
 
 const DESKTOP_QUERY = '(min-width: 1024px)';
@@ -75,7 +75,7 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
 
   async function remove(item: PlannedMeal) {
     if (busyRef.current) return;
-    if (!window.confirm(`Delete ${item.recipe.title} from ${item.cook_date}?`)) return;
+    if (!window.confirm(`Delete ${item.recipe.title} from ${formatDayHeading(item.cook_date)}?`)) return;
     busyRef.current = true;
     setSaving(true);
     setActionError(null);

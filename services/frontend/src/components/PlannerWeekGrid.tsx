@@ -2,7 +2,7 @@ import PlannerWeekMealCard from './PlannerWeekMealCard';
 import type { MealType, PlannedMeal } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
 import { groupMealsBySlot, mealSlots, slotOf } from '../utils/mealSlots';
-import { parseCalendarDate } from '../utils/plannerDates';
+import { formatDayHeading, parseCalendarDate } from '../utils/plannerDates';
 
 interface PlannerWeekGridProps {
   dates: string[];
@@ -43,7 +43,7 @@ export default function PlannerWeekGrid({ dates, items, recipesById, today, onEd
                   {(mealsByDay.get(date)?.[row.slot] ?? []).map((item) => (
                     <PlannerWeekMealCard key={item.id} item={item} recipe={recipesById.get(item.recipe_id)} onEdit={onEdit} />
                   ))}
-                  <button type="button" className="planner-week-grid__add" aria-label={`Add ${row.label} on ${date}`} onClick={() => onAdd(date, row.mealType)}>
+                  <button type="button" className="planner-week-grid__add" aria-label={`Add ${row.label} on ${formatDayHeading(date)}`} onClick={() => onAdd(date, row.mealType)}>
                     <span aria-hidden="true">+</span>
                   </button>
                 </div>

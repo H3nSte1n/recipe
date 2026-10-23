@@ -25,7 +25,8 @@ Go REST API for recipe management. Gin framework, GORM ORM, PostgreSQL. Clean ar
 make dev              # Air hot-reload dev server at :8080
 make build            # Build binary to bin/
 make run              # Run without hot-reload
-make test             # go test -v ./...
+make test             # go test -v ./... (unit tests only)
+make test-integration # Postgres integration tests: ownership FK, row locks (needs Docker; CI runs these too)
 make test-coverage    # Tests with HTML coverage report
 make lint             # golangci-lint run
 make fmt              # go fmt ./...
