@@ -104,7 +104,7 @@ jobs:
 
       - name: Run unit tests
         working-directory: ./services/backend
-        run: go test ./...
+        run: go test -race ./...
 
       - name: Build
         working-directory: ./services/backend

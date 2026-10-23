@@ -59,6 +59,10 @@ Every domain follows the same pattern:
 
 Aggregated in: `repositories.go`, `services.go`, `handlers.go`
 
+### Raw SQL in repositories
+
+A repository may use hand-written SQL (`DB.Raw` / `DB.Exec`) instead of GORM models when a model would fight the query, e.g. date-only columns that must stay `YYYY-MM-DD` strings or reads that always join another table. Keep it inside the repository, parameterize every value, and say why in a comment. `planned_meal_repository.go` is the example.
+
 ## Standards
 
 - Idiomatic Go error handling — return errors, don't panic
