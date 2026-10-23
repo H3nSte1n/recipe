@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/H3nSte1n/recipe/internal/domain"
 	internalErr "github.com/H3nSte1n/recipe/internal/errors"
@@ -103,7 +104,7 @@ func TestPlannedMealMigrationAndRepository(t *testing.T) {
 	require.Equal(t, domain.PlannedMealRecipe{ID: r, Title: "Pasta", Status: "published"}, *recipe)
 
 	// The database itself rejects a meal that points at someone else's recipe.
-	require.Error(t, repo.Create(ctx, newMeal(u, s, day)))
+	require.True(t, internalErr.IsInvalid(repo.Create(ctx, newMeal(u, s, day))))
 
 	first := newMeal(u, r, day)
 	require.NoError(t, repo.Create(ctx, first))
@@ -144,7 +145,7 @@ func TestPlannedMealMigrationAndRepository(t *testing.T) {
 	// Reassigning to a recipe the user does not own violates the composite foreign key.
 	stolen := *first
 	stolen.RecipeID = s
-	require.ErrorIs(t, repo.Update(ctx, &stolen), internalErr.ErrNotFound)
+	require.True(t, internalErr.IsInvalid(repo.Update(ctx, &stolen)))
 
 	// Listing: inclusive range, stable order, no repeats across page boundaries.
 	before := newMeal(u, r, "2026-10-24")
@@ -235,6 +236,47 @@ func TestPlannedMealTransactionRollsBack(t *testing.T) {
 		return internalErr.New("abort", "INVALID")
 	})
 	require.True(t, internalErr.IsInvalid(err))
+	_, err = repo.GetByID(ctx, u, meal.ID)
+	require.ErrorIs(t, err, internalErr.ErrNotFound)
+}
+
+// A recipe delete from another connection must wait for the planning transaction instead of
+// slipping in between the ownership check and the insert.
+func TestPlannedMealRecipeDeleteWaitsForPlanningTransaction(t *testing.T) {
+	db := plannedMealTestDatabase(t)
+	u, _, r, _ := plannedMealFixture(t, db)
+	repo := NewPlannedMealRepository(db)
+	ctx := context.Background()
+
+	other, err := gorm.Open(postgres.Open(os.Getenv("TEST_DATABASE_URL")), &gorm.Config{})
+	require.NoError(t, err)
+	otherSQL, err := other.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = otherSQL.Close() })
+
+	meal := newMeal(u, r, "2026-10-25")
+	deleted := make(chan error, 1)
+	err = repo.WithTypedTransaction(ctx, func(tx PlannedMealRepository) error {
+		if _, err := tx.LockOwnedRecipe(ctx, u, r); err != nil {
+			return err
+		}
+		go func() { deleted <- other.Exec(`DELETE FROM recipes WHERE id = ?`, r).Error }()
+		select {
+		case err := <-deleted:
+			t.Fatalf("recipe was deleted while the planning transaction held it (err=%v)", err)
+		case <-time.After(500 * time.Millisecond):
+		}
+		return tx.Create(ctx, meal)
+	})
+	require.NoError(t, err)
+
+	select {
+	case err := <-deleted:
+		require.NoError(t, err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("delete never ran after the planning transaction committed")
+	}
+	// The delete cascades to the meal that was just planned, so nothing is left dangling.
 	_, err = repo.GetByID(ctx, u, meal.ID)
 	require.ErrorIs(t, err, internalErr.ErrNotFound)
 }

@@ -52,6 +52,26 @@ func (m *mockPlannedMealRepository) WithTypedTransaction(ctx context.Context, fn
 	return fn(m)
 }
 
+// txOnlyMealRepository hands the service a separate transaction repository, so reads made outside
+// the transaction (on this value) can be told apart from reads made inside it (on inTx).
+type txOnlyMealRepository struct {
+	mockPlannedMealRepository
+	inTx mockPlannedMealRepository
+}
+
+func (m *txOnlyMealRepository) WithTypedTransaction(ctx context.Context, fn func(repository.PlannedMealRepository) error) error {
+	return fn(&txMealRepository{mockPlannedMealRepository: &m.mockPlannedMealRepository, reads: &m.inTx})
+}
+
+type txMealRepository struct {
+	*mockPlannedMealRepository
+	reads *mockPlannedMealRepository
+}
+
+func (m *txMealRepository) GetByID(ctx context.Context, userID, id string) (*domain.PlannedMeal, error) {
+	return m.reads.GetByID(ctx, userID, id)
+}
+
 const (
 	plannedUserID   = "550e8400-e29b-41d4-a716-446655440000"
 	plannedRecipeID = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
@@ -106,7 +126,9 @@ func TestPlannedMealService_Create(t *testing.T) {
 
 		_, err := NewPlannedMealService(repo).Create(ctx, plannedUserID, plannedRequest())
 
-		require.True(t, internalErr.IsNotFound(err))
+		require.True(t, internalErr.IsInvalid(err))
+		require.False(t, internalErr.IsNotFound(err))
+		require.Contains(t, err.Error(), "recipe not found")
 		repo.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
 	})
 
@@ -121,6 +143,20 @@ func TestPlannedMealService_Create(t *testing.T) {
 			repo.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
 		})
 	}
+
+	t.Run("returns the stored meal from inside the transaction", func(t *testing.T) {
+		repo := new(txOnlyMealRepository)
+		repo.On("LockOwnedRecipe", ctx, plannedUserID, plannedRecipeID).Return(publishedRecipe(), nil).Once()
+		repo.On("Create", ctx, mock.Anything).Return(nil).Once()
+		repo.inTx.On("GetByID", ctx, plannedUserID, mock.Anything).Return(created, nil).Once()
+
+		meal, err := NewPlannedMealService(repo).Create(ctx, plannedUserID, plannedRequest())
+
+		require.NoError(t, err)
+		require.Equal(t, created, meal)
+		repo.inTx.AssertExpectations(t)
+		repo.AssertNotCalled(t, "GetByID", mock.Anything, mock.Anything, mock.Anything)
+	})
 
 	t.Run("returns repository failures unchanged", func(t *testing.T) {
 		repo := new(mockPlannedMealRepository)

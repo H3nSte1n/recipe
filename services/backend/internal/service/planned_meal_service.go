@@ -57,16 +57,24 @@ func (s *plannedMealService) Create(ctx context.Context, userID string, req *dom
 	}
 
 	// The recipe row stays locked until the meal is written, so it cannot be deleted in between.
+	// The meal is read back in the same transaction so a delete right after commit cannot make a
+	// successful create look like a failure.
+	var created *domain.PlannedMeal
 	err = s.repo.WithTypedTransaction(ctx, func(tx repository.PlannedMealRepository) error {
 		if err := requirePublishedRecipe(ctx, tx, userID, meal.RecipeID); err != nil {
 			return err
 		}
-		return tx.Create(ctx, meal)
+		if err := tx.Create(ctx, meal); err != nil {
+			return err
+		}
+		stored, err := tx.GetByID(ctx, userID, meal.ID)
+		created = stored
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
-	return s.repo.GetByID(ctx, userID, meal.ID)
+	return created, nil
 }
 
 func (s *plannedMealService) Update(ctx context.Context, userID string, id string, req *domain.PlannedMealRequest) (*domain.PlannedMeal, error) {
@@ -79,6 +87,7 @@ func (s *plannedMealService) Update(ctx context.Context, userID string, id strin
 	}
 	meal.ID = id
 
+	var updated *domain.PlannedMeal
 	err = s.repo.WithTypedTransaction(ctx, func(tx repository.PlannedMealRepository) error {
 		current, err := tx.GetByID(ctx, userID, id)
 		if err != nil {
@@ -91,12 +100,16 @@ func (s *plannedMealService) Update(ctx context.Context, userID string, id strin
 				return err
 			}
 		}
-		return tx.Update(ctx, meal)
+		if err := tx.Update(ctx, meal); err != nil {
+			return err
+		}
+		updated, err = tx.GetByID(ctx, userID, id)
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
-	return s.repo.GetByID(ctx, userID, id)
+	return updated, nil
 }
 
 func (s *plannedMealService) GetByID(ctx context.Context, userID string, id string) (*domain.PlannedMeal, error) {
@@ -133,6 +146,10 @@ func (s *plannedMealService) List(ctx context.Context, userID string, from, to s
 
 func requirePublishedRecipe(ctx context.Context, repo plannedMealRepository, userID, recipeID string) error {
 	recipe, err := repo.LockOwnedRecipe(ctx, userID, recipeID)
+	if errors.IsNotFound(err) {
+		// Same answer for a missing and a foreign recipe, so ids of other users' recipes stay private.
+		return invalidPlannedMeal("recipe not found")
+	}
 	if err != nil {
 		return err
 	}

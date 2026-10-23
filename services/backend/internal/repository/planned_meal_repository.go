@@ -41,6 +41,8 @@ func (r *PlannedMealRepositoryImpl) WithTypedTransaction(ctx context.Context, fn
 	})
 }
 
+// Unlike the other repositories this one uses hand-written SQL rather than GORM models: cook_date
+// must stay a date-only string (no time zone shifts) and every read joins the owning recipe.
 type plannedMealRow struct {
 	ID           string    `gorm:"column:id"`
 	UserID       string    `gorm:"column:user_id"`
@@ -84,7 +86,7 @@ func plannedMealDBError(err error) error {
 	if stderrors.As(err, &pgErr) {
 		switch pgErr.Code {
 		case "23503": // the recipe was deleted or is not owned by the user
-			return errors.ErrNotFound
+			return errors.New("recipe not found", "INVALID")
 		case "23514", "23502", "22001", "22007", "22008":
 			return errors.New("invalid planned meal", "INVALID")
 		}

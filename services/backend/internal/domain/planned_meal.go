@@ -14,16 +14,16 @@ const (
 // PlannedMeal schedules one of the user's recipes on a calendar day. CookDate is a date-only
 // "YYYY-MM-DD" string so it never shifts with timezones.
 type PlannedMeal struct {
-	ID        string            `json:"id" gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	UserID    string            `json:"-" gorm:"type:uuid;not null"`
-	RecipeID  string            `json:"recipe_id" gorm:"type:uuid;not null"`
-	CookDate  string            `json:"cook_date" gorm:"type:date;not null"`
+	ID        string            `json:"id"`
+	UserID    string            `json:"-"`
+	RecipeID  string            `json:"recipe_id"`
+	CookDate  string            `json:"cook_date"`
 	MealType  *string           `json:"meal_type"`
 	Servings  *int              `json:"servings"`
 	Notes     *string           `json:"notes"`
-	Recipe    PlannedMealRecipe `json:"recipe" gorm:"-"`
-	CreatedAt time.Time         `json:"created_at" gorm:"autoCreateTime"`
-	UpdatedAt time.Time         `json:"updated_at" gorm:"autoUpdateTime"`
+	Recipe    PlannedMealRecipe `json:"recipe"`
+	CreatedAt time.Time         `json:"created_at"`
+	UpdatedAt time.Time         `json:"updated_at"`
 }
 
 // PlannedMealRecipe is the slice of a recipe shown next to a planned meal.
