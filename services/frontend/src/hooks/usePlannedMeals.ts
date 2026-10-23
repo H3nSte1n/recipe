@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PlannedMeal } from '../types/plannedMeal';
-import { listAllPlannedMeals } from '../services/plannedMealService';
+import { listAllPlannedMeals, plannedMealErrorMessage } from '../services/plannedMealService';
 import { addDays, weekStart, weekStarts } from '../utils/plannerDates';
 
 // The API rejects ranges over 93 days, so a request covers at most 13 whole weeks (91 days).
@@ -57,7 +57,7 @@ export function usePlannedMeals(from: string, to: string) {
         })
         .catch((failure: unknown) => {
           if (signal.aborted || revisionRef.current !== startedAt) return;
-          setError(failure instanceof Error ? failure.message : 'Could not load planned meals');
+          setError(plannedMealErrorMessage(failure, 'Could not load planned meals. Please check your connection and try again.'));
         })
         .finally(() => {
           // A refresh already cleared inFlight; don't drop markers of the requests it started.

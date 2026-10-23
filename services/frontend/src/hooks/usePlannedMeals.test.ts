@@ -2,10 +2,13 @@ import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { usePlannedMeals } from './usePlannedMeals';
-import { listAllPlannedMeals } from '../services/plannedMealService';
+import { listAllPlannedMeals, PlannedMealApiError } from '../services/plannedMealService';
 import type { PlannedMeal } from '../types/plannedMeal';
 
-vi.mock('../services/plannedMealService', () => ({ listAllPlannedMeals: vi.fn() }));
+vi.mock('../services/plannedMealService', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../services/plannedMealService')>();
+  return { ...original, listAllPlannedMeals: vi.fn() };
+});
 
 const meal = (id: string, cook_date: string) => ({ id, cook_date }) as PlannedMeal;
 
@@ -56,7 +59,7 @@ describe('usePlannedMeals', () => {
   });
 
   it('reports a failure and retries on refresh', async () => {
-    vi.mocked(listAllPlannedMeals).mockRejectedValueOnce(new Error('Temporary outage')).mockResolvedValueOnce([meal('a', '2026-10-06')]);
+    vi.mocked(listAllPlannedMeals).mockRejectedValueOnce(new PlannedMealApiError(500, 'Temporary outage')).mockResolvedValueOnce([meal('a', '2026-10-06')]);
     const { result } = renderHook(() => usePlannedMeals('2026-10-05', '2026-10-11'));
     await waitFor(() => expect(result.current.error).toBe('Temporary outage'));
     expect(result.current.loading).toBe(false);

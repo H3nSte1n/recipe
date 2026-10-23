@@ -5,7 +5,7 @@ import type { PlannedMeal } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
 import { addDays, calendarDate, shiftWeek, weekOf, weekRangeLabel, weekStart } from '../utils/plannerDates';
 import { getMyRecipes } from '../services/recipeService';
-import { createPlannedMeal, deletePlannedMeal, listAllPlannedMeals, updatePlannedMeal } from '../services/plannedMealService';
+import { createPlannedMeal, deletePlannedMeal, listAllPlannedMeals, PlannedMealApiError, updatePlannedMeal } from '../services/plannedMealService';
 
 vi.mock('../services/recipeService', () => ({ getMyRecipes: vi.fn() }));
 vi.mock('../services/plannedMealService', async (importOriginal) => {
@@ -14,6 +14,7 @@ vi.mock('../services/plannedMealService', async (importOriginal) => {
 });
 
 const recipe = { id: 'recipe-1', title: 'Pasta', status: 'published' } as Recipe;
+const dayHeading = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 const dayLabel = (date: Date) => date.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 const meal = (id: string, date: string): PlannedMeal => ({ id, recipe_id: recipe.id, cook_date: date, meal_type: null, servings: null, notes: null, recipe: { id: recipe.id, title: recipe.title, status: 'published' }, created_at: '', updated_at: '' });
 
@@ -108,7 +109,7 @@ describe('planner', () => {
   });
 
   it('shows a save error and retains the draft', async () => {
-    vi.mocked(createPlannedMeal).mockRejectedValue(new Error('Please verify your email'));
+    vi.mocked(createPlannedMeal).mockRejectedValue(new PlannedMealApiError(403, 'Please verify your email'));
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Add meal' }));
     await screen.findByRole('option', { name: 'Pasta' });
@@ -118,8 +119,28 @@ describe('planner', () => {
     expect(screen.getByLabelText('Recipe')).toHaveValue(recipe.id);
   });
 
+  it('names each day section by its heading, not the raw ISO date', async () => {
+    render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
+    const today = calendarDate(new Date());
+    const heading = await screen.findByRole('heading', { level: 2, name: dayHeading(today) });
+    expect(heading.closest('section')).toHaveAccessibleName(heading.textContent ?? '');
+    expect(screen.queryByRole('region', { name: today })).not.toBeInTheDocument();
+  });
+
+  it('hides browser error text when the network fails', async () => {
+    vi.mocked(createPlannedMeal).mockRejectedValue(new TypeError('Failed to fetch'));
+    render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Add meal' }));
+    await screen.findByRole('option', { name: 'Pasta' });
+    fireEvent.change(screen.getByLabelText('Recipe'), { target: { value: recipe.id } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save meal' }));
+    const alert = await within(screen.getByRole('dialog')).findByRole('alert');
+    expect(alert).toHaveTextContent('Could not save the planned meal');
+    expect(alert).not.toHaveTextContent('Failed to fetch');
+  });
+
   it('retries a failed load', async () => {
-    vi.mocked(listAllPlannedMeals).mockRejectedValueOnce(new Error('Temporary outage')).mockResolvedValueOnce([meal('a', calendarDate(new Date()))]);
+    vi.mocked(listAllPlannedMeals).mockRejectedValueOnce(new PlannedMealApiError(500, 'Temporary outage')).mockResolvedValueOnce([meal('a', calendarDate(new Date()))]);
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Temporary outage');
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
@@ -147,7 +168,7 @@ describe('planner day list (mobile)', () => {
 
   it('opens on today with two past weeks and four future weeks around it', async () => {
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
-    await screen.findByRole('region', { name: today });
+    await screen.findByRole('region', { name: dayHeading(today) });
     const dates = sectionDates();
     expect(dates).toHaveLength(49);
     expect(dates[0]).toBe(shiftWeek(weekStart(today), -2));
@@ -158,7 +179,7 @@ describe('planner day list (mobile)', () => {
 
   it('adds weeks above and loads them when scrolled near the top', async () => {
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
-    await screen.findByRole('region', { name: today });
+    await screen.findByRole('region', { name: dayHeading(today) });
     const firstBefore = sectionDates()[0]!;
     scrollPage();
     await waitFor(() => expect(sectionDates()).toHaveLength(77));
@@ -170,7 +191,7 @@ describe('planner day list (mobile)', () => {
     vi.spyOn(window, 'scrollY', 'get').mockReturnValue(5000);
     vi.spyOn(document.documentElement, 'scrollHeight', 'get').mockReturnValue(5600);
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
-    await screen.findByRole('region', { name: today });
+    await screen.findByRole('region', { name: dayHeading(today) });
     const lastBefore = sectionDates()[48]!;
     scrollPage();
     await waitFor(() => expect(sectionDates()).toHaveLength(77));
@@ -179,7 +200,7 @@ describe('planner day list (mobile)', () => {
 
   it('moves the week strip to the day at the top of the list while scrolling', async () => {
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
-    await screen.findByRole('region', { name: today });
+    await screen.findByRole('region', { name: dayHeading(today) });
     const target = addDays(today, 17);
     const targetIndex = sectionDates().indexOf(target);
     // Lay the days out 100px apart so that `target` is the first one below the sticky header (bottom 0).
@@ -199,7 +220,7 @@ describe('planner day list (mobile)', () => {
     const onRecipes = vi.fn();
     const onLogout = vi.fn();
     render(<PlannerPage onRecipes={onRecipes} onLogout={onLogout} />);
-    await screen.findByRole('region', { name: today });
+    await screen.findByRole('region', { name: dayHeading(today) });
     const back = screen.getByRole('button', { name: /Recipes/ });
     expect(back.closest('.planner-scroller__sticky')).not.toBeNull();
     fireEvent.click(back);
@@ -210,7 +231,7 @@ describe('planner day list (mobile)', () => {
 
   it('scrolls the list to a day tapped in the week strip, and back to today', async () => {
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
-    await screen.findByRole('region', { name: today });
+    await screen.findByRole('region', { name: dayHeading(today) });
     const monday = weekStart(today);
     const scrollTo = vi.mocked(window.scrollTo);
     scrollTo.mockClear();

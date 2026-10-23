@@ -9,18 +9,42 @@ export class PlannedMealApiError extends Error {
   }
 }
 
-// Server messages name fields and limits, so users get a message per status instead.
-function friendlyMessage(status: number): string {
-  if (status === 400) return 'Those meal details are not valid. Please check them and try again.';
+// The backend only sends fixed, client-safe text with a 400 (e.g. "only published recipes can be
+// planned"), so that is shown to explain what to fix. Other statuses get a message of our own.
+function friendlyMessage(status: number, serverMessage?: string): string {
+  if (status === 400) {
+    return serverMessage
+      ? `Those meal details are not valid: ${serverMessage}.`
+      : 'Those meal details are not valid. Please check them and try again.';
+  }
   if (status === 403) return 'Please verify your email before changing your meal plan.';
   if (status === 404) return 'That planned meal or recipe no longer exists.';
   if (status >= 500) return 'Something went wrong on our side. Please try again.';
   return 'Could not complete the request. Please try again.';
 }
 
+async function serverMessage(response: Response): Promise<string | undefined> {
+  try {
+    const body: unknown = await response.json();
+    const message = typeof body === 'object' && body !== null ? (body as { error?: unknown }).error : undefined;
+    return typeof message === 'string' && message.length <= 200 ? message : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function checked(response: Response): Promise<Response> {
-  if (!response.ok) throw new PlannedMealApiError(response.status, friendlyMessage(response.status));
+  if (!response.ok) {
+    const detail = response.status === 400 ? await serverMessage(response) : undefined;
+    throw new PlannedMealApiError(response.status, friendlyMessage(response.status, detail));
+  }
   return response;
+}
+
+// Network failures and malformed responses carry browser text ("Failed to fetch"), so only errors
+// this service produced are shown to the user.
+export function plannedMealErrorMessage(failure: unknown, fallback: string): string {
+  return failure instanceof PlannedMealApiError ? failure.message : fallback;
 }
 
 function headers(): HeadersInit {

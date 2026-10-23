@@ -6,7 +6,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { usePlannedMeals } from '../hooks/usePlannedMeals';
 import { usePlannerWindow } from '../hooks/usePlannerWindow';
 import { getMyRecipes } from '../services/recipeService';
-import { createPlannedMeal, deletePlannedMeal, PlannedMealApiError, updatePlannedMeal } from '../services/plannedMealService';
+import { createPlannedMeal, deletePlannedMeal, PlannedMealApiError, plannedMealErrorMessage, updatePlannedMeal } from '../services/plannedMealService';
 import type { MealType, PlannedMeal, PlannedMealInput } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
 import { calendarDate, shiftWeek, weekOf, weekRangeLabel } from '../utils/plannerDates';
@@ -66,7 +66,7 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
       refresh(form.item ? [form.item.cook_date, input.cook_date] : [input.cook_date]);
     } catch (failure) {
       if (failure instanceof PlannedMealApiError && failure.status === 404) refresh();
-      setFormError(failure instanceof Error ? failure.message : 'Could not save planned meal.');
+      setFormError(plannedMealErrorMessage(failure, 'Could not save the planned meal. Please check your connection and try again.'));
     } finally {
       busyRef.current = false;
       setSaving(false);
@@ -85,7 +85,7 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
       setForm(null);
       refresh([item.cook_date]);
     } catch (failure) {
-      const message = failure instanceof Error ? failure.message : 'Could not delete planned meal.';
+      const message = plannedMealErrorMessage(failure, 'Could not delete the planned meal. Please check your connection and try again.');
       if (form) setFormError(message);
       else setActionError(message);
       if (failure instanceof PlannedMealApiError && failure.status === 404) refresh();
