@@ -1,5 +1,8 @@
-import type { MealType, PlannedMeal } from '../types/plannedMeal';
+import { useMemo } from 'react';
+import type { PlannedMeal } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
+import { groupMealsBySlot, mealSlots } from '../utils/mealSlots';
+import { recipeMinutes } from '../utils/recipeTime';
 import { parseCalendarDate } from '../utils/plannerDates';
 
 interface PlannerListProps {
@@ -10,40 +13,41 @@ interface PlannerListProps {
   onSelectDate: (date: string) => void;
 }
 
-const mealGroups: { type: MealType | null; label: string }[] = [
-  { type: 'breakfast', label: 'Breakfast' },
-  { type: 'lunch', label: 'Lunch' },
-  { type: 'dinner', label: 'Dinner' },
-  { type: 'snack', label: 'Snack' },
-  { type: null, label: 'Other' },
-];
-
 function formatDayHeading(date: string): string {
   return parseCalendarDate(date).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-export default function PlannerList({ dates, items, recipesById, onEdit, onSelectDate }: PlannerListProps) {
-  function otherDatesFor(item: PlannedMeal): string[] {
-    const others = items.filter((other) => other.recipe_id === item.recipe_id && other.cook_date !== item.cook_date);
-    return [...new Set(others.map((other) => other.cook_date))].sort();
+// Every date each recipe is planned on, so a meal can point at its other days.
+function datesByRecipe(items: PlannedMeal[]): Map<string, string[]> {
+  const byRecipe = new Map<string, Set<string>>();
+  for (const item of items) {
+    const dates = byRecipe.get(item.recipe_id) ?? new Set<string>();
+    dates.add(item.cook_date);
+    byRecipe.set(item.recipe_id, dates);
   }
+  return new Map([...byRecipe].map(([recipeId, dates]) => [recipeId, [...dates].sort()]));
+}
+
+export default function PlannerList({ dates, items, recipesById, onEdit, onSelectDate }: PlannerListProps) {
+  const mealsByDay = useMemo(() => groupMealsBySlot(items), [items]);
+  const plannedDates = useMemo(() => datesByRecipe(items), [items]);
 
   return (
     <div className="planner-list" aria-label="Day list" role="group">
       {dates.map((date) => {
-        const dayItems = items.filter((item) => item.cook_date === date);
+        const day = mealsByDay.get(date);
         return (
           <section key={date} className="planner-list__day" aria-label={date} data-date={date}>
             <h2 className="planner-list__day-heading">{formatDayHeading(date)}</h2>
-            {mealGroups.map((group) => {
-              const groupItems = dayItems.filter((item) => item.meal_type === group.type);
+            {mealSlots.map((group) => {
+              const groupItems = day?.[group.slot] ?? [];
               if (groupItems.length === 0) return null;
               return (
-                <div key={group.label} className="planner-list__group">
+                <div key={group.slot} className="planner-list__group">
                   <h3 className="planner-list__group-label">{group.label}</h3>
                   {groupItems.map((item) => {
                     const recipe = recipesById.get(item.recipe_id);
-                    const others = otherDatesFor(item);
+                    const others = (plannedDates.get(item.recipe_id) ?? []).filter((other) => other !== item.cook_date);
                     return (
                       <div key={item.id} className="planner-list__item">
                         <button
@@ -57,7 +61,7 @@ export default function PlannerList({ dates, items, recipesById, onEdit, onSelec
                             : <span className="planner-list__image planner-list__image--placeholder" aria-hidden="true" />}
                           <span className="planner-list__text">
                             <span className="planner-list__title">{item.recipe.title}</span>
-                            {recipe && recipe.prep_time > 0 && <span className="planner-list__time">{recipe.prep_time}min</span>}
+                            {recipeMinutes(recipe) > 0 && <span className="planner-list__time">{recipeMinutes(recipe)}min</span>}
                           </span>
                         </button>
                         {others.length > 0 && (

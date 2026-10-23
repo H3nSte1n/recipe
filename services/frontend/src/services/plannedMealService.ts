@@ -9,17 +9,17 @@ export class PlannedMealApiError extends Error {
   }
 }
 
+// Server messages name fields and limits, so users get a message per status instead.
+function friendlyMessage(status: number): string {
+  if (status === 400) return 'Those meal details are not valid. Please check them and try again.';
+  if (status === 403) return 'Please verify your email before changing your meal plan.';
+  if (status === 404) return 'That planned meal or recipe no longer exists.';
+  if (status >= 500) return 'Something went wrong on our side. Please try again.';
+  return 'Could not complete the request. Please try again.';
+}
+
 async function checked(response: Response): Promise<Response> {
-  if (!response.ok) {
-    let message = `Planner request failed (${response.status})`;
-    try {
-      const body: unknown = await response.json();
-      if (body && typeof body === 'object' && 'error' in body && typeof body.error === 'string') {
-        message = body.error;
-      }
-    } catch { /* Keep the status message if the server did not return JSON. */ }
-    throw new PlannedMealApiError(response.status, message);
-  }
+  if (!response.ok) throw new PlannedMealApiError(response.status, friendlyMessage(response.status));
   return response;
 }
 

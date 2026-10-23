@@ -1,5 +1,6 @@
 import type { PlannedMeal } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
+import { recipeMinutes } from '../utils/recipeTime';
 
 interface PlannerWeekMealCardProps {
   item: PlannedMeal;
@@ -8,7 +9,7 @@ interface PlannerWeekMealCardProps {
 }
 
 export default function PlannerWeekMealCard({ item, recipe, onEdit }: PlannerWeekMealCardProps) {
-  const totalMinutes = recipe ? recipe.prep_time + (recipe.cook_time ?? 0) : 0;
+  const totalMinutes = recipeMinutes(recipe);
   return (
     <button type="button" className="planner-week-card" onClick={() => onEdit(item)} aria-label={`Edit ${item.recipe.title} on ${item.cook_date}`}>
       {recipe?.image_url

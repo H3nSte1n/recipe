@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { usePlannedMeals } from './usePlannedMeals';
@@ -21,7 +22,7 @@ describe('usePlannedMeals', () => {
     rerender({ from: '2026-10-05', to: '2026-10-18' });
     await waitFor(() => expect(result.current.items.map((item) => item.id)).toEqual(['a', 'b']));
     expect(listAllPlannedMeals).toHaveBeenCalledTimes(2);
-    expect(listAllPlannedMeals).toHaveBeenLastCalledWith('2026-10-12', '2026-10-18');
+    expect(listAllPlannedMeals).toHaveBeenLastCalledWith('2026-10-12', '2026-10-18', expect.any(AbortSignal));
 
     rerender({ from: '2026-10-12', to: '2026-10-18' });
     expect(result.current.items.map((item) => item.id)).toEqual(['b']);
@@ -30,7 +31,7 @@ describe('usePlannedMeals', () => {
 
   it('loads a run of missing weeks in one request', async () => {
     renderHook(() => usePlannedMeals('2026-10-05', '2026-10-25'));
-    await waitFor(() => expect(listAllPlannedMeals).toHaveBeenCalledWith('2026-10-05', '2026-10-25'));
+    await waitFor(() => expect(listAllPlannedMeals).toHaveBeenCalledWith('2026-10-05', '2026-10-25', expect.any(AbortSignal)));
     expect(listAllPlannedMeals).toHaveBeenCalledTimes(1);
   });
 
@@ -38,8 +39,8 @@ describe('usePlannedMeals', () => {
     // 15 weeks: Monday 2026-09-21 to Sunday 2027-01-03 (105 days, over the API's 93-day limit).
     renderHook(() => usePlannedMeals('2026-09-21', '2027-01-03'));
     await waitFor(() => expect(listAllPlannedMeals).toHaveBeenCalledTimes(2));
-    expect(listAllPlannedMeals).toHaveBeenCalledWith('2026-09-21', '2026-12-20');
-    expect(listAllPlannedMeals).toHaveBeenCalledWith('2026-12-21', '2027-01-03');
+    expect(listAllPlannedMeals).toHaveBeenCalledWith('2026-09-21', '2026-12-20', expect.any(AbortSignal));
+    expect(listAllPlannedMeals).toHaveBeenCalledWith('2026-12-21', '2027-01-03', expect.any(AbortSignal));
   });
 
   it('ignores a response that arrives after a refresh and reloads', async () => {
@@ -61,6 +62,42 @@ describe('usePlannedMeals', () => {
     expect(result.current.loading).toBe(false);
     act(() => result.current.refresh());
     await waitFor(() => expect(result.current.items).toHaveLength(1));
+    expect(result.current.error).toBeNull();
+  });
+
+  it('refreshes only the given weeks and keeps showing the old meals meanwhile', async () => {
+    let second!: (value: PlannedMeal[]) => void;
+    vi.mocked(listAllPlannedMeals)
+      .mockResolvedValueOnce([meal('a', '2026-10-06'), meal('b', '2026-10-14')])
+      .mockImplementationOnce(() => new Promise((resolve) => { second = resolve; }));
+    const { result } = renderHook(() => usePlannedMeals('2026-10-05', '2026-10-18'));
+    await waitFor(() => expect(result.current.items).toHaveLength(2));
+
+    act(() => result.current.refresh(['2026-10-07']));
+    expect(result.current.items.map((item) => item.id)).toEqual(['a', 'b']);
+    expect(result.current.loading).toBe(false);
+    await waitFor(() => expect(listAllPlannedMeals).toHaveBeenCalledTimes(2));
+    expect(listAllPlannedMeals).toHaveBeenLastCalledWith('2026-10-05', '2026-10-11', expect.any(AbortSignal));
+
+    await act(async () => second([meal('c', '2026-10-08')]));
+    expect(result.current.items.map((item) => item.id)).toEqual(['c', 'b']);
+  });
+
+  it('aborts in-flight requests when the page unmounts', async () => {
+    const { unmount } = renderHook(() => usePlannedMeals('2026-10-05', '2026-10-11'));
+    await waitFor(() => expect(listAllPlannedMeals).toHaveBeenCalledTimes(1));
+    const signal = vi.mocked(listAllPlannedMeals).mock.calls[0][2];
+    expect(signal?.aborted).toBe(false);
+    unmount();
+    expect(signal?.aborted).toBe(true);
+  });
+
+  it('still loads when React StrictMode re-runs the mount effects', async () => {
+    vi.mocked(listAllPlannedMeals).mockImplementation((_from, _to, signal) => (
+      signal?.aborted ? Promise.reject(new DOMException('Aborted', 'AbortError')) : Promise.resolve([meal('a', '2026-10-06')])
+    ));
+    const { result } = renderHook(() => usePlannedMeals('2026-10-05', '2026-10-11'), { wrapper: StrictMode });
+    await waitFor(() => expect(result.current.items.map((item) => item.id)).toEqual(['a']));
     expect(result.current.error).toBeNull();
   });
 });

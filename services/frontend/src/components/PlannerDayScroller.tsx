@@ -3,7 +3,7 @@ import PlannerList from './PlannerList';
 import PlannerWeekStrip from './PlannerWeekStrip';
 import type { PlannedMeal } from '../types/plannedMeal';
 import type { Recipe } from '../types/recipe';
-import { topmostDate } from '../utils/plannerScroll';
+import { topmostDate, type DaySection } from '../utils/plannerScroll';
 
 // How close (px) to either end of the list before more weeks are added.
 const EDGE_DISTANCE = 600;
@@ -71,8 +71,14 @@ export default function PlannerDayScroller({ topbar, dates, items, recipesById, 
       const root = rootRef.current;
       if (!root) return;
       const headerEdge = headerBottom();
-      const sections = Array.from(root.querySelectorAll<HTMLElement>('[data-date]'));
-      const date = topmostDate(sections.map((section) => ({ date: section.dataset.date ?? '', bottom: section.getBoundingClientRect().bottom })), headerEdge);
+      // Sections are in date order, so stop measuring at the first one below the header.
+      const reached: DaySection[] = [];
+      for (const section of root.querySelectorAll<HTMLElement>('[data-date]')) {
+        const bottom = section.getBoundingClientRect().bottom;
+        reached.push({ date: section.dataset.date ?? '', bottom });
+        if (bottom > headerEdge) break;
+      }
+      const date = topmostDate(reached, headerEdge);
       if (date) {
         const top = sectionFor(date)?.getBoundingClientRect().top ?? headerEdge;
         anchor.current = { date, offset: top - headerEdge };

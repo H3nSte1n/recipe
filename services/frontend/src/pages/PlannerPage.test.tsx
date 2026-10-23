@@ -163,7 +163,7 @@ describe('planner day list (mobile)', () => {
     scrollPage();
     await waitFor(() => expect(sectionDates()).toHaveLength(77));
     expect(sectionDates()[0]).toBe(shiftWeek(firstBefore, -4));
-    await waitFor(() => expect(listAllPlannedMeals).toHaveBeenCalledWith(shiftWeek(firstBefore, -4), addDays(firstBefore, -1)));
+    await waitFor(() => expect(listAllPlannedMeals).toHaveBeenCalledWith(shiftWeek(firstBefore, -4), addDays(firstBefore, -1), expect.any(AbortSignal)));
   });
 
   it('adds weeks below when scrolled near the bottom', async () => {
@@ -237,7 +237,7 @@ describe('planner week view (desktop)', () => {
     render(<PlannerPage onRecipes={vi.fn()} onLogout={vi.fn()} />);
     expect(await screen.findByRole('heading', { name: weekRangeLabel(today) })).toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Meal calendar' })).not.toBeInTheDocument();
-    await waitFor(() => expect(listAllPlannedMeals).toHaveBeenCalledWith(week[0], week[6]));
+    await waitFor(() => expect(listAllPlannedMeals).toHaveBeenCalledWith(week[0], week[6], expect.any(AbortSignal)));
   });
 
   it('moves between weeks and back to today', async () => {

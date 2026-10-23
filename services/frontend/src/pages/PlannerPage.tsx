@@ -63,7 +63,7 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
       if (form.item) await updatePlannedMeal(form.item.id, input);
       else await createPlannedMeal(input);
       setForm(null);
-      refresh();
+      refresh(form.item ? [form.item.cook_date, input.cook_date] : [input.cook_date]);
     } catch (failure) {
       if (failure instanceof PlannedMealApiError && failure.status === 404) refresh();
       setFormError(failure instanceof Error ? failure.message : 'Could not save planned meal.');
@@ -83,7 +83,7 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
     try {
       await deletePlannedMeal(item.id);
       setForm(null);
-      refresh();
+      refresh([item.cook_date]);
     } catch (failure) {
       const message = failure instanceof Error ? failure.message : 'Could not delete planned meal.';
       if (form) setFormError(message);
@@ -109,7 +109,7 @@ export default function PlannerPage({ onRecipes, onLogout }: Props) {
         {recipeError && <p className="planner__error" role="alert">{recipeError}</p>}
         {actionError && <p className="planner__error" role="alert">{actionError}</p>}
         {loading && <p className={`planner__status${isDesktop ? '' : ' planner__status--floating'}`} role="status">Loading planned meals…</p>}
-        {error && !loading && <div className="planner__status" role="alert"><p>{error}</p><button type="button" onClick={refresh}>Retry</button></div>}
+        {error && !loading && <div className="planner__status" role="alert"><p>{error}</p><button type="button" onClick={() => refresh()}>Retry</button></div>}
         {isDesktop ? (
           <section className="planner__week-pane" aria-label="Week">
             <div className="planner__week-toolbar">

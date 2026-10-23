@@ -19,8 +19,13 @@ describe('planned meal service', () => {
     expect(fetchMock.mock.calls[0][1].signal).toBe(signal);
   });
 
-  it('provides status and safe server message on failure', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'No such meal' }), { status: 404 })));
-    await expect(listAllPlannedMeals('2026-10-01', '2026-10-31')).rejects.toEqual(new PlannedMealApiError(404, 'No such meal'));
+  it.each([
+    [400, 'Those meal details are not valid. Please check them and try again.'],
+    [403, 'Please verify your email before changing your meal plan.'],
+    [404, 'That planned meal or recipe no longer exists.'],
+    [500, 'Something went wrong on our side. Please try again.'],
+  ])('keeps the status and shows a friendly message for %i, never the server text', async (status, message) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'invalid recipe_id' }), { status })));
+    await expect(listAllPlannedMeals('2026-10-01', '2026-10-31')).rejects.toEqual(new PlannedMealApiError(status, message));
   });
 });
