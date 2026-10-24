@@ -2,6 +2,35 @@ import { Recipe, CreateRecipePayload } from '../types/recipe';
 import { getAuthHeaders } from './authService';
 import { apiFetch } from '../api/apiClient';
 
+export async function importRecipeFromURL(url: string, signal?: AbortSignal): Promise<Recipe> {
+  const response = await apiFetch('/api/v1/recipes/import/url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify({ url, is_private: false }),
+    signal,
+  });
+  if (!response.ok) {
+    throw new Error(`Import failed: ${response.status}`);
+  }
+  return response.json() as Promise<Recipe>;
+}
+
+export async function importRecipeFromPDF(file: File, signal?: AbortSignal): Promise<Recipe> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('is_private', 'false');
+  const response = await apiFetch('/api/v1/recipes/import/pdf', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: formData,
+    signal,
+  });
+  if (!response.ok) {
+    throw new Error(`Import failed: ${response.status}`);
+  }
+  return response.json() as Promise<Recipe>;
+}
+
 export async function createRecipe(payload: CreateRecipePayload, imageFile?: File | null): Promise<Recipe> {
   try {
     let response: Response;

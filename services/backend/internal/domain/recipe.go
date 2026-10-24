@@ -158,7 +158,7 @@ type ParsePlainTextInstructionsRequest struct {
 }
 
 type ImportPDFRequest struct {
-	IsPrivate bool `json:"is_private"`
+	IsPrivate bool `json:"is_private" form:"is_private"`
 	// PDF file will be handled by multipart form data
 }
 

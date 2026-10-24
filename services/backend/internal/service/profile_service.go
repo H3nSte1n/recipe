@@ -4,11 +4,14 @@ import (
 	"context"
 	"github.com/H3nSte1n/recipe/internal/domain"
 	"github.com/H3nSte1n/recipe/internal/errors"
+	"strings"
+	"unicode/utf8"
 )
 
 type profileRepository interface {
 	GetByUserID(ctx context.Context, userID string) (*domain.Profile, error)
 	Update(ctx context.Context, profile *domain.Profile) error
+	UpdateWithUser(ctx context.Context, profile *domain.Profile, firstName, lastName *string) error
 }
 
 type ProfileService interface {
@@ -27,6 +30,14 @@ func NewProfileService(profileRepo profileRepository) ProfileService {
 }
 
 func (s *profileService) UpdateProfile(ctx context.Context, userID string, req *domain.UpdateProfileRequest) (*domain.Profile, error) {
+	for _, name := range []*string{req.FirstName, req.LastName} {
+		if name != nil {
+			*name = strings.TrimSpace(*name)
+			if *name == "" || utf8.RuneCountInString(*name) > 100 {
+				return nil, errors.New("name must be between 1 and 100 characters", "INVALID_ARGUMENT")
+			}
+		}
+	}
 	profile, err := s.profileRepo.GetByUserID(ctx, userID)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -45,7 +56,12 @@ func (s *profileService) UpdateProfile(ctx context.Context, userID string, req *
 		profile.WebsiteURL = *req.WebsiteURL
 	}
 
-	if err := s.profileRepo.Update(ctx, profile); err != nil {
+	if req.FirstName != nil || req.LastName != nil {
+		err = s.profileRepo.UpdateWithUser(ctx, profile, req.FirstName, req.LastName)
+	} else {
+		err = s.profileRepo.Update(ctx, profile)
+	}
+	if err != nil {
 		return nil, err
 	}
 

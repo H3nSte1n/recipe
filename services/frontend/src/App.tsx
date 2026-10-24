@@ -3,8 +3,9 @@ import { isAuthenticated as checkAuth, logout as clearSession } from './services
 import LandingPage from './pages/LandingPage';
 import HomePage from './pages/HomePage';
 import PlannerPage from './pages/PlannerPage';
+import ProfilePage from './pages/ProfilePage';
 
-type Screen = 'landing' | 'home' | 'planner';
+type Screen = 'landing' | 'home' | 'planner' | 'profile';
 
 function App() {
   const [screen, setScreen] = useState<Screen>(checkAuth() ? 'home' : 'landing');
@@ -17,7 +18,17 @@ function App() {
   };
 
   if (screen === 'home') {
-    return <HomePage onLogout={handleLogout} onPlanner={() => setScreen('planner')} />;
+    return (
+      <HomePage
+        onLogout={handleLogout}
+        onPlanner={() => setScreen('planner')}
+        onProfile={() => setScreen('profile')}
+      />
+    );
+  }
+
+  if (screen === 'profile') {
+    return <ProfilePage onBack={() => setScreen('home')} onLogout={handleLogout} />;
   }
 
   if (screen === 'planner') {
