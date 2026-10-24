@@ -100,12 +100,13 @@ func TestPlannedMealMigrationAndRepository(t *testing.T) {
 	ctx := context.Background()
 	day := "2026-10-25"
 
-	// Recipe ownership: a user can lock only their own recipe, and sees its status.
-	_, err = repo.LockOwnedRecipe(ctx, u, s)
-	require.ErrorIs(t, err, internalErr.ErrNotFound)
-	recipe, err := repo.LockOwnedRecipe(ctx, u, r)
+	// Recipe ownership: a user can look up only their own recipe, and sees its status.
+	recipes := NewRecipeRepository(db)
+	_, err = recipes.GetOwnedSummary(ctx, u, s)
+	require.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	recipe, err := recipes.GetOwnedSummary(ctx, u, r)
 	require.NoError(t, err)
-	require.Equal(t, domain.PlannedMealRecipe{ID: r, Title: "Pasta", Status: "published"}, *recipe)
+	require.Equal(t, domain.RecipeSummary{ID: r, Title: "Pasta", Status: "published"}, *recipe)
 
 	// The database itself rejects a meal that points at someone else's recipe.
 	require.True(t, internalErr.IsInvalid(repo.Create(ctx, newMeal(u, s, day))))
@@ -222,7 +223,7 @@ func TestPlannedMealMigrationAndRepository(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "New title", updated.Recipe.Title)
 	require.Equal(t, "draft", updated.Recipe.Status)
-	recipe, err = repo.LockOwnedRecipe(ctx, u, r)
+	recipe, err = recipes.GetOwnedSummary(ctx, u, r)
 	require.NoError(t, err)
 	require.Equal(t, "draft", recipe.Status)
 
@@ -258,9 +259,6 @@ func TestPlannedMealTransactionRollsBack(t *testing.T) {
 	meal := newMeal(u, r, "2026-10-25")
 
 	err := repo.WithTypedTransaction(ctx, func(tx PlannedMealRepository) error {
-		if _, err := tx.LockOwnedRecipe(ctx, u, r); err != nil {
-			return err
-		}
 		if err := tx.Create(ctx, meal); err != nil {
 			return err
 		}
@@ -271,8 +269,8 @@ func TestPlannedMealTransactionRollsBack(t *testing.T) {
 	require.ErrorIs(t, err, internalErr.ErrNotFound)
 }
 
-// A recipe delete from another connection must wait for the planning transaction instead of
-// slipping in between the ownership check and the insert.
+// Once a meal is inserted, its foreign key keeps the recipe from being deleted until the planning
+// transaction ends, so a delete from another connection cannot slip in before the commit.
 func TestPlannedMealRecipeDeleteWaitsForPlanningTransaction(t *testing.T) {
 	db := plannedMealTestDatabase(t)
 	u, _, r, _ := plannedMealFixture(t, db)
@@ -288,7 +286,7 @@ func TestPlannedMealRecipeDeleteWaitsForPlanningTransaction(t *testing.T) {
 	meal := newMeal(u, r, "2026-10-25")
 	deleted := make(chan error, 1)
 	err = repo.WithTypedTransaction(ctx, func(tx PlannedMealRepository) error {
-		if _, err := tx.LockOwnedRecipe(ctx, u, r); err != nil {
+		if err := tx.Create(ctx, meal); err != nil {
 			return err
 		}
 		go func() { deleted <- other.Exec(`DELETE FROM recipes WHERE id = ?`, r).Error }()
@@ -297,7 +295,7 @@ func TestPlannedMealRecipeDeleteWaitsForPlanningTransaction(t *testing.T) {
 			t.Fatalf("recipe was deleted while the planning transaction held it (err=%v)", err)
 		case <-time.After(500 * time.Millisecond):
 		}
-		return tx.Create(ctx, meal)
+		return nil
 	})
 	require.NoError(t, err)
 

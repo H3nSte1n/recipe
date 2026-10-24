@@ -54,6 +54,12 @@ func (m *mockRecipeRepo) ListPublic(ctx context.Context, page, pageSize int) ([]
 	return v, args.Get(1).(int64), args.Error(2)
 }
 
+func (m *mockRecipeRepo) GetOwnedSummary(ctx context.Context, userID, id string) (*domain.RecipeSummary, error) {
+	args := m.Called(ctx, userID, id)
+	v, _ := args.Get(0).(*domain.RecipeSummary)
+	return v, args.Error(1)
+}
+
 func (m *mockRecipeRepo) Exists(ctx context.Context, id string) (bool, error) {
 	args := m.Called(ctx, id)
 	return args.Bool(0), args.Error(1)

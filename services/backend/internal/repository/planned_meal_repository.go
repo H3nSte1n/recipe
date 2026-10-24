@@ -12,9 +12,6 @@ import (
 )
 
 type PlannedMealRepository interface {
-	// LockOwnedRecipe returns the user's recipe and keeps it from being deleted until the
-	// surrounding transaction ends. It returns ErrNotFound when the user does not own it.
-	LockOwnedRecipe(ctx context.Context, userID, recipeID string) (*domain.PlannedMealRecipe, error)
 	GetByID(ctx context.Context, userID, id string) (*domain.PlannedMeal, error)
 	// GetByIDForUpdate is GetByID that also locks the meal row until the surrounding transaction ends.
 	GetByIDForUpdate(ctx context.Context, userID, id string) (*domain.PlannedMeal, error)
@@ -89,27 +86,13 @@ func plannedMealDBError(err error) error {
 	var pgErr *pgconn.PgError
 	if stderrors.As(err, &pgErr) {
 		switch pgErr.Code {
-		case "23503": // the recipe was deleted or is not owned by the user
+		case "23503": // the recipe was deleted, or is not owned by the user (composite foreign key)
 			return errors.New("recipe not found", "INVALID")
 		case "23514", "23502", "22001", "22007", "22008":
 			return errors.New("invalid planned meal", "INVALID")
 		}
 	}
 	return err
-}
-
-func (r *PlannedMealRepositoryImpl) LockOwnedRecipe(ctx context.Context, userID, recipeID string) (*domain.PlannedMealRecipe, error) {
-	var recipe domain.PlannedMealRecipe
-	result := r.DB.WithContext(ctx).
-		Raw(`SELECT id, title, status FROM recipes WHERE id = ? AND user_id = ? FOR KEY SHARE`, recipeID, userID).
-		Scan(&recipe)
-	if result.Error != nil {
-		return nil, plannedMealDBError(result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return nil, errors.ErrNotFound
-	}
-	return &recipe, nil
 }
 
 func (r *PlannedMealRepositoryImpl) GetByID(ctx context.Context, userID, id string) (*domain.PlannedMeal, error) {

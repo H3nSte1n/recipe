@@ -22,7 +22,7 @@ at the edges and can be replaced or tested without touching the rules.
 | Domain model carries GORM and JSON tags | `internal/domain/*` | Storage and wire formats shape the domain |
 | Services depend on `repository` package types (`repository.PlannedMealRepository` inside `WithTypedTransaction`) | `internal/service/*` | Service cannot be built or tested without the repository package |
 | Repository returns `AppError` values and maps Postgres codes | `internal/repository/*` | Persistence adapter decides HTTP-relevant error meaning |
-| Cross-aggregate rule (only published recipes can be planned) reads the `recipes` table through the planner repository | `LockOwnedRecipe` | Planner reaches into another aggregate's storage |
+| Service receives the whole `repository.RecipeRepository` for one lookup (`GetOwnedSummary`) | `services.go` | Port is narrow in the service, but the adapter is still the shared GORM repository |
 | IDs are raw strings end to end | all layers | Parsing and validation are scattered; invalid IDs surface late |
 | `userID == ""` check repeated in every handler | `internal/handler/*` | Auth identity is a loose string, not a typed value |
 
@@ -34,10 +34,7 @@ at the edges and can be replaced or tested without touching the rules.
    them; handlers translate them into HTTP statuses. `internal/errors` stays as the HTTP-facing helper.
 3. **Ports owned by the business layer.** The service package declares the repository interface it needs (it already does
    this with unexported interfaces) but with domain types only, and takes `uuid.UUID` identities parsed at the HTTP edge.
-4. **Recipe catalog port.** Replace the direct `recipes` query with a small port, for example
-   `OwnedRecipe(ctx, userID, recipeID) (RecipeSummary, error)`, implemented by the recipe repository. The transaction and
-   `FOR KEY SHARE` lock needs a design: either a unit-of-work port that spans both, or relying on the composite foreign key
-   (`(recipe_id, user_id)` → `recipes`) plus mapping the violation, and dropping the explicit lock.
+4. **Recipe catalog port.** Done: the service declares `plannedMealRecipeRepository.GetOwnedSummary`, implemented by the recipe repository. The explicit `FOR KEY SHARE` lock was dropped; the composite foreign key `(recipe_id, user_id)` stops a recipe delete racing an insert, and a violation is reported as "recipe not found".
 5. **Typed auth identity.** Middleware puts a parsed user ID in the context; handlers read it through one helper that
    returns 401, instead of repeating the empty-string check.
 6. **Move to a package-per-feature layout only if wanted.** Layer-per-package (today) and feature-per-package
@@ -56,8 +53,8 @@ at the edges and can be replaced or tested without touching the rules.
 - It touches every layer of every domain it is applied to; do it per domain, not in one change.
 - The repo's existing tests use `testify/mock` against `repository.*` interfaces. Moving ports into the service package
   changes those mocks.
-- The composite-foreign-key lock in the planner exists to stop a recipe deletion racing a plan write. Any change to how that
-  is done needs the integration test (`internal/repository/planned_meal_repository_integration_test.go`) to keep passing.
+- The composite foreign key stops a recipe deletion racing a plan write. Any change to it needs the integration test
+  (`internal/repository/planned_meal_repository_integration_test.go`) to keep passing.
 
 ## Done when
 

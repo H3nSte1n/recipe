@@ -50,6 +50,6 @@ func NewServices(repos *repository.Repositories, config config.Config, fileStora
 		RecipeService:       NewRecipeService(repos.RecipeRepository, repos.UserRepository, repos.AIConfigRepository, fileStorage, logger, &factory, urlParserService, pdfParserService, cipher, imageSigner),
 		ShoppingListService: NewShoppingListService(repos.ShoppingListRepository, repos.RecipeRepository, storeChainService, aiModel, logger),
 		StoreChainService:   storeChainService,
-		PlannedMealService:  NewPlannedMealService(repos.PlannedMealRepository),
+		PlannedMealService:  NewPlannedMealService(repos.PlannedMealRepository, repos.RecipeRepository),
 	}
 }

@@ -25,7 +25,6 @@ const (
 )
 
 type plannedMealRepository interface {
-	LockOwnedRecipe(ctx context.Context, userID, recipeID string) (*domain.PlannedMealRecipe, error)
 	GetByID(ctx context.Context, userID, id string) (*domain.PlannedMeal, error)
 	GetByIDForUpdate(ctx context.Context, userID, id string) (*domain.PlannedMeal, error)
 	CountByUser(ctx context.Context, userID string) (int64, error)
@@ -34,6 +33,11 @@ type plannedMealRepository interface {
 	Delete(ctx context.Context, userID, id string) error
 	List(ctx context.Context, userID, from, to string, limit, offset int) ([]domain.PlannedMeal, int64, error)
 	WithTypedTransaction(ctx context.Context, fn func(repository.PlannedMealRepository) error) error
+}
+
+// plannedMealRecipeRepository is the part of the recipe repository the planner needs.
+type plannedMealRecipeRepository interface {
+	GetOwnedSummary(ctx context.Context, userID, id string) (*domain.RecipeSummary, error)
 }
 
 type PlannedMealService interface {
@@ -45,11 +49,12 @@ type PlannedMealService interface {
 }
 
 type plannedMealService struct {
-	repo plannedMealRepository
+	repo    plannedMealRepository
+	recipes plannedMealRecipeRepository
 }
 
-func NewPlannedMealService(repo plannedMealRepository) PlannedMealService {
-	return &plannedMealService{repo: repo}
+func NewPlannedMealService(repo plannedMealRepository, recipes plannedMealRecipeRepository) PlannedMealService {
+	return &plannedMealService{repo: repo, recipes: recipes}
 }
 
 func invalidPlannedMeal(format string, args ...any) error {
@@ -62,14 +67,14 @@ func (s *plannedMealService) Create(ctx context.Context, userID string, req *dom
 		return nil, err
 	}
 
-	// The recipe row stays locked until the meal is written, so it cannot be deleted in between.
-	// The meal is read back in the same transaction so a delete right after commit cannot make a
-	// successful create look like a failure.
+	// A recipe deleted after this check makes the insert fail on the composite foreign key, which the
+	// repository reports as "recipe not found". The meal is read back in the same transaction so a
+	// delete right after commit cannot make a successful create look like a failure.
+	if err := s.requirePublishedRecipe(ctx, userID, meal.RecipeID); err != nil {
+		return nil, err
+	}
 	var created *domain.PlannedMeal
 	err = s.repo.WithTypedTransaction(ctx, func(tx repository.PlannedMealRepository) error {
-		if err := requirePublishedRecipe(ctx, tx, userID, meal.RecipeID); err != nil {
-			return err
-		}
 		total, err := tx.CountByUser(ctx, userID)
 		if err != nil {
 			return err
@@ -111,7 +116,7 @@ func (s *plannedMealService) Update(ctx context.Context, userID string, id strin
 		// A meal may keep the recipe it already points at even if that recipe was unpublished
 		// since; only switching to a different recipe requires a published one.
 		if current.RecipeID != meal.RecipeID {
-			if err := requirePublishedRecipe(ctx, tx, userID, meal.RecipeID); err != nil {
+			if err := s.requirePublishedRecipe(ctx, userID, meal.RecipeID); err != nil {
 				return err
 			}
 		}
@@ -171,8 +176,8 @@ func canonicalMealID(id string) (string, error) {
 	return parsed.String(), nil
 }
 
-func requirePublishedRecipe(ctx context.Context, repo plannedMealRepository, userID, recipeID string) error {
-	recipe, err := repo.LockOwnedRecipe(ctx, userID, recipeID)
+func (s *plannedMealService) requirePublishedRecipe(ctx context.Context, userID, recipeID string) error {
+	recipe, err := s.recipes.GetOwnedSummary(ctx, userID, recipeID)
 	if errors.IsNotFound(err) {
 		// Same answer for a missing and a foreign recipe, so ids of other users' recipes stay private.
 		return invalidPlannedMeal("recipe not found")
