@@ -9,6 +9,7 @@ type Repositories struct {
 	RecipeRepository       RecipeRepository
 	ShoppingListRepository ShoppingListRepository
 	StoreChainRepository   StoreChainRepository
+	PlannedMealRepository  PlannedMealRepository
 }
 
 func NewRepositories(db *gorm.DB) *Repositories {
@@ -19,5 +20,6 @@ func NewRepositories(db *gorm.DB) *Repositories {
 		RecipeRepository:       NewRecipeRepository(db),
 		ShoppingListRepository: NewShoppingListRepository(db),
 		StoreChainRepository:   NewStoreChainRepository(db),
+		PlannedMealRepository:  NewPlannedMealRepository(db),
 	}
 }

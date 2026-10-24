@@ -136,6 +136,15 @@ func (r *Router) setupProtectedRoutes(rg *gin.RouterGroup) {
 	// — see registration/email-verification remediation notes.
 	requireVerified := middleware.RequireVerified(r.handlers.UserHandler.IsEmailVerified)
 
+	plannedMeals := rg.Group("/planned-meals")
+	{
+		plannedMeals.POST("", requireVerified, r.handlers.PlannedMealHandler.Create)
+		plannedMeals.GET("", r.handlers.PlannedMealHandler.List)
+		plannedMeals.GET("/:id", r.handlers.PlannedMealHandler.Get)
+		plannedMeals.PUT("/:id", requireVerified, r.handlers.PlannedMealHandler.Update)
+		plannedMeals.DELETE("/:id", requireVerified, r.handlers.PlannedMealHandler.Delete)
+	}
+
 	users := rg.Group("/users")
 	{
 		users.GET("", r.handlers.ProfileHandler.Get)

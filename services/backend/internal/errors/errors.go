@@ -62,6 +62,16 @@ func IsUnauthorized(err error) bool {
 	return false
 }
 
+// IsInvalid reports whether err represents input that failed validation (HTTP 400). The AppError
+// message is written for clients, so handlers may return it as-is.
+func IsInvalid(err error) bool {
+	var appErr *AppError
+	if errors.As(err, &appErr) {
+		return appErr.Code == "INVALID"
+	}
+	return false
+}
+
 // IsLocked reports whether err represents an account temporarily locked out after too many
 // failed login attempts (see UserService.Login).
 func IsLocked(err error) bool {
@@ -79,6 +89,8 @@ func IsLocked(err error) bool {
 // text.
 func StatusCode(err error) int {
 	switch {
+	case IsInvalid(err):
+		return http.StatusBadRequest
 	case IsNotFound(err):
 		return http.StatusNotFound
 	case IsUnauthorized(err):

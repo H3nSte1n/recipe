@@ -14,6 +14,9 @@ type RecipeRepository interface {
 	ListByUserID(ctx context.Context, userID string, includePrivate bool) ([]domain.Recipe, error)
 	ListPublic(ctx context.Context, page, pageSize int) ([]domain.Recipe, int64, error)
 	Exists(ctx context.Context, id string) (bool, error)
+	// GetOwnedSummary returns the id, title and status of the user's recipe. It returns
+	// gorm.ErrRecordNotFound when the recipe does not exist or belongs to someone else.
+	GetOwnedSummary(ctx context.Context, userID, id string) (*domain.RecipeSummary, error)
 	WithTypedTransaction(ctx context.Context, fn func(RecipeRepository) error) error
 }
 
@@ -220,6 +223,16 @@ func (r *RecipeRepositoryImpl) ListPublic(ctx context.Context, page, pageSize in
 	}
 
 	return recipes, total, nil
+}
+
+func (r *RecipeRepositoryImpl) GetOwnedSummary(ctx context.Context, userID, id string) (*domain.RecipeSummary, error) {
+	var summary domain.RecipeSummary
+	err := r.DB.WithContext(ctx).Table("recipes").Select("id, title, status").
+		Where("id = ? AND user_id = ?", id, userID).Take(&summary).Error
+	if err != nil {
+		return nil, err
+	}
+	return &summary, nil
 }
 
 func (r *RecipeRepositoryImpl) Exists(ctx context.Context, id string) (bool, error) {

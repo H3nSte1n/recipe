@@ -25,7 +25,8 @@ Go REST API for recipe management. Gin framework, GORM ORM, PostgreSQL. Clean ar
 make dev              # Air hot-reload dev server at :8080
 make build            # Build binary to bin/
 make run              # Run without hot-reload
-make test             # go test -v ./...
+make test             # go test -v ./... (unit tests only)
+make test-integration # Postgres integration tests: ownership FK, row locks (needs Docker; CI runs these too)
 make test-coverage    # Tests with HTML coverage report
 make lint             # golangci-lint run
 make fmt              # go fmt ./...
@@ -58,6 +59,10 @@ Every domain follows the same pattern:
 7. **Routes** in `internal/router/router.go` — wires handler methods to Gin routes
 
 Aggregated in: `repositories.go`, `services.go`, `handlers.go`
+
+### Raw SQL in repositories
+
+A repository may use hand-written SQL (`DB.Raw` / `DB.Exec`) instead of GORM models when a model would fight the query, e.g. date-only columns that must stay `YYYY-MM-DD` strings or reads that always join another table. Keep it inside the repository, parameterize every value, and say why in a comment. `planned_meal_repository.go` is the example.
 
 ## Standards
 

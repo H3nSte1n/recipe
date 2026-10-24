@@ -7,14 +7,16 @@ interface HomeHeaderProps {
   onToggleView: () => void;
   onAddRecipe: () => void;
   onLogout: () => void;
+  onPlanner: () => void;
 }
 
-export default function HomeHeader({ view, query, onQueryChange, onToggleView, onAddRecipe, onLogout }: HomeHeaderProps) {
+export default function HomeHeader({ view, query, onQueryChange, onToggleView, onAddRecipe, onLogout, onPlanner }: HomeHeaderProps) {
   return (
     <header className="home-page__header">
       <div className="home-page__header-content">
         <SearchBar value={query} onChange={onQueryChange} />
         <div className="home-page__header-actions">
+          <button className="home-page__planner-btn" type="button" onClick={onPlanner}>Planner</button>
           <button
             className={`home-page__view-btn${view === 'graph' ? ' home-page__view-btn--active' : ''}`}
             type="button"

@@ -12,6 +12,7 @@ type Handlers struct {
 	RecipeHandler       *RecipeHandler
 	ShoppingListHandler *ShoppingListHandler
 	StoreChainHandler   *StoreChainHandler
+	PlannedMealHandler  *PlannedMealHandler
 }
 
 func NewHandlers(services *service.Services, logger *zap.Logger) *Handlers {
@@ -22,5 +23,6 @@ func NewHandlers(services *service.Services, logger *zap.Logger) *Handlers {
 		RecipeHandler:       NewRecipeHandler(services.RecipeService, logger),
 		ShoppingListHandler: NewShoppingListHandler(services.ShoppingListService, logger),
 		StoreChainHandler:   NewStoreChainHandler(services.StoreChainService, logger),
+		PlannedMealHandler:  NewPlannedMealHandler(services.PlannedMealService, logger),
 	}
 }
